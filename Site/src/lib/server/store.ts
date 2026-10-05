@@ -144,7 +144,10 @@ const locks = new Map<string, Promise<unknown>>()
 function withLock<T>(key: string, fn: () => Promise<T>) {
 	const run = (locks.get(key) ?? Promise.resolve()).then(fn, fn)
 	locks.set(key, run)
-	run.finally(() => locks.get(key) === run && locks.delete(key))
+	// cleanup on both outcomes; this chain also handles the rejection, which
+	// would otherwise be unhandled and crash the process
+	const cleanup = () => locks.get(key) === run && locks.delete(key)
+	run.then(cleanup, cleanup)
 	return run
 }
 

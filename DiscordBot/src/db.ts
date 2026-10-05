@@ -88,7 +88,10 @@ const locks = new Map<string, Promise<unknown>>()
 function withLock<T>(id: string, fn: () => Promise<T>) {
 	const run = (locks.get(id) ?? Promise.resolve()).then(fn, fn)
 	locks.set(id, run)
-	run.finally(() => locks.get(id) === run && locks.delete(id))
+	// cleanup on both outcomes; this chain also handles the rejection, which
+	// would otherwise be unhandled and crash the process
+	const cleanup = () => locks.get(id) === run && locks.delete(id)
+	run.then(cleanup, cleanup)
 	return run
 }
 
