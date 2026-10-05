@@ -2,7 +2,6 @@
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import { superForm } from "$lib/validate"
-	import Select from "$components/forms/Select.svelte"
 
 	const {
 		data
@@ -28,23 +27,20 @@
 		name="dedicated"
 		label="Dedicated server"
 		type="checkbox" />
-	<Input
-		{formData}
-		disabled={$form.dedicated}
-		name="serverAddress"
-		label="Address" />
-	<Input
-		{formData}
-		disabled={$form.dedicated}
-		name="serverPort"
-		label="Port"
-		type="number"
-		help="Using a port number lower than 49152 may not work correctly." />
-	<Select
-		{formData}
-		name="clientVersion"
-		label="Client version"
-		options={data.clientVersions}
-		selected={data.clientVersion} />
+	<!-- selfhosted server addresses are only relevant to administrators -->
+	{#if data.user.permissionLevel >= 5}
+		<Input
+			{formData}
+			disabled={$form.dedicated}
+			name="serverAddress"
+			label="Address" />
+		<Input
+			{formData}
+			disabled={$form.dedicated}
+			name="serverPort"
+			label="Port"
+			type="number"
+			help="Using a port number lower than 49152 may not work correctly." />
+	{/if}
 	<Input {formData} name="maxPlayers" label="Server limit" type="number" />
 </Form>

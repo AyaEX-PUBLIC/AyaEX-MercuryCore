@@ -12,8 +12,9 @@ import equipDataQuery from "./equipData.surql"
 import hatsEquippedQuery from "./hatsEquipped.surql"
 import unequipQuery from "./unequip.surql"
 
-// Heads, Faces, T-Shirts, Shirts, Pants, Gear, Hats
-const oneEquippable = Object.freeze([2, 11, 12, 18])
+// T-Shirts, Shirts, Pants, Faces and each body part slot: one at a time
+// (plus Heads, Gear and Hats)
+const oneEquippable = Object.freeze([2, 11, 12, 18, 27, 28, 29, 30, 31])
 const allowedTypes = Object.freeze(oneEquippable.concat([8, 17, 19]))
 const bodyParts = Object.freeze([
 	"Head",

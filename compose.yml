@@ -1,13 +1,19 @@
 # Config file for compose, a tool that allows for easily managing multiple containers.
 # https://docs.docker.com/compose/
 
+# Aya deployment: the Site and Caddy share the host network so they can reach
+# the natively running Orbiter (64991/64992) and RCC proxy (64990), which
+# manage native Aya.Server gameservers. See aya/README.md.
+
 services:
     database:
         # not :nightly because doing that once caused failures when graph linking
         # and also caused errors with query parameters (twice)
         build: ./Database
+        # run as the owner of ./data so the bind-mounted files stay accessible
+        user: ${AYA_DATA_UID:-1000}:${AYA_DATA_GID:-1000}
         ports:
-            - 8000:8000
+            - 127.0.0.1:8000:8000
         restart: unless-stopped
         volumes:
             - ./data/surreal:/database
@@ -20,16 +26,52 @@ services:
     economy:
         build: ./Economy
         ports:
-            - 2009:2009
+            - 127.0.0.1:2009:2009
         restart: unless-stopped
         volumes:
             - ./data/economy:/data/economy
 
     site:
         build: .
-        ports:
-            - 4443:4443
+        network_mode: host
+        user: ${AYA_DATA_UID:-1000}:${AYA_DATA_GID:-1000}
         restart: unless-stopped
+        # PORT and ORIGIN are read at runtime, not only at build time
+        env_file: Site/.env
+        volumes:
+            # the Site reads ../data relative to /app/Site
+            - ./data:/app/data
+            # Aya's local asset library, a fallback for assets Mercury doesn't have
+            - ${AYA_ASSETS_HOST_DIR:-../aya-dev/assets}:/aya-assets:ro
+        environment:
+            AYA_ASSETS_DIR: /aya-assets
+            # the Aya API (aya-dev compose) fetches Roblox assets Mercury and the
+            # local library don't have; set empty to disable
+            AYA_ASSET_FALLBACK_URL: ${AYA_ASSET_FALLBACK_URL-http://localhost:8005}
         depends_on:
             - database # will keep retrying until database is ready
             - economy
+
+    caddy:
+        image: caddy:2
+        network_mode: host
+        restart: unless-stopped
+        volumes:
+            - ./Caddyfile.aya:/etc/caddy/Caddyfile:ro
+            # the unified Aya WebAssembly runtime (Player)
+            - ${AYA_APP_DIST_DIR:-../aya-dev/build/wasm-app-rel/bin}:/srv/runtime:ro
+        depends_on:
+            - site
+
+    # Discord bot handing out registration keys (DiscordBot/README.md).
+    # Fill in DiscordBot/.env, then: docker compose --profile discord up -d --build discordbot
+    discordbot:
+        build: ./DiscordBot
+        profiles: [discord]
+        restart: unless-stopped
+        env_file: DiscordBot/.env
+        volumes:
+            # key prefix and site name come from Mercury's config
+            - ./mercury.core.ts:/app/mercury.core.ts:ro
+        depends_on:
+            - database

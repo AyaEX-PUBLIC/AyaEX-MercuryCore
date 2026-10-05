@@ -30,6 +30,7 @@
 		"T-Shirts": 2,
 		Shirts: 11,
 		Pants: 12,
+		"Body Parts": 27,
 		Gear: 19
 	})
 	let tabData = $state(TabData(data.url, Object.keys(tabTypes)))
@@ -56,7 +57,9 @@
 		data.assets.filter(a =>
 			tabData.currentTab === "Recent"
 				? true
-				: a.type === tabTypes[tabData.currentTab]
+				: tabTypes[tabData.currentTab] === 27
+					? a.type >= 27 && a.type <= 31 // all body part slots
+					: a.type === tabTypes[tabData.currentTab]
 		)
 	)
 </script>

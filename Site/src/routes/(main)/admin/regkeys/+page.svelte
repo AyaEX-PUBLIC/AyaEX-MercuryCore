@@ -82,6 +82,8 @@
 					<th scope="col">Registration key</th>
 					<th scope="col">Uses left</th>
 					<th scope="col">Creator</th>
+					<th scope="col">Discord</th>
+					<th scope="col">Used by</th>
 					<th scope="col">Created</th>
 				</tr>
 			</thead>
@@ -107,6 +109,14 @@
 								<User user={regKey.creator} full thin />
 							{:else}
 								<em>Nobody</em>
+							{/if}
+						</td>
+						<td title={regKey.discordId}>
+							{regKey.discordName || ""}
+						</td>
+						<td>
+							{#if regKey.usedBy}
+								<a href="/user/{regKey.usedBy}">{regKey.usedBy}</a>
 							{/if}
 						</td>
 						<td>

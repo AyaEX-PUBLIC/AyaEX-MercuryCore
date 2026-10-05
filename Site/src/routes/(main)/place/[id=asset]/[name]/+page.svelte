@@ -37,8 +37,10 @@
 		| "ready"
 		| "success"
 		| "fail"
+		| "noplacefile"
 
 	let popover = $state<HTMLDivElement>()
+	let closeStatus = $state<"" | "closing" | "closed" | "failed">("")
 	let current = $state<State>("not installed")
 
 	function privateFetchParams() {
@@ -48,6 +50,13 @@
 	}
 
 	const launch = (joinscripturl: () => string) => {
+		const url = joinscripturl()
+		if (url.startsWith("/")) {
+			// browser Player, not a launcher protocol
+			current = "success"
+			window.location.href = url
+			return
+		}
 		customProtocol(
 			joinscripturl(),
 			() => {
@@ -73,7 +82,13 @@
 			}
 
 			try {
-				await fetch(`${currentPath}?/start`, privateFetchParams())
+				const res = await fetch(`${currentPath}?/start`, privateFetchParams())
+				// the action errors before contacting the Orbiter, e.g. with 404
+				// when no place file has been uploaded yet
+				if (!res.ok) {
+					current = res.status === 404 ? "noplacefile" : "fail"
+					return
+				}
 			} catch {
 				current = "fail"
 				return
@@ -113,9 +128,13 @@
 		}
 		if (joinScriptData.status !== 200) return
 
-		// JoinScript is my favourite programming language (-i mean scripting language)
-		const joinUri = data.scheme + data.clientVersion + joinScriptData.data.ticket
-		beginJoining(() => joinUri, true)()
+		// The Aya Player runs in the browser: it fetches the join script itself,
+		// authenticated by the session cookie (?/join above registered this
+		// session), so no ticket goes in the URL
+		const joinScriptUrl = `/game/join/aya?placeId=${place.id}`
+		const separator = data.webPlayerURL.includes("?") ? "&" : "?"
+		const playerUrl = `${data.webPlayerURL}${separator}joinScriptUrl=${encodeURIComponent(joinScriptUrl)}`
+		beginJoining(() => playerUrl, true)()
 	}
 
 	const tabs = ["Description", "Servers"]
@@ -212,8 +231,12 @@
 						place = p
 					})}
 					method="post"
-					action="/api/like/place/{place.id}?privateTicket={place.privateTicket}"
+					action="?/like"
 					class="w-full pt-4 px-0 pb-2">
+					<input
+						type="hidden"
+						name="privateTicket"
+						value={place.privateTicket} />
 					<div class="flex justify-between pb-2">
 						<button
 							name="action"
@@ -306,15 +329,36 @@
 					class="btn btn-sm btn-primary">
 					Join server
 				</button>
-				{#if isOwner && tabs.includes("Selfhosted") || user.permissionLevel === 5}
+				{#if isOwner || user.permissionLevel >= 4}
 					<form
-						use:enhance
+						use:enhance={() => {
+							closeStatus = "closing"
+							return async ({ result }) => {
+								if (result.type === "success") {
+									closeStatus = "closed"
+									place.serverPing = 0
+									place.players = []
+								} else closeStatus = "failed"
+							}
+						}}
 						method="post"
 						action="?/close"
 						class="pt-2">
-						<button id="close" class="btn btn-sm btn-red-secondary">
-							Close server
+						<input
+							type="hidden"
+							name="privateTicket"
+							value={place.privateTicket} />
+						<button
+							id="close"
+							class="btn btn-sm btn-red-secondary"
+							disabled={closeStatus === "closing"}>
+							{closeStatus === "closing" ? "Closing..." : "Close server"}
 						</button>
+						{#if closeStatus === "closed"}
+							<small class="block pt-1 text-emerald-500">Server closed</small>
+						{:else if closeStatus === "failed"}
+							<small class="block pt-1 text-red-500">Failed to close the server</small>
+						{/if}
 					</form>
 				{/if}
 			</div>
@@ -431,6 +475,11 @@
 			<span class="text-xl pt-6">
 				The server for "{place.name}" is ready! Launching the game...
 			</span>
+		{:else if current === "noplacefile"}
+			<span class="text-xl pt-6">
+				"{place.name}" doesn't have a place file yet. Upload one in the
+				place settings to start a server.
+			</span>
 		{:else if current === "fail"}
 			<span class="text-xl pt-6">
 				Failed to start the server for "{place.name}". Please try again
@@ -438,13 +487,8 @@
 			</span>
 		{:else}
 			<span class="text-xl pt-6">
-				Install the {data.siteName} client and start playing now!
+				Couldn't open the {data.siteName} Player. Please try again.
 			</span>
-			<a
-				class="btn btn-primary"
-				href="https://setup.{data.domain}/{data.siteName}PlayerLauncher.exe">
-				Download 2013
-			</a>
 		{/if}
 	</div>
 </div>

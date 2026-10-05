@@ -1,4 +1,9 @@
+import { env } from "$env/dynamic/private"
 import config from "./config"
+
+// The webhook URL is a secret: set it as DISCORD_MODERATION_WEBHOOK in
+// Site/.env. Logging.DiscordModerationWebhook in mercury.core.ts is a fallback.
+import { siteOrigin } from "./origin"
 
 export type ModerationDiscordWebhookPayload = {
 	username: string
@@ -13,7 +18,7 @@ export async function sendModerationDiscordWebhook({
 	action,
 	reason,
 	moderatorUsername = "System",
-	webhookUrl = config.Logging.DiscordModerationWebhook,
+	webhookUrl = env.DISCORD_MODERATION_WEBHOOK || config.Logging.DiscordModerationWebhook,
 }: ModerationDiscordWebhookPayload) {
 	if (!webhookUrl || webhookUrl.includes("123456789012345678/abcdefghijklmnopqrstuvwxyz"))
 		return
@@ -48,5 +53,77 @@ export async function sendModerationDiscordWebhook({
 			)
 	} catch (error) {
 		console.error("Failed to send moderation Discord webhook:", error)
+	}
+}
+
+export type RegistrationDiscordWebhookPayload = {
+	username: string
+	regKey?: string // id, without the prefix
+	discordId?: string
+	discordName?: string
+	initialAccount?: boolean
+	webhookUrl?: string
+}
+
+/**
+ * Logs a new account to the same Discord webhook as moderation actions.
+ */
+export async function sendRegistrationDiscordWebhook({
+	username,
+	regKey,
+	discordId,
+	discordName,
+	initialAccount = false,
+	webhookUrl = env.DISCORD_MODERATION_WEBHOOK || config.Logging.DiscordModerationWebhook,
+}: RegistrationDiscordWebhookPayload) {
+	if (!webhookUrl || webhookUrl.includes("123456789012345678/abcdefghijklmnopqrstuvwxyz"))
+		return
+
+	const fields = [
+		{
+			name: "Account",
+			value: `[${username}](${siteOrigin()}/user/${encodeURIComponent(username)})`,
+			inline: true,
+		},
+		{
+			name: "Discord",
+			value: discordId ? `<@${discordId}> (${discordName ?? "?"})` : "Not linked",
+			inline: true,
+		},
+		{
+			name: "Registration key",
+			value: initialAccount
+				? "None (first account, administrator)"
+				: regKey
+					? `\`${config.Registration.Keys.Prefix}${regKey}\``
+					: "None (keys disabled)",
+			inline: false,
+		},
+	]
+
+	try {
+		const response = await fetch(webhookUrl, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				allowed_mentions: { parse: [] }, // show the Discord user, don't ping them
+				embeds: [
+					{
+						color: 0x10b981,
+						title: "New registration",
+						description: `**${username}** created an account.`,
+						fields,
+						timestamp: new Date().toISOString(),
+					},
+				],
+			}),
+		})
+
+		if (!response.ok)
+			console.error(
+				`Failed to send registration Discord webhook: ${response.status} ${response.statusText}`
+			)
+	} catch (error) {
+		console.error("Failed to send registration Discord webhook:", error)
 	}
 }

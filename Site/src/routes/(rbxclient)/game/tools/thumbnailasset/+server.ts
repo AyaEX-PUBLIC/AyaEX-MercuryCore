@@ -3,8 +3,11 @@
 import { error, redirect } from "@sveltejs/kit"
 import { db, Record } from "$lib/server/surreal"
 import cachedAssetQuery from "./cache.surql"
+import { requireAssetAccess } from "$lib/server/assetAuth"
 
-export async function GET({ fetch: f, url }) {
+export async function GET({ fetch: f, url, locals, request }) {
+	requireAssetAccess(locals, request)
+
 	const width = +(url.searchParams.get("wd") as string)
 	const height = +(url.searchParams.get("ht") as string)
 	const assetId = +(url.searchParams.get("aid") as string)

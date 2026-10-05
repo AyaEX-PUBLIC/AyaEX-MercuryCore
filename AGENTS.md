@@ -1,0 +1,58 @@
+# MercuryCore (Aya fork): agent instructions
+
+Mercury Core site running with the Aya stack: the Aya WebAssembly Player in the
+browser and native Aya.Server gameservers/renderers. Read `aya/README.md` for
+the deployment, and `DiscordBot/README.md` for the Discord bot.
+
+## Always commit and push
+
+- **Commit and push every change to this repository as soon as it's done and
+  verified**: one commit per addition or fix, with a message saying what changed
+  and why. Don't leave work uncommitted or unpushed.
+- Remote `origin` is `http://192.168.1.44:3006/Mercury-AyaWASM/MercuryCore.git`
+  (branch `main`; the local branch tracks it, so `git push` works). `upstream`
+  is the original `tp-link-extender/MercuryCore`.
+- The companion repo `../MercuryRCC` (Orbiter + RCC proxy) follows the same
+  rule. Changes there are committed and pushed there.
+
+## Never commit secrets
+
+These stay out of git (they're ignored; keep it that way):
+
+- `Site/.env`: `RCC_KEY`, `GAMESERVER_KEY`, `ASSET_KEY` and
+  `DISCORD_MODERATION_WEBHOOK`. Secrets belong in `.env` files, never in
+  `mercury.core.ts`.
+- `DiscordBot/.env`: the bot token.
+- `data/`: the database, places, assets, `PrivateKey.pem` and test accounts.
+
+Before committing, check the diff for tokens, keys, webhook URLs and cookies.
+
+## Layout
+
+| Path | What |
+| --- | --- |
+| `mercury.core.ts` | Site configuration (baked into the Site image) |
+| `Site/` | SvelteKit site; `Site/src/lib/server/init.surql` is the database schema, applied on startup |
+| `Caddyfile.aya` | reverse proxy on :8010 (`/runtime` = Aya player, `/gameserver/*` and `/orbiter/*` = Orbiter) |
+| `compose.yml` | database, economy, site, caddy, and `discordbot` (profile `discord`) |
+| `aya/` | `data/` templates (`setup-data.sh`), `set-domain.sh`, `import-aya-catalog.py`, README |
+| `DiscordBot/` | Bun + discord.js bot: `/invite`, `/getuser`, `/autoadd` |
+
+## Working on it
+
+- Rebuild the Site after code or `mercury.core.ts` changes:
+  `docker compose up -d --build site`. Changes to `Site/.env` only need
+  `docker compose up -d --force-recreate site`.
+- Bot: `docker compose --profile discord up -d --build discordbot`. Typecheck it
+  with `bunx tsc --noEmit` in `DiscordBot/`.
+- Change the public address with `aya/set-domain.sh <url>`. It keeps `Domain`,
+  `DomainInsecure`, `ORIGIN` and the Aya.Server allowlist in sync. Afterwards,
+  restart the RCC services while nobody is playing.
+- The database runs in strict mode: define new tables and fields
+  (`DEFINE ... OVERWRITE`) before using them. In a `SELECT`, the `ORDER BY`
+  field must also be selected.
+- Asset routes need a session or the `accesskey` header (`ASSET_KEY`).
+  Aya.Server sends it via `--httpAccessKey`.
+- Test with temporary places and accounts, and delete them afterwards. Don't
+  restart the RCC services or the Site while players are in games without
+  checking first (`curl localhost:64991/` lists running gameservers).

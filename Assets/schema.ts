@@ -24,6 +24,10 @@ export type Config = {
 	 */
 	LauncherURI: string
 	/**
+	 * The path of the browser Player to open when joining a game, such as the Aya WebAssembly Player. The join script URL is appended as a `joinScriptUrl` query parameter.
+	 */
+	WebPlayerURL: string
+	/**
 	 * The symbol for your revival's currency. Placed before the amount.
 	 */
 	CurrencySymbol: string
@@ -65,7 +69,7 @@ export type Config = {
 		 */
 		PrivateURL: string
 		/**
-		 * The URL of your Orbiter gameserver hoster, exposing the public API for use by a user's browser. Requires a URL scheme.
+		 * The URL of your Orbiter gameserver hoster, exposing the public API for use by a user's browser. Either a full URL with a scheme, or a path on the Site (such as "/orbiter") when the Site's reverse proxy forwards it.
 		 */
 		PublicURL: string
 	}

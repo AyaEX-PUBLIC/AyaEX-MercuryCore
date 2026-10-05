@@ -135,7 +135,7 @@ DEFINE TABLE OVERWRITE place SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON place TYPE int;
 	DEFINE FIELD OVERWRITE created ON place TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE dedicated ON place TYPE bool DEFAULT ALWAYS false;
-	DEFINE FIELD OVERWRITE clientVersion ON place TYPE int DEFAULT ALWAYS 2013;
+	DEFINE FIELD OVERWRITE clientVersion ON place TYPE int DEFAULT ALWAYS 2016;
 	DEFINE FIELD OVERWRITE deleted ON place TYPE bool DEFAULT false;
 	DEFINE FIELD OVERWRITE description ON place TYPE array<object> DEFAULT ALWAYS [];
 	DEFINE FIELD OVERWRITE description.*.text ON place TYPE string;
@@ -173,6 +173,10 @@ DEFINE TABLE OVERWRITE regKey SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE creator ON regKey TYPE record<user>;
 	DEFINE FIELD OVERWRITE expiry ON regKey TYPE option<datetime>; # null -> NULL, undefined -> NONE
 	DEFINE FIELD OVERWRITE usesLeft ON regKey TYPE int;
+	# set for keys handed out by the Discord bot (DiscordBot/), one per Discord account
+	DEFINE FIELD OVERWRITE discordId ON regKey TYPE option<string>;
+	DEFINE FIELD OVERWRITE discordName ON regKey TYPE option<string>;
+	DEFINE INDEX OVERWRITE regKeyDiscordId ON regKey FIELDS discordId;
 
 DEFINE TABLE OVERWRITE render SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON render TYPE string;

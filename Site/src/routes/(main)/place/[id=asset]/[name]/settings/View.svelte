@@ -28,6 +28,13 @@
 		label="Place icon"
 		type="file"
 		accept="image/*" />
+	<Input
+		{formData}
+		name="thumbnail"
+		label="Place thumbnail"
+		type="file"
+		accept="image/*"
+		help="Shown on the place page, cropped to 16:9 (1280×720)." />
 
 	<hr class="grey-text pb-6" />
 

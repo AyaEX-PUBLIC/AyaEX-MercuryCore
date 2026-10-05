@@ -1,0 +1,89 @@
+# Local Mercury Core + Aya deployment, served at http://localhost:8010.
+# localhost is a secure context, so the multithreaded Aya WebAssembly Player
+# works over plain HTTP. For a public deployment, use an HTTPS site address and
+# set ORIGIN/Domain to match.
+
+:8010 {
+	# Unified Aya WebAssembly runtime. Multithreaded Wasm needs cross-origin
+	# isolation, so the launcher and its assets carry COOP/COEP.
+	@runtimeAll path /runtime /runtime/ /runtime/*
+	header @runtimeAll {
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Embedder-Policy "require-corp"
+		Cross-Origin-Resource-Policy "same-origin"
+	}
+
+	@runtimeLauncher path /runtime /runtime/
+	handle @runtimeLauncher {
+		header Cache-Control "no-store"
+		root * /srv/runtime
+		rewrite * /Aya.App.html
+		file_server
+	}
+	handle_path /runtime/* {
+		# versioned URLs are immutable; anything else revalidates
+		@versioned query v=*
+		header @versioned Cache-Control "public, max-age=31536000, immutable, no-transform"
+		@unversioned not query v=*
+		header @unversioned Cache-Control "no-cache"
+		root * /srv/runtime
+		@unknownRuntimeAsset not path /Aya.App.js /Aya.App.wasm /Aya.App.data /Aya.App.Brand.png /Aya.GameWebRtc.js /Aya.App.StreamingFrame.js /Aya.Diagnostics.js
+		respond @unknownRuntimeAsset 404
+		file_server
+	}
+
+	# Game connections: the Orbiter proxies a WebSocket to the native
+	# Aya.Server hosting that place, only while it is running.
+	@gameserver path_regexp gameserver ^/gameserver/([0-9]+)$
+	handle @gameserver {
+		rewrite * /play/{re.gameserver.1}
+		reverse_proxy 127.0.0.1:64992
+	}
+
+	# Orbiter public status (server-sent events while a gameserver starts)
+	handle_path /orbiter/* {
+		reverse_proxy 127.0.0.1:64992 {
+			flush_interval -1
+		}
+	}
+
+	# Mercury Core Site, with the client compatibility rewrites from Site/Caddyfile
+	handle {
+		rewrite /Asset /asset
+		rewrite /Asset/ /asset
+		rewrite /Asset/Default.ashx /asset
+
+		rewrite /Game/Studio.ashx /game/studio
+		rewrite /Game/Visit.ashx /game/visit
+		rewrite /Game/Join.ashx /game/join
+		rewrite /game/gameserver.ashx /game/gameserver
+		rewrite /Game/MachineConfiguration.ashx /game/machineconfiguration
+		rewrite /Game/ClientPresence /game/clientpresence
+		rewrite /Game/ServerPresence /game/serverpresence
+		rewrite /Game/Host /game/host
+		rewrite /Asset/GetScriptState.ashx /asset/getscriptstate
+		rewrite /Game/Tools/InsertAsset.ashx /game/tools/insertasset
+		rewrite /Game/Tools/ThumbnailAsset.ashx /game/tools/thumbnailasset
+		rewrite /UploadMedia/PostImage.aspx /studio/uploadmedia/screenshot
+		rewrite /asset/bodycolors.ashx /asset/bodycolors
+		rewrite /Game/PlaceLauncher.ashx /game/placelauncher
+
+		rewrite /Setting/QuietGet/ClientSharedSettings/* /api/clientsharedsettings/2016
+		rewrite /Setting/QuietGet/ClientSharedSettings /api/clientsharedsettings/2016
+		rewrite /Setting/QuietGet/ClientAppSettings/* /api/clientappsettings/2016
+		rewrite /Setting/QuietGet/ClientAppSettings /api/clientappsettings/2016
+		rewrite /Setting/QuietGet/AndroidAppSettings/* /api/clientappsettings/2016
+		rewrite /Setting/QuietGet/AndroidAppSettings /api/clientappsettings/2016
+
+		rewrite /GetAllowedSecurityVersions/* /api/getallowedsecurityversions
+		rewrite /GetAllowedSecurityVersions /api/getallowedsecurityversions
+		rewrite /GetAllowedMD5Hashes/* /api/getallowedmd5hashes
+		rewrite /GetAllowedMD5Hashes /api/getallowedmd5hashes
+
+		rewrite /Error/Dmp.ashx /dmp
+
+		rewrite /universes/validate-place-join /api/validateplacejoin
+
+		reverse_proxy 127.0.0.1:4443
+	}
+}

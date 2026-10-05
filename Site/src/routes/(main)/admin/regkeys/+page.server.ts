@@ -31,6 +31,9 @@ type RegKey = {
 	usesLeft: number
 	expiry: string
 	creator?: BasicUser
+	discordId?: string
+	discordName?: string
+	usedBy?: string
 }
 
 export async function load({ locals }) {

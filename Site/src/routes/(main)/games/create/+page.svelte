@@ -2,10 +2,8 @@
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import Textarea from "$components/forms/Textarea.svelte"
-	import Select from "$components/forms/Select.svelte"
 	import Head from "$components/Head.svelte"
 	import { superForm } from "$lib/validate"
-	import clientVersions from "./clientVersions"
 
 	// import beautifyCurrency from "$lib/beautifyCurrency"
 
@@ -35,30 +33,27 @@
 		name="description"
 		label="Description"
 		placeholder="Up to 1000 characters" />
-	<Input
-		{formData}
-		name="serverAddress"
-		label="Server IP"
-		placeholder="You can use a URL instead of an IP if you wish" />
-	<Input
-		{formData}
-		type="number"
-		name="serverPort"
-		label="Server port"
-		placeholder="1024-65536"
-		help="Using a port number lower than 49152 may not work correctly." />
+	<!-- selfhosted server addresses are only relevant to administrators -->
+	{#if data.user.permissionLevel >= 5}
+		<Input
+			{formData}
+			name="serverAddress"
+			label="Server IP"
+			placeholder="You can use a URL instead of an IP if you wish" />
+		<Input
+			{formData}
+			type="number"
+			name="serverPort"
+			label="Server port"
+			placeholder="1024-65536"
+			help="Using a port number lower than 49152 may not work correctly." />
+	{/if}
 	<Input
 		{formData}
 		type="number"
 		name="maxPlayers"
 		label="Player limit"
 		placeholder="1-99 players" />
-	<Select
-		{formData}
-		options={clientVersions}
-		name="clientVersion"
-		selected={data.clientVersion}
-		label="Client version " />
 	<Input
 		{formData}
 		type="checkbox"

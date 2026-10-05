@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto"
+import { readdirSync } from "node:fs"
+import { env } from "$env/dynamic/private"
 import { error } from "@sveltejs/kit"
 import { OPEN_CLOUD_KEY } from "$env/static/private"
 import { intRegex } from "$lib/paramTests"
@@ -6,6 +8,7 @@ import config from "$lib/server/config"
 import { db, Record } from "$lib/server/surreal"
 import { isXML } from "$lib/server/xml"
 import assetQuery from "./asset.surql"
+import { requireAssetAccess } from "$lib/server/assetAuth"
 
 const headers = (file: string | Uint8Array) => ({
 	"Content-Type": "binary/octet-stream",
@@ -74,6 +77,63 @@ async function loadPlaceAsset(id: number) {
 	return response(script)
 }
 
+// Aya's local asset library (files named <id> or <id>.<ext>, as served by the
+// Aya API), used for assets Mercury doesn't have, such as default animations
+let ayaAssetIndex: Map<number, string> | undefined
+
+function ayaAssetPath(id: number) {
+	const dir = env.AYA_ASSETS_DIR
+	if (!dir) return
+	if (!ayaAssetIndex) {
+		ayaAssetIndex = new Map()
+		try {
+			for (const name of readdirSync(dir)) {
+				const assetId = +name.split(".")[0]
+				if (Number.isSafeInteger(assetId) && assetId > 0)
+					ayaAssetIndex.set(assetId, `${dir}/${name}`)
+			}
+		} catch (e) {
+			console.error("Failed to index AYA_ASSETS_DIR", e)
+		}
+	}
+	return ayaAssetIndex.get(id)
+}
+
+async function loadAyaAsset(id: number) {
+	const path = ayaAssetPath(id)
+	if (!path) return
+
+	console.log("Serving Aya library", id)
+	return response(await substituteURLs(Bun.file(path)))
+}
+
+// The Aya compatibility API (AYA_ASSET_FALLBACK_URL) serves Roblox assets
+// through its own credentials; results are cached like Open Cloud ones
+async function loadAyaApiAsset(id: number) {
+	const base = env.AYA_ASSET_FALLBACK_URL?.replace(/\/+$/, "")
+	if (!base) return
+
+	const cachepath = `../data/assetcache/${id}`
+	const cached = Bun.file(cachepath)
+	if (await cached.exists()) {
+		console.log("Serving cached Aya API", id)
+		return response(new Uint8Array(await cached.arrayBuffer()))
+	}
+
+	try {
+		const res = await fetch(`${base}/asset/?id=${id}`)
+		if (!res.ok) return
+
+		const asset = await substituteURLs(res)
+		await Bun.write(cachepath, asset)
+
+		console.log("Serving Aya API", id)
+		return response(asset)
+	} catch (e) {
+		console.error("Aya API asset fallback failed", e)
+	}
+}
+
 async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 	const cachepath = `../data/assetcache/${id}`
 	const file = Bun.file(cachepath)
@@ -108,7 +168,9 @@ async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 	}
 }
 
-export async function GET({ fetch: f, url }) {
+export async function GET({ fetch: f, url, locals, request }) {
+	requireAssetAccess(locals, request)
+
 	const assetId = url.searchParams.get("id")
 	if (!assetId || !intRegex.test(assetId)) error(400, "Invalid Request")
 
@@ -125,6 +187,12 @@ export async function GET({ fetch: f, url }) {
 	// Try loading as a user asset
 	const result2 = await loadUserAsset(id)
 	if (result2) return result2
+
+	const resultAya = await loadAyaAsset(id)
+	if (resultAya) return resultAya
+
+	const resultAyaApi = await loadAyaApiAsset(id)
+	if (resultAyaApi) return resultAyaApi
 
 	const result3 = await loadOpenCloudAsset(f, id)
 	if (result3) return result3

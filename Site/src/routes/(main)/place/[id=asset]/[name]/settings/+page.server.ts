@@ -15,7 +15,7 @@ import {
 } from "$lib/typeTests"
 import { encode } from "$lib/urlName"
 import type { RequestEvent } from "./$types.d"
-import clientVersions from "../../../../games/create/clientVersions"
+import { lockedClientVersion } from "../../../../games/create/clientVersions"
 import privateTicketQuery from "./privateTicket.surql"
 import serverTicketQuery from "./serverTicket.surql"
 import settingsQuery from "./settings.surql"
@@ -24,6 +24,7 @@ import updateSettingsQuery from "./updateSettings.surql"
 const viewSchema = type({
 	name: "string <= 100",
 	icon: "(File | undefined)?",
+	thumbnail: "(File | undefined)?",
 	description: "(string <= 1000) | undefined",
 })
 const networkSchema = type({
@@ -31,10 +32,6 @@ const networkSchema = type({
 	serverAddress: serverAddressTest.optional(),
 	serverPort: serverPortTest.optional(),
 	maxPlayers: maxPlayersTest,
-	clientVersion: type
-		.enumerated(...clientVersions)
-		.pipe.try(v => +v)
-		.configure({ problem: "must be a valid client version" }),
 })
 const ticketSchema = type({} as never) // I'm a genius
 const privacySchema = type({
@@ -80,7 +77,6 @@ export async function load({ locals, params }) {
 
 	return {
 		...getPlace,
-		clientVersions,
 		slug: encode(getPlace.name),
 		viewForm: await superValidate(
 			{ name: getPlace.name },
@@ -112,8 +108,9 @@ actions.view = async e => {
 	const form = await superValidate(formData, arktype(viewSchema))
 	if (!form.valid) return formError(form)
 
-	const { name, icon, description } = form.data
+	const { name, icon, thumbnail, description } = form.data
 	form.data.icon = undefined // make sure files don't get returned (they can't be serialised)
+	form.data.thumbnail = undefined
 
 	if (icon && icon.size > 0) {
 		if (icon.size > 1e6)
@@ -128,6 +125,31 @@ actions.view = async e => {
 			.resize(270, 270)
 			.avif({ effort: 9 }) // not awaited, so this'll happen in the background (takes a sec or 2)
 			.toFile(`../data/icons/${id}.avif`) // also errors aren't caught but whatever
+	}
+
+	if (thumbnail && thumbnail.size > 0) {
+		if (thumbnail.size > 5e6)
+			return formError(
+				form,
+				["thumbnail"],
+				["Thumbnail must be less than 5MB in size"]
+			)
+
+		// shown in the place page's 16:9 carousel; awaited so the new
+		// thumbnail is there when the page reloads
+		fs.mkdirSync("../data/placethumbnails", { recursive: true })
+		try {
+			await sharp(await thumbnail.arrayBuffer())
+				.resize(1280, 720, { fit: "cover" })
+				.avif({ effort: 4 })
+				.toFile(`../data/placethumbnails/${id}.avif`)
+		} catch {
+			return formError(
+				form,
+				["thumbnail"],
+				["Thumbnail must be a valid image"]
+			)
+		}
 	}
 
 	await db.query(updateSettingsQuery, {
@@ -151,7 +173,16 @@ actions.network = async e => {
 	const form = await superValidate(e.request, arktype(networkSchema))
 	if (!form.valid) return formError(form)
 
-	await db.update(Record("place", id)).merge(form.data)
+	// only administrators can see or change the selfhosted server address
+	const { user } = await authorise(e.locals)
+	const { serverAddress, serverPort, ...settings } = form.data
+	await db
+		.update(Record("place", id))
+		.merge(
+			user.permissionLevel >= 5
+				? { ...settings, serverAddress, serverPort, clientVersion: lockedClientVersion }
+				: { ...settings, clientVersion: lockedClientVersion }
+		)
 
 	// engine / port settings changed, so any running server for this place is now
 	// invalid (wrong 2013/2016 flow, wrong bind port etc.) - shut it down

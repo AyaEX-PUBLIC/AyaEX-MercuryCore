@@ -1,6 +1,4 @@
 import pageQuery from "$lib/server/pageQuery"
-import { db } from "$lib/server/surreal"
-import catalogQuery from "./catalog.surql"
 
 export type Asset = {
 	name: string
@@ -8,14 +6,8 @@ export type Asset = {
 	id: number
 }
 
-export async function load({ url }) {
-	const { page, checkPages } = pageQuery(url)
-	// const type = url.searchParams.get("type") || ""
-	// if (!intRegex.test(type)) error(400, "Invalid type parameter")
-
-	const [, pages] = await db.query<[Asset[], number]>(catalogQuery, {
-		page,
-		// type: +type,
-	})
-	checkPages(pages)
+export function load({ url }) {
+	// only normalises ?p (e.g. below 1): each tab loads its own items and page
+	// count through getAssets (data.remote.ts), which knows the tab's types
+	pageQuery(url)
 }

@@ -9,8 +9,11 @@ FROM base AS install
 
 # install with --production (exclude devDependencies)
 RUN mkdir -p /temp/prod
-COPY Site/package.json Site/bun.lock /temp/prod/
-RUN cd /temp/prod && bun i --frozen-lockfile -p
+# upstream bun.lock is behind package.json, and --production implies a frozen
+# lockfile in Bun, so resolve from package.json alone. vite.config.ts imports a
+# devDependency, so install those as well.
+COPY Site/package.json /temp/prod/
+RUN cd /temp/prod && bun i
 
 # copy production dependencies and source code into final image
 FROM base AS release

@@ -15,18 +15,15 @@ import {
 import { encode } from "$lib/urlName"
 import countQuery from "./count.surql"
 import createQuery from "./create.surql"
-import clientVersions from "./clientVersions"
+import { lockedClientVersion } from "./clientVersions"
 
 const schema = type({
 	name: "3 <= string <= 50",
 	description: "string <= 1000",
-	serverAddress: serverAddressTest,
+	serverAddress: serverAddressTest.default("localhost"),
 	// eh, works well enough and the built-in z.string().url() requires a protocol
 	serverPort: serverPortTest.default(53640),
 	maxPlayers: maxPlayersTest.default(10),
-	clientVersion: type.enumerated(...clientVersions).configure({
-			problem: "must be a valid client version",
-		}),
 	privateServer: "boolean | undefined",
 })
 
@@ -52,7 +49,11 @@ actions.default = async ({ locals, request }) => {
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
 
-	const { serverAddress, serverPort, maxPlayers, clientVersion, privateServer } = form.data
+	const { maxPlayers, privateServer } = form.data
+	// only administrators can see or set the selfhosted server address
+	const isAdmin = user.permissionLevel >= 5
+	const serverAddress = isAdmin ? form.data.serverAddress : "localhost"
+	const serverPort = isAdmin ? form.data.serverPort : 53640
 
 	const name = form.data.name.trim()
 	if (!name) return formError(form, ["name"], ["Place must have a name"])
@@ -63,7 +64,8 @@ actions.default = async ({ locals, request }) => {
 			["description"],
 			["Place must have a description"]
 		)
-	if ((await placeCount(user.id)) >= 2)
+	// administrators can create any number of places
+	if (user.permissionLevel < 5 && (await placeCount(user.id)) >= 2)
 		return formError(
 			form,
 			["other"],
@@ -85,7 +87,7 @@ actions.default = async ({ locals, request }) => {
 		serverPort,
 		privateServer,
 		maxPlayers,
-		clientVersion: +clientVersion,
+		clientVersion: lockedClientVersion,
 	})
 
 	redirect(302, `/place/${id}/${slug}`)

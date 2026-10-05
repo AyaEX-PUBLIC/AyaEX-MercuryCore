@@ -28,7 +28,12 @@ export async function GET({ params }) {
 	const scriptFile = Bun.file("../data/server/loadscripts/host.lua")
 	const script = (await scriptFile.text())
 		.replaceAll("_BASE_URL", `"${config.DomainInsecure}"`)
-		.replaceAll("_MAP_LOCATION", `"http://${config.DomainInsecure}/asset/?id=${id}"`)
+		// versioned by the file's modification time: Aya.Server serves cached
+		// responses first, so an unchanged URL would load the previous upload
+		.replaceAll(
+			"_MAP_LOCATION",
+			`"http://${config.DomainInsecure}/asset/?id=${id}&v=${Bun.file(`../data/places/${id}`).lastModified}"`
+		)
 		.replaceAll("_SERVER_PORT", idToPort(id).toString())
 		.replaceAll("_SERVER_PRESENCE_URL", `"${serverPresenceUrl}"`)
 

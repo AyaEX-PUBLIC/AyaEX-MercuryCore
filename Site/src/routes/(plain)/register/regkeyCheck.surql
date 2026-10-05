@@ -1,1 +1,1 @@
-SELECT usesLeft FROM $key;
+SELECT usesLeft, expiry, discordId, discordName FROM $key;

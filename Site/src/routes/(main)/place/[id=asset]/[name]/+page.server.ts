@@ -2,11 +2,13 @@ import fs from "node:fs"
 import { error, redirect } from "@sveltejs/kit"
 import { authorise } from "$lib/server/auth"
 import config from "$lib/server/config"
+import like from "$lib/server/like"
 import formData from "$lib/server/formData"
 import { closeGameserver, startGameserver } from "$lib/server/orbiter"
 import ratelimit from "$lib/server/ratelimit"
 import { db, findWhere, Record } from "$lib/server/surreal"
 import { couldMatch, encode } from "$lib/urlName"
+import closedQuery from "./closed.surql"
 import findPlaceQuery from "./findPlace.surql"
 import invalidatePlayingQuery from "./invalidatePlaying.surql"
 import placeQuery from "./place.surql"
@@ -70,6 +72,7 @@ export async function load({ locals, params, url }) {
 
 	return {
 		scheme: config.LauncherURI,
+		webPlayerURL: config.WebPlayerURL,
 		clientVersion: place.clientVersion,
 		hosting: config.Gameservers.Hosting,
 		orbiterURL: config.Orbiter.PublicURL,
@@ -162,8 +165,40 @@ actions.close = async ({ fetch: f, locals, params, request }) => {
 		error(403, "You do not have permission to close this server.")
 
 	const res = await closeGameserver(f, id)
-	if (res.ok) return
+	if (res.ok) {
+		await db.query(closedQuery, { place: Record("place", id) })
+		return { closed: true }
+	}
 
 	console.error("Failed to close dedicated gameserver for id", id, res.msg)
 	error(500, "Failed to close dedicated server")
+}
+
+const likeActions = Object.freeze([
+	"like",
+	"unlike",
+	"dislike",
+	"undislike",
+] as const)
+type LikeAction = (typeof likeActions)[number]
+
+actions.like = async ({ locals, params, request }) => {
+	const { user } = await authorise(locals)
+	const data = await formData(request)
+	const action = data.action as LikeAction
+	if (!likeActions.includes(action)) error(400, "Invalid action")
+
+	const id = +params.id
+	const [[place]] = await db.query<FoundPlace[][]>(findPlaceQuery, {
+		place: Record("place", id),
+	})
+	if (
+		!place ||
+		(user.username !== place.ownerUsername &&
+			place.privateServer &&
+			data.privateTicket !== place.privateTicket)
+	)
+		error(404, "Place not found")
+
+	await like(Record("user", user.id), Record("place", id), action)
 }

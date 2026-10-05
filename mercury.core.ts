@@ -2,16 +2,17 @@
 // If you're running in production, you'll need to rebuild Mercury Core to apply changes.
 
 export default {
-	Name: "Mercury",
-	Domain: "mercs.dev",
-	DomainInsecure: "www.mercs.dev",
+	Name: "AyaWASM",
+	Domain: "mercury.nodium.lol",
+	DomainInsecure: "mercury.nodium.lol",
 	RCCServiceProxyURL: "http://localhost:64990",
 	LauncherURI: "mercury-launcher:",
+	WebPlayerURL: "/runtime?apptype=player",
 	CurrencySymbol: "屌",
-	Pages: ["Statistics", "Forum", "Groups"],
+	Pages: ["Statistics"],
 
 	Database: {
-		AutoStart: true,
+		AutoStart: false,
 		Domain: "localhost:8000",
 	},
 
@@ -21,7 +22,7 @@ export default {
 
 	Orbiter: {
 		PrivateURL: "http://localhost:64991",
-		PublicURL: "http://localhost:64992",
+		PublicURL: "/orbiter", // path on the Site (Caddy proxies it), works from any address
 	},
 
 	// 'noob' colours
@@ -44,7 +45,7 @@ export default {
 	Branding: {
 		Favicon: "Branding/Favicon.svg",
 		Icon: "Branding/Icon.svg",
-		Tagline: "Revival tagline",
+		Tagline: "yeah it's vibecoded",
 		LongTagline: "Endless possibilities. New features. Same nostalgia.",
 		Descriptions: {
 			"Endless possibilites":
@@ -81,9 +82,9 @@ export default {
 	Registration: {
 		Keys: {
 			Enabled: true,
-			Prefix: "mercurkey-",
+			Prefix: "ayawasm-",
 		},
-		Emails: true,
+		Emails: false,
 	},
 
 	Email: {
@@ -94,6 +95,6 @@ export default {
 	},
 
 	Gameservers: {
-		Hosting: "Both",
+		Hosting: "Dedicated",
 	},
 } satisfies import("./Assets/schema.ts").Config

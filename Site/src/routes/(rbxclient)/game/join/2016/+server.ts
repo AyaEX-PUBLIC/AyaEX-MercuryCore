@@ -1,6 +1,7 @@
 import { error } from "@sveltejs/kit"
 import { membershipType } from "$lib/permissionLevels"
 import config from "$lib/server/config"
+import { siteOrigin } from "$lib/server/origin"
 import idToPort, { proxyOffset } from "$lib/server/idToPort"
 import { SignData } from "$lib/server/sign"
 import { db, findWhere, Record } from "$lib/server/surreal"
@@ -79,7 +80,7 @@ const serverDedicated = (dedicated: boolean) =>
 function serverInfo(place: Session["place"]): ServerAddress {
 	if (!serverDedicated(place.dedicated)) return place
 
-	const url = new URL(config.Orbiter.PublicURL)
+	const url = new URL(config.Orbiter.PublicURL, siteOrigin())
 	return {
 		serverAddress: url.hostname, // no scheme, the address doesn't usually have a path anyway
 		serverPort: idToPort(place.id) + proxyOffset, // select the proxy port rather than the port of the server itself

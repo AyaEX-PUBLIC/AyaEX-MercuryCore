@@ -29,6 +29,7 @@ const schema = type({
 	DomainInsecure: "string >= 1",
 	RCCServiceProxyURL: "string >= 1",
 	LauncherURI: "string >= 1",
+	WebPlayerURL: "string >= 1",
 	CurrencySymbol: "string >= 1",
 	Pages: type.enumerated(...optionalPages).array(),
 

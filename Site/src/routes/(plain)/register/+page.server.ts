@@ -10,6 +10,7 @@ import { usernameTest } from "$lib/typeTests"
 import accountRegistered from "../accountRegistered"
 import createUserQuery from "./createUser.surql"
 import regkeyCheckQuery from "./regkeyCheck.surql"
+import { sendRegistrationDiscordWebhook } from "$lib/server/discordModerationWebhook"
 
 const schemaInitial = type({
 	username: usernameTest,
@@ -73,6 +74,7 @@ actions.register = async ({ fetch: f, cookies, request }) => {
 	}
 
 	let key: RecordId<"regKey"> | undefined
+	let keyDiscord: { discordId?: string; discordName?: string } = {}
 	if (config.Registration.Keys.Enabled) {
 		const { regkey } = form.data
 		const matched = regkey.match(prefixRegex)
@@ -81,7 +83,14 @@ actions.register = async ({ fetch: f, cookies, request }) => {
 
 		key = Record("regKey", matched[1])
 
-		const [[regkeyCheck]] = await db.query<{ usesLeft: number }[][]>(
+		const [[regkeyCheck]] = await db.query<
+			{
+				usesLeft: number
+				expiry?: Date | string | null
+				discordId?: string
+				discordName?: string
+			}[][]
+		>(
 			regkeyCheckQuery,
 			{ key }
 		)
@@ -93,6 +102,16 @@ actions.register = async ({ fetch: f, cookies, request }) => {
 				["regkey"],
 				["This registration key has ran out of uses"]
 			)
+		if (
+			regkeyCheck.expiry &&
+			new Date(regkeyCheck.expiry).getTime() < Date.now()
+		)
+			return formError(
+				form,
+				["regkey"],
+				["This registration key has expired"]
+			)
+		keyDiscord = regkeyCheck
 	}
 
 	const [, user] = await db.query<RecordId<"user">[]>(createUserQuery, {
@@ -110,6 +129,13 @@ actions.register = async ({ fetch: f, cookies, request }) => {
 	} catch {}
 
 	cookies.set(cookieName, await createSession(user), cookieOptions)
+
+	void sendRegistrationDiscordWebhook({
+		username,
+		regKey: key ? String(key.id) : undefined,
+		discordId: keyDiscord.discordId,
+		discordName: keyDiscord.discordName,
+	})
 
 	redirect(302, "/home")
 }
@@ -149,6 +175,8 @@ actions.initialAccount = async ({ fetch: f, cookies, request }) => {
 	} catch {}
 
 	cookies.set(cookieName, await createSession(user), cookieOptions)
+
+	void sendRegistrationDiscordWebhook({ username, initialAccount: true })
 
 	redirect(302, "/home")
 }

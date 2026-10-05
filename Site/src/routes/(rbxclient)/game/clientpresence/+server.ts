@@ -2,10 +2,9 @@ import { error } from "@sveltejs/kit"
 import { db, find, Record } from "$lib/server/surreal"
 import pingQuery from "./ping.surql"
 
-export async function GET({ request, url }) {
-	if (request.headers.get("user-agent") !== "Roblox/WinInet")
-		error(400, "Good one")
-
+// The browser Player can't set the Roblox/WinInet user agent, so a valid
+// ticket is what authorises the ping
+export async function GET({ url }) {
 	const ticket = url.searchParams.get("ticket") as string
 	if (!ticket) error(400, "Invalid Request")
 	if (!(await find("playing", ticket))) error(400, "Ticket not found")

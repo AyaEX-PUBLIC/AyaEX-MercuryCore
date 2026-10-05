@@ -1,6 +1,7 @@
 import { error } from "@sveltejs/kit"
 import { db } from "$lib/server/surreal"
 import bodyColoursQuery from "./bodyColours.surql"
+import { requireAssetAccess } from "$lib/server/assetAuth"
 
 type User = {
 	bodyColours: {
@@ -13,7 +14,9 @@ type User = {
 	}
 }
 
-export async function GET({ url }) {
+export async function GET({ url, locals, request }) {
+	requireAssetAccess(locals, request)
+
 	const username = url.searchParams.get("username")?.trim()
 	if (!username) error(400, "Missing required query param: username")
 

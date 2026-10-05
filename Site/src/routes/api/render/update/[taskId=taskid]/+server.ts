@@ -41,8 +41,9 @@ export async function POST({ params, request }) {
 		const headlen = dv.getUint32(4)
 		// console.log("Body length", bodylen, "Head length", headlen)
 
-		if (bodylen > 0) clickBody = rest.slice(8, bodylen)
-		if (headlen > 0) clickHead = rest.slice(8 + bodylen, bodylen + headlen)
+		if (bodylen > 0) clickBody = rest.slice(8, 8 + bodylen)
+		if (headlen > 0)
+			clickHead = rest.slice(8 + bodylen, 8 + bodylen + headlen)
 	}
 
 	if (status === "Rendering") {

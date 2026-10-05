@@ -29,6 +29,9 @@ const types = Object.freeze({
 } as { [_: number]: string })
 
 export default types
+
+// body part slots, shown together as "Body Parts" (keyed by the Torso type)
+export const bodyPartTypes = Object.freeze([27, 28, 29, 30, 31])
 export const typeToNumber: { [_: string]: number } = Object.fromEntries(
 	Object.entries(types).map(([key, value]) => [value, +key])
 )
