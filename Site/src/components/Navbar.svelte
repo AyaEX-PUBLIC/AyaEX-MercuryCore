@@ -22,7 +22,8 @@
 			// ["Home", "/", "fa-house-chimney"],
 			["Games", "/games", "fa-mountain-sun"],
 			["Catalog", "/catalog", "fa-book-open-cover"],
-			["Create", "/develop", "fa-plus"]
+			["Create", "/develop", "fa-plus"],
+			["Casino", "/casino", "fa-coins"]
 		]
 		untrack(() => {
 			if (data.pages.includes("Forum"))

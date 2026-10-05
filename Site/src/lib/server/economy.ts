@@ -96,7 +96,7 @@ export async function transact(
 	}
 }
 
-async function burn(
+export async function burn(
 	f: typeof globalThis.fetch,
 	From: string,
 	Amount: number,
@@ -216,5 +216,24 @@ export async function transformTransactions(list: ReceivedTx[]) {
 	return {
 		transactions: list,
 		users: Object.fromEntries(usersMap),
+	}
+}
+
+export async function mint(
+	f: typeof globalThis.fetch,
+	To: string,
+	Amount: number,
+	Note: string
+): Promise<ReturnErr> {
+	try {
+		const res = await f(`${economyUrl}/mint`, {
+			method: "post",
+			body: JSON.stringify({ To, Amount, Note }),
+		})
+		if (res.status === 200) return { ok: true }
+		return { ok: false, msg: await res.text() }
+	} catch (err) {
+		const e = err as Error
+		return { ok: false, msg: e.message }
 	}
 }

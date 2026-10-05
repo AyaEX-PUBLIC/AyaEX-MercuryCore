@@ -45,6 +45,18 @@ DEFINE TABLE OVERWRITE productReceipt SCHEMAFULL TYPE NORMAL;
 	DEFINE INDEX OVERWRITE productReceiptRequest ON productReceipt FIELDS user, requestId UNIQUE;
 	DEFINE INDEX OVERWRITE productReceiptPending ON productReceipt FIELDS place, user, completed;
 
+# Casino rounds that span several requests (mines, crash; see lib/server/casino.ts)
+DEFINE TABLE OVERWRITE casinoRound SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON casinoRound TYPE string;
+	DEFINE FIELD OVERWRITE user ON casinoRound TYPE record<user>;
+	DEFINE FIELD OVERWRITE game ON casinoRound TYPE string;
+	DEFINE FIELD OVERWRITE bet ON casinoRound TYPE int; # whole currency units
+	DEFINE FIELD OVERWRITE status ON casinoRound TYPE string; # active, won, lost
+	DEFINE FIELD OVERWRITE data ON casinoRound TYPE object FLEXIBLE;
+	DEFINE FIELD OVERWRITE payout ON casinoRound TYPE int DEFAULT 0; # micro-units
+	DEFINE FIELD OVERWRITE created ON casinoRound TYPE datetime DEFAULT time::now();
+	DEFINE INDEX OVERWRITE casinoRoundActive ON casinoRound FIELDS user, game, status;
+
 DEFINE TABLE OVERWRITE awardedBadge SCHEMAFULL TYPE RELATION FROM user TO asset ENFORCED;
 	DEFINE FIELD OVERWRITE id ON awardedBadge TYPE string;
 	DEFINE FIELD OVERWRITE time ON awardedBadge TYPE datetime DEFAULT time::now();

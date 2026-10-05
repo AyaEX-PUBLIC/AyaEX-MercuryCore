@@ -98,3 +98,23 @@ doesn't reject it.
 Aya.Server's `--baseUrl` must be the site's public origin with a trailing slash
 (e.g. `https://mercury.nodium.lol/`); the engine derives its marketplace API URL
 from it. `set-domain.sh` keeps it current.
+
+## Casino
+
+`/casino` (link in the top bar) has slots, mines, crash and horse plinko,
+played with the site currency. Logged-in users only.
+
+- Every outcome is decided on the server (`Site/src/lib/server/casino.ts`)
+  with a cryptographic RNG. The pages under `routes/(main)/casino` only animate
+  results. Mine positions and crash points stay in the `casinoRound` table
+  until the round ends.
+- Each game returns about 93% of bets over time (`RTP` in
+  `Site/src/lib/casinoMath.ts`, shared by the server and the pages). Slots
+  return 0.932, plinko 0.930 at every risk level, mines 0.92–0.93 for any
+  strategy, and crash 0.93 for any cash-out target.
+- Bets are whole amounts from 1 to 10,000. A bet is burned and a win is minted
+  through the Economy service, so both show in `/economy` with a
+  `Casino: <game>` note. One action at a time per player, so double clicks
+  can't double spend.
+- Big wins (10×, 50× and 200× and up) get a full-screen celebration. Sounds are
+  synthesised in the browser and can be muted from the casino header.
