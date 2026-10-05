@@ -9,6 +9,13 @@
 
 	let { user } = $derived(data)
 
+	// whole units with up to 6 decimals (balances are in micro-units), e.g. 1,234.5
+	function formatBalance(micro: number) {
+		const whole = Math.floor(micro / 1e6).toLocaleString("en-US")
+		const fraction = (micro % 1e6).toFixed(0).padStart(6, "0").replace(/0+$/, "")
+		return fraction ? `${whole}.${fraction}` : whole
+	}
+
 	let nav1: [string, string, string][] = $state([])
 	function updNav1() {
 		nav1 = [
@@ -70,6 +77,14 @@
 			</div>
 			<Search pages={data.pages} />
 			<div class="flex items-center gap-6">
+				{#if data.balance !== null && data.balance !== undefined}
+					<a
+						href="/economy"
+						title="Your balance"
+						class="light-text no-underline font-bold text-emerald-500 whitespace-nowrap">
+						{data.currencySymbol}{formatBalance(data.balance)}
+					</a>
+				{/if}
 				<a
 					href="/notifications"
 					aria-label="Notifications"

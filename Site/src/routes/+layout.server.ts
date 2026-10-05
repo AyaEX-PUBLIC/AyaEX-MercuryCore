@@ -1,4 +1,5 @@
 import config from "$lib/server/config"
+import { getBalance } from "$lib/server/economy"
 import { db } from "$lib/server/surreal"
 import bannersQuery from "./banners.surql"
 import getNotifications from "./notifications"
@@ -11,12 +12,15 @@ type Banner = {
 	textLight: boolean
 }
 
-export async function load({ locals, request }) {
+export async function load({ fetch: f, locals, request }) {
 	const { user } = locals
 	// No authorise() function call, as we don't want to redirect to login page if not logged in
 
 	const [banners] = await db.query<Banner[][]>(bannersQuery)
+	// shown in the top bar; null if logged out or the Economy service is down
+	const balance = user ? await getBalance(f, user.id) : undefined
 	return {
+		balance: balance?.ok ? Number(balance.value) : null,
 		banners,
 		user,
 		notifications: await getNotifications(user),

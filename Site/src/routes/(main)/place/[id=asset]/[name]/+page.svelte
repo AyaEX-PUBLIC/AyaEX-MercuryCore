@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { deserialize, enhance } from "$app/forms"
+	import { invalidateAll } from "$app/navigation"
 	import Head from "$components/Head.svelte"
 	import ReportButton from "$components/ReportButton.svelte"
 	import Tab from "$components/Tab.svelte"
@@ -411,7 +412,10 @@
 											? (result.data as { status: string })
 											: undefined
 										const ok = r?.status === "Bought" || r?.status === "AlreadyOwned"
-										if (ok) pass.owned = true
+										if (ok) {
+											pass.owned = true
+											invalidateAll() // e.g. the balance in the top bar
+										}
 										passMessage = {
 											pass: pass.id,
 											ok,
