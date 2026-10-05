@@ -84,6 +84,16 @@
 
 		rewrite /universes/validate-place-join /api/validateplacejoin
 
+		# in-game store and badges (Site lib/server/store.ts)
+		rewrite /Game/GamePass/GamePassHandler.ashx /game/gamepass/haspass
+		rewrite /game/gamepass/gamepasshandler.ashx /game/gamepass/haspass
+		rewrite /ownership/hasAsset /ownership/hasasset
+		# gameservers complete developer product receipts with a form-encoded POST
+		# and no Origin header, which SvelteKit's cross-site form check would
+		# reject; the route authenticates them with the server key instead
+		@receiptComplete path /gametransactions/settransactionstatuscomplete /gametransactions/settransactionstatuscomplete/
+		request_header @receiptComplete Content-Type application/octet-stream
+
 		reverse_proxy 127.0.0.1:4443
 	}
 }

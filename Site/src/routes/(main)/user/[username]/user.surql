@@ -1,6 +1,7 @@
 # You could start with five or six queries, or ~just one~
 
 SELECT
+	record::id(id) AS id,
 	username,
 	number,
 	permissionLevel,

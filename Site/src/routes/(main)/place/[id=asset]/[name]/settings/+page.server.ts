@@ -1,11 +1,20 @@
 import fs from "node:fs"
-import { error } from "@sveltejs/kit"
+import { error, fail } from "@sveltejs/kit"
 import { type } from "arktype"
 import sharp from "sharp"
 import { authorise } from "$lib/server/auth"
 import filter from "$lib/server/filter"
 import formError from "$lib/server/formError"
 import { closeGameserver } from "$lib/server/orbiter"
+import {
+	BADGE,
+	createDevProduct,
+	createStoreItem,
+	GAME_PASS,
+	placeItems,
+	placeProducts,
+	updateStoreItem,
+} from "$lib/server/store"
 import { db, Record } from "$lib/server/surreal"
 import { arktype, message, superValidate } from "$lib/server/validate"
 import {
@@ -87,6 +96,9 @@ export async function load({ locals, params }) {
 		privacyForm: await superValidate(arktype(privacySchema)),
 		privatelinkForm: await superValidate(arktype(privatelinkSchema)),
 		dataForm: await superValidate(arktype(dataSchema)),
+		gamePasses: await placeItems(+params.id, GAME_PASS),
+		devProducts: await placeProducts(+params.id),
+		badges: await placeItems(+params.id, BADGE),
 	}
 }
 
@@ -227,4 +239,88 @@ actions.data = async e => {
 
 	await Bun.write(`../data/places/${id}`, file)
 	return message(form, "Place data updated successfully!")
+}
+
+// --- Store: game passes, developer products and badges ---
+
+const maxPrice = 1_000_000
+
+async function storeForm(e: RequestEvent, needsPrice: { min: number } | null) {
+	const id = await getData(e)
+	const data = await e.request.formData()
+	const name = filter(String(data.get("name") ?? "").trim())
+	const description = filter(String(data.get("description") ?? "").trim())
+	const price = Number(data.get("price") ?? 0)
+	const icon = data.get("icon")
+
+	if (name.length < 3 || name.length > 50)
+		return { id, error: fail(400, { store: "Name must be 3 to 50 characters" }) }
+	if (description.length > 1000)
+		return { id, error: fail(400, { store: "Description must be at most 1000 characters" }) }
+	if (needsPrice && !(Number.isInteger(price) && price >= needsPrice.min && price <= maxPrice))
+		return { id, error: fail(400, { store: `Price must be a whole number from ${needsPrice.min} to ${maxPrice}` }) }
+	if (icon instanceof File && icon.size > 1e6)
+		return { id, error: fail(400, { store: "Icon must be less than 1MB in size" }) }
+
+	return {
+		id,
+		item: {
+			name,
+			description,
+			price: needsPrice ? price : 0,
+			icon: icon instanceof File && icon.size > 0 ? icon : undefined,
+		},
+	}
+}
+
+actions.createpass = async e => {
+	const { id, error: err, item } = await storeForm(e, { min: 0 })
+	if (err || !item) return err
+	const { user } = await authorise(e.locals)
+	try {
+		await createStoreItem(id, user.id, GAME_PASS, item)
+	} catch {
+		return fail(400, { store: "Icon must be a valid image" })
+	}
+	return { store: `Game pass "${item.name}" created` }
+}
+
+actions.createbadge = async e => {
+	const { id, error: err, item } = await storeForm(e, null)
+	if (err || !item) return err
+	const { user } = await authorise(e.locals)
+	try {
+		await createStoreItem(id, user.id, BADGE, item)
+	} catch {
+		return fail(400, { store: "Icon must be a valid image" })
+	}
+	return { store: `Badge "${item.name}" created` }
+}
+
+actions.createproduct = async e => {
+	const { id, error: err, item } = await storeForm(e, { min: 1 })
+	if (err || !item) return err
+	await createDevProduct(id, { name: item.name, description: item.description, price: item.price })
+	return { store: `Developer product "${item.name}" created` }
+}
+
+// price change and on sale / enabled toggle for one item
+actions.updateitem = async e => {
+	const id = await getData(e)
+	const data = await e.request.formData()
+	const kind = data.get("kind") === "devProduct" ? "devProduct" : "asset"
+	const itemId = Number(data.get("item"))
+	if (!Number.isSafeInteger(itemId)) return fail(400, { store: "Invalid item" })
+
+	const changes: { price?: number; forSale?: boolean } = {}
+	if (data.has("forSale")) changes.forSale = data.get("forSale") === "true"
+	if (data.has("price")) {
+		const price = Number(data.get("price"))
+		const min = kind === "devProduct" ? 1 : 0
+		if (!(Number.isInteger(price) && price >= min && price <= maxPrice))
+			return fail(400, { store: `Price must be a whole number from ${min} to ${maxPrice}` })
+		changes.price = price
+	}
+	await updateStoreItem(id, kind, itemId, changes)
+	return { store: "Saved" }
 }

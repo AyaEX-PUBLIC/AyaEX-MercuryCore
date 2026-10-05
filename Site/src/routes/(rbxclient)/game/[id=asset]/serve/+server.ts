@@ -1,5 +1,6 @@
 import { error } from "@sveltejs/kit"
 import config from "$lib/server/config"
+import { siteOrigin } from "$lib/server/origin"
 import idToPort from "$lib/server/idToPort"
 import { SignScript } from "$lib/server/sign"
 import { db, Record } from "$lib/server/surreal"
@@ -28,6 +29,7 @@ export async function GET({ params }) {
 	const scriptFile = Bun.file("../data/server/loadscripts/host.lua")
 	const script = (await scriptFile.text())
 		.replaceAll("_BASE_URL", `"${config.DomainInsecure}"`)
+		.replaceAll("_SITE_ORIGIN", `"${siteOrigin()}"`)
 		// versioned by the file's modification time: Aya.Server serves cached
 		// responses first, so an unchanged URL would load the previous upload
 		.replaceAll(

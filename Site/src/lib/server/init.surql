@@ -16,6 +16,39 @@ DEFINE TABLE OVERWRITE asset SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE type ON asset TYPE int;
 	DEFINE FIELD OVERWRITE updated ON asset TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE visibility ON asset TYPE string DEFAULT "Pending";
+	# game passes (type 34) and badges (type 21) belong to a place
+	DEFINE FIELD OVERWRITE place ON asset TYPE option<record<place>>;
+	DEFINE INDEX OVERWRITE assetPlace ON asset FIELDS place;
+
+# In-game store and badges (see lib/server/store.ts). Developer products are
+# bought repeatedly in game; each purchase leaves a receipt that the gameserver
+# processes (ProcessReceipt) and then marks complete.
+DEFINE TABLE OVERWRITE devProduct SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON devProduct TYPE int;
+	DEFINE FIELD OVERWRITE place ON devProduct TYPE record<place>;
+	DEFINE FIELD OVERWRITE name ON devProduct TYPE string;
+	DEFINE FIELD OVERWRITE description ON devProduct TYPE string DEFAULT "";
+	DEFINE FIELD OVERWRITE price ON devProduct TYPE int; # whole currency units
+	DEFINE FIELD OVERWRITE forSale ON devProduct TYPE bool DEFAULT true;
+	DEFINE FIELD OVERWRITE created ON devProduct TYPE datetime DEFAULT time::now();
+	DEFINE INDEX OVERWRITE devProductPlace ON devProduct FIELDS place;
+
+DEFINE TABLE OVERWRITE productReceipt SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON productReceipt TYPE string;
+	DEFINE FIELD OVERWRITE product ON productReceipt TYPE record<devProduct>;
+	DEFINE FIELD OVERWRITE user ON productReceipt TYPE record<user>;
+	DEFINE FIELD OVERWRITE place ON productReceipt TYPE record<place>;
+	DEFINE FIELD OVERWRITE price ON productReceipt TYPE int;
+	DEFINE FIELD OVERWRITE requestId ON productReceipt TYPE string; # client retries reuse it
+	DEFINE FIELD OVERWRITE created ON productReceipt TYPE datetime DEFAULT time::now();
+	DEFINE FIELD OVERWRITE completed ON productReceipt TYPE option<datetime>;
+	DEFINE INDEX OVERWRITE productReceiptRequest ON productReceipt FIELDS user, requestId UNIQUE;
+	DEFINE INDEX OVERWRITE productReceiptPending ON productReceipt FIELDS place, user, completed;
+
+DEFINE TABLE OVERWRITE awardedBadge SCHEMAFULL TYPE RELATION FROM user TO asset ENFORCED;
+	DEFINE FIELD OVERWRITE id ON awardedBadge TYPE string;
+	DEFINE FIELD OVERWRITE time ON awardedBadge TYPE datetime DEFAULT time::now();
+	DEFINE INDEX OVERWRITE awardedBadgeUnique ON awardedBadge FIELDS in, out UNIQUE;
 
 DEFINE TABLE OVERWRITE auditLog SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON auditLog TYPE string;

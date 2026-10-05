@@ -4,7 +4,7 @@ import { env } from "$env/dynamic/private"
 
 const keyHeader = "accesskey"
 
-function hasServerKey(request: Request) {
+export function hasServerKey(request: Request) {
 	const key = env.ASSET_KEY
 	const given = request.headers.get(keyHeader)
 	if (!key || !given) return false
@@ -22,4 +22,9 @@ function hasServerKey(request: Request) {
 export function requireAssetAccess(locals: App.Locals, request: Request) {
 	if (locals.user || hasServerKey(request)) return
 	error(401, "Unauthorized")
+}
+
+/** Routes only gameservers may call (badges, developer product receipts). */
+export function requireServerKey(request: Request) {
+	if (!hasServerKey(request)) error(401, "Unauthorized")
 }

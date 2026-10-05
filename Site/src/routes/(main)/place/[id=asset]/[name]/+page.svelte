@@ -137,7 +137,7 @@
 		beginJoining(() => playerUrl, true)()
 	}
 
-	const tabs = ["Description", "Servers"]
+	const tabs = ["Description", "Servers", "Store", "Badges"]
 	const isOwner = data.place.ownerUser?.username === user.username
 	if (
 		(isOwner || user.permissionLevel === 5) &&
@@ -150,6 +150,18 @@
 		TabData(data.url, ["Manual", "Autopilot"], undefined, "tab2")
 	)
 	let copiedSuccess = $state(false)
+
+	// Store tab: game passes bought here or in game
+	let gamePasses = $state(data.gamePasses)
+	let passMessage = $state<{ pass: number; text: string; ok: boolean }>()
+	const purchaseText: { [_: string]: string } = {
+		Bought: "Purchased! It works in your next game.",
+		AlreadyOwned: "You already own this.",
+		NotForSale: "This game pass isn't for sale.",
+		PriceChanged: "The price changed. Please try again.",
+		InsufficientFunds: "You don't have enough currency.",
+	}
+	const passIcon = (id: number) => `/catalog/${id}/item/icon`
 </script>
 
 <Head name={data.siteName} title={place.name} />
@@ -371,6 +383,88 @@
 		<!-- {:else}
 			This server is offline.
 		{/if} -->
+	</Tab>
+
+	<Tab bind:tabData>
+		<h4>Game passes</h4>
+		{#if gamePasses.length}
+			<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+				{#each gamePasses as pass (pass.id)}
+					<div class="card bg-darker p-3 flex flex-col gap-2">
+						<img src={passIcon(pass.id)} alt="" class="w-full aspect-square rounded-2" />
+						<b>{pass.name}</b>
+						{#if pass.description}
+							<small class="grey-text">{pass.description}</small>
+						{/if}
+						{#if pass.owned}
+							<span class="text-emerald-500">
+								<fa fa-check></fa>
+								Owned
+							</span>
+						{:else}
+							<form
+								method="post"
+								action="?/buypass"
+								use:enhance={() =>
+									async ({ result }) => {
+										const r = result.type === "success" || result.type === "failure"
+											? (result.data as { status: string })
+											: undefined
+										const ok = r?.status === "Bought" || r?.status === "AlreadyOwned"
+										if (ok) pass.owned = true
+										passMessage = {
+											pass: pass.id,
+											ok,
+											text: purchaseText[r?.status ?? ""] ?? "The purchase failed. Please try again later.",
+										}
+									}}>
+								<input type="hidden" name="pass" value={pass.id} />
+								<input type="hidden" name="price" value={pass.price} />
+								<input type="hidden" name="privateTicket" value={place.privateTicket} />
+								<button class="btn btn-sm btn-primary w-full">
+									{pass.price ? `Buy for ${data.currencySymbol}${pass.price}` : "Get for free"}
+								</button>
+							</form>
+						{/if}
+						{#if passMessage?.pass === pass.id}
+							<small class={passMessage.ok ? "text-emerald-500" : "text-red-500"}>
+								{passMessage.text}
+							</small>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<p class="grey-text">This game has no game passes for sale.</p>
+		{/if}
+	</Tab>
+
+	<Tab bind:tabData>
+		<h4>Badges</h4>
+		{#if data.badges.length}
+			<div class="flex flex-col gap-3">
+				{#each data.badges as badge (badge.id)}
+					<div class="card bg-darker p-3 flex flex-row! gap-4 items-center text-left">
+						<img src={passIcon(badge.id)} alt="" class="size-16 rounded-2" />
+						<div class="flex-1">
+							<b>{badge.name}</b>
+							{#if badge.description}
+								<p class="grey-text text-sm m-0">{badge.description}</p>
+							{/if}
+							<small class="grey-text">Awarded {badge.count} time{badge.count === 1 ? "" : "s"}</small>
+						</div>
+						{#if badge.owned}
+							<span class="text-emerald-500">
+								<fa fa-circle-check></fa>
+								Earned
+							</span>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<p class="grey-text">This game has no badges.</p>
+		{/if}
 	</Tab>
 
 	{#if tabs.includes("Selfhosted")}

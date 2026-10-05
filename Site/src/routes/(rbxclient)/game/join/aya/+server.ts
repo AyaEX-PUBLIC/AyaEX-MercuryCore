@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto"
 import { error } from "@sveltejs/kit"
+import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
 import { SignData } from "$lib/server/sign"
 import { db, Record, type RecordId } from "$lib/server/surreal"
@@ -27,10 +27,6 @@ type Session = {
 	}
 }
 
-// Engine user IDs are numbers; derive a stable one from the username so
-// DataStores and other per-user state persist across sessions
-const engineUserId = (username: string) =>
-	(createHash("sha1").update(username).digest().readUInt32BE(0) % 2147483646) + 1
 
 function gameserverAddress(placeId: number) {
 	const url = new URL(`/gameserver/${placeId}`, siteOrigin())

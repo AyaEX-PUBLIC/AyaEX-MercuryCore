@@ -20,6 +20,7 @@ import type { RequestEvent } from "./$types"
 import assetQuery from "./asset.surql"
 import buyQuery from "./buy.surql"
 import findAssetQuery from "./findAsset.surql"
+import { BADGE, GAME_PASS, storeItem } from "$lib/server/store"
 
 const schema = type({
 	content: "1 <= string <= 1000",
@@ -59,6 +60,13 @@ export async function load({ fetch: f, locals, params }) {
 		user: Record("user", user.id),
 	})
 	if (!asset?.creator) error(404, "Not Found")
+
+	// game passes and badges live on their place's page
+	if (asset.type === GAME_PASS || asset.type === BADGE) {
+		const item = await storeItem(id, asset.type)
+		if (item) redirect(302, `/place/${item.place}`)
+		error(404, "Not Found")
+	}
 
 	const slug = encode(asset.name)
 	if (!couldMatch(asset.name, params.name))
@@ -176,6 +184,8 @@ actions.buy = async e => {
 		asset: Record("asset", id),
 	})
 	if (!asset) error(404, "Not Found")
+	if ((await storeItem(id, GAME_PASS)) || (await storeItem(id, BADGE)))
+		error(400, "Game passes are bought on their place's page")
 	if (asset.owned) error(400, "You already own this item")
 	if (asset.visibility !== "Visible")
 		error(400, "This item hasn't been approved yet")

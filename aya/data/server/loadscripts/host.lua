@@ -1,7 +1,7 @@
 -- Aya.Server host script, served by /game/{id}/serve and sent to Aya.Server as
 -- an RCC OpenJobEx job by the Orbiter and RCC proxy.
--- The Site substitutes _BASE_URL, _MAP_LOCATION, _SERVER_PORT and
--- _SERVER_PRESENCE_URL; the Orbiter substitutes _HOSTPING_URL.
+-- The Site substitutes _BASE_URL, _SITE_ORIGIN, _MAP_LOCATION, _SERVER_PORT
+-- and _SERVER_PRESENCE_URL; the Orbiter substitutes _HOSTPING_URL.
 print "[Host]: Starting Aya gameserver..."
 
 local NetworkServer = game:GetService "NetworkServer"
@@ -16,6 +16,7 @@ local mapLoc = _MAP_LOCATION
 local port = _SERVER_PORT
 local presenceUrl = _SERVER_PRESENCE_URL
 local hostPingUrl = "_HOSTPING_URL"
+local siteOrigin = _SITE_ORIGIN -- https; the badge award POST can't follow an http -> https redirect
 
 -- report the connected players with the presence ping, which marks them as
 -- playing on the website
@@ -61,6 +62,17 @@ pcall(function() ContentProvider:SetBaseUrl(url .. "/") end)
 pcall(function() game:GetService("ScriptInformationProvider"):SetAssetUrl(url .. "/asset/") end)
 pcall(function() Players:SetAbuseReportUrl(url .. "/AbuseReport/InGameChatHandler.ashx") end)
 pcall(function() game:GetService("BadgeService"):SetPlaceId(placeId) end)
+-- badges and game passes (Site routes game/badge/* and game/gamepass/haspass)
+pcall(function()
+	local BadgeService = game:GetService "BadgeService"
+	BadgeService:SetAwardBadgeUrl(siteOrigin .. "/game/badge/award?userId=%d&badgeId=%d&placeId=%d")
+	BadgeService:SetHasBadgeUrl(siteOrigin .. "/game/badge/has?userId=%d&badgeId=%d")
+	BadgeService:SetIsBadgeDisabledUrl(siteOrigin .. "/game/badge/disabled?badgeId=%d&placeId=%d")
+	BadgeService:SetIsBadgeLegalUrl(siteOrigin .. "/game/badge/legal?badgeId=%d&placeId=%d")
+end)
+pcall(function()
+	game:GetService("GamePassService"):SetPlayerHasPassUrl(siteOrigin .. "/game/gamepass/haspass?UserID=%d&PassID=%d")
+end)
 pcall(function() InsertService:SetBaseSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=10&type=base") end)
 pcall(function() InsertService:SetUserSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d") end)
 pcall(function() InsertService:SetCollectionUrl(url .. "/Game/Tools/InsertAsset.ashx?sid=%d") end)

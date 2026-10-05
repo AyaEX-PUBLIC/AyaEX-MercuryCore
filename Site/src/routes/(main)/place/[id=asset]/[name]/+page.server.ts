@@ -1,11 +1,12 @@
 import fs from "node:fs"
-import { error, redirect } from "@sveltejs/kit"
+import { error, fail, redirect } from "@sveltejs/kit"
 import { authorise } from "$lib/server/auth"
 import config from "$lib/server/config"
 import like from "$lib/server/like"
 import formData from "$lib/server/formData"
 import { closeGameserver, startGameserver } from "$lib/server/orbiter"
 import ratelimit from "$lib/server/ratelimit"
+import { BADGE, buyGamePass, GAME_PASS, placeItems, storeItem } from "$lib/server/store"
 import { db, findWhere, Record } from "$lib/server/surreal"
 import { couldMatch, encode } from "$lib/urlName"
 import closedQuery from "./closed.surql"
@@ -70,7 +71,15 @@ export async function load({ locals, params, url }) {
 
 	// don't check gameserver status here or your mercury will slow to a crawl
 
+	const [gamePasses, badges] = await Promise.all([
+		placeItems(id, GAME_PASS, user.id),
+		placeItems(id, BADGE, user.id),
+	])
+
 	return {
+		// passes on sale (or already owned) and enabled badges
+		gamePasses: gamePasses.filter(p => p.forSale || p.owned),
+		badges: badges.filter(b => b.forSale),
 		scheme: config.LauncherURI,
 		webPlayerURL: config.WebPlayerURL,
 		clientVersion: place.clientVersion,
@@ -201,4 +210,37 @@ actions.like = async ({ locals, params, request }) => {
 		error(404, "Place not found")
 
 	await like(Record("user", user.id), Record("place", id), action)
+}
+
+// buy a game pass from the place page (same rules as buying it in game)
+actions.buypass = async ({ fetch: f, locals, params, request }) => {
+	const user = await checkUser(locals)
+	const data = await formData(request)
+	const id = +params.id
+	const passId = Number(data.pass)
+	const expectedPrice = Number(data.price)
+
+	const [[place]] = await db.query<FoundPlace[][]>(findPlaceQuery, {
+		place: Record("place", id),
+	})
+	if (
+		!place ||
+		(user.username !== place.ownerUsername &&
+			place.privateServer &&
+			data.privateTicket !== place.privateTicket)
+	)
+		error(404, "Place not found")
+
+	const pass = Number.isSafeInteger(passId) ? await storeItem(passId, GAME_PASS) : undefined
+	if (!pass || pass.place !== id) error(404, "Game pass not found")
+
+	const result = await buyGamePass(
+		f,
+		user.id,
+		passId,
+		Number.isSafeInteger(expectedPrice) ? expectedPrice : undefined
+	)
+	if (!result.success && result.status !== "AlreadyOwned")
+		return fail(400, { pass: passId, status: result.status })
+	return { pass: passId, status: result.status }
 }

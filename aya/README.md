@@ -71,3 +71,30 @@ because the native build's `bin/content` copy isn't refreshed by CMake.
   set `ORIGIN`, `Domain` and the Caddy site address together.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
+
+## Game passes, developer products and badges
+
+Created per place in **place settings → Store** (logic in
+`Site/src/lib/server/store.ts`):
+
+- **Game passes** (asset type 34): bought once on the place page or in game
+  (`MarketplaceService:PromptGamePassPurchase`), checked with
+  `GamePassService:PlayerHasPass` / `MarketplaceService:PlayerOwnsAsset`. The
+  place owner owns all of the place's passes.
+- **Developer products** (`devProduct`): bought any number of times in game
+  (`PromptProductPurchase`). Each purchase leaves a `productReceipt` that the
+  gameserver hands to `MarketplaceService.ProcessReceipt` and then marks
+  complete.
+- **Badges** (asset type 21): awarded by the place's own gameserver
+  (`BadgeService:AwardBadge`), shown on the place page and user profiles.
+
+Purchases are paid in Mercury currency to the place owner and are tied to the
+buyer's session (the purchase prompt runs in their browser). A developer
+product purchase retried with the same request ID is charged once. Badge awards,
+receipts and the pending-receipt list require the server key (`ASSET_KEY`).
+Caddy relabels the receipt-completion POST so SvelteKit's cross-site form check
+doesn't reject it.
+
+Aya.Server's `--baseUrl` must be the site's public origin with a trailing slash
+(e.g. `https://mercury.nodium.lol/`); the engine derives its marketplace API URL
+from it. `set-domain.sh` keeps it current.

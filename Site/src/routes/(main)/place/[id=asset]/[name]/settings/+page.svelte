@@ -8,6 +8,7 @@
 	import NetworkForm from "./Network.svelte"
 	import PrivacyForm from "./Privacy.svelte"
 	import PrivatelinkForm from "./Privatelink.svelte"
+	import Store from "./Store.svelte"
 	import TicketForm from "./Ticket.svelte"
 	import ViewForm from "./View.svelte"
 
@@ -16,8 +17,8 @@
 	let tabData = $state(
 		TabData(
 			data.url,
-			["View", "Network", "Privacy", "Data"],
-			["fa-eye", "fa-network-wired", "fa-eye-low-vision", "fa-database"]
+			["View", "Network", "Privacy", "Data", "Store"],
+			["fa-eye", "fa-network-wired", "fa-eye-low-vision", "fa-database", "fa-coins"]
 		)
 	)
 </script>
@@ -74,5 +75,14 @@
 			Configure place data saved to {data.siteName}.
 		</p>
 		<DataForm {data} />
+	</Tab>
+
+	<Tab bind:tabData>
+		<h2 class="text-xl">Store</h2>
+		<p class="grey-text pb-6">
+			Sell game passes and developer products, and create badges for your
+			game. Sales are paid to you in {data.siteName} currency.
+		</p>
+		<Store {data} />
 	</Tab>
 </div>

@@ -213,6 +213,25 @@
 				</div>
 			{/if}
 		</div>
+		{#if data.badges.length > 0}
+			<div class="pt-6">
+				<h2>Badges</h2>
+				<div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
+					{#each data.badges as badge (badge.id)}
+						<a
+							href="/place/{badge.place}"
+							class="card bg-darker p-2 no-underline text-center"
+							title="{badge.name}: {badge.placeName}">
+							<img
+								src="/catalog/{badge.id}/item/icon"
+								alt=""
+								class="w-full aspect-square rounded-2" />
+							<small class="block truncate">{badge.name}</small>
+						</a>
+					{/each}
+				</div>
+			</div>
+		{/if}
 		{#if data.groupsOwned.length > 0}
 			<div class="pt-6">
 				<div class="pt-6">

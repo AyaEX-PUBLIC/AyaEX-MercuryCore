@@ -26,9 +26,9 @@ grep -n "^ORIGIN=" "$ROOT/Site/.env"
 # (the localhost entries stay) in the RCC proxy's arguments
 proxy_env="$ROOT/../MercuryRCC/Proxy/.env"
 if [[ -f "$proxy_env" ]]; then
-	python3 - "$proxy_env" "$host" <<'EOF'
+	python3 - "$proxy_env" "$host" "$origin" <<'EOF'
 import re, sys
-path, host = sys.argv[1], sys.argv[2]
+path, host, origin = sys.argv[1], sys.argv[2], sys.argv[3]
 text = open(path).read()
 def fix(match):
     args = match.group(1).split()
@@ -47,6 +47,9 @@ def fix(match):
         i += 1
     if not host.startswith(("localhost", "127.0.0.1")):
         out += ["--httpAllowHost", host, "--scriptHttpAllowHost", host]
+    # the engine derives its marketplace API URL from this (needs the trailing slash)
+    if "--baseUrl" in out:
+        out[out.index("--baseUrl") + 1] = origin + "/"
     return "RCC_ARGS=" + " ".join(out)
 open(path, "w").write(re.sub(r"^RCC_ARGS=(.*)$", fix, text, flags=re.M))
 EOF
