@@ -9,12 +9,9 @@
 
 	let { user } = $derived(data)
 
-	// whole units with up to 6 decimals (balances are in micro-units), e.g. 1,234.5
-	function formatBalance(micro: number) {
-		const whole = Math.floor(micro / 1e6).toLocaleString("en-US")
-		const fraction = (micro % 1e6).toFixed(0).padStart(6, "0").replace(/0+$/, "")
-		return fraction ? `${whole}.${fraction}` : whole
-	}
+	// units with up to 2 decimals, like the casino (balances are in micro-units), e.g. 1,234.5
+	const formatBalance = (micro: number) =>
+		(micro / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 })
 
 	let nav1: [string, string, string][] = $state([])
 	function updNav1() {
