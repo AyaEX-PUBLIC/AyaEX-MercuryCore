@@ -33,6 +33,9 @@ export default async function (user: User | null) {
 
 				i.link = `/comment/${i.relativeId}`
 				break
+			case "GroupInvite":
+				i.link = `/groups/${i.relativeId}`
+				break
 			// case "AssetApproved":
 			case "ItemPurchase":
 				i.link = `/catalog/${i.relativeId}`

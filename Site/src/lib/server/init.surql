@@ -135,6 +135,15 @@ DEFINE TABLE OVERWRITE group SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON group TYPE string;
 	DEFINE FIELD OVERWRITE created ON group TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE name ON group TYPE string;
+	# who can join: "open", "invite" (invited users only) or "closed" (nobody new)
+	DEFINE FIELD OVERWRITE joinMode ON group TYPE string DEFAULT "open" ASSERT $value IN ["open", "invite", "closed"];
+	# the group's ID in game (IsInGroup...); hashed from the record ID when not set
+	DEFINE FIELD OVERWRITE engineId ON group TYPE option<int>;
+
+DEFINE TABLE OVERWRITE groupInvite SCHEMAFULL TYPE RELATION FROM group TO user ENFORCED;
+	DEFINE FIELD OVERWRITE id ON groupInvite TYPE string;
+	DEFINE FIELD OVERWRITE created ON groupInvite TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE inviter ON groupInvite TYPE record<user>;
 
 DEFINE TABLE OVERWRITE hasSession SCHEMAFULL TYPE RELATION FROM user TO session ENFORCED;
 	DEFINE FIELD OVERWRITE id ON hasSession TYPE string;

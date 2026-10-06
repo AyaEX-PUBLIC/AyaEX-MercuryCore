@@ -162,3 +162,26 @@ running pick them up only after they restart. `Caddyfile.aya` is mounted as a
 single file: after editing it, recreate the container
 (`docker compose up -d --force-recreate caddy`), because a reload still reads
 the old copy.
+
+## Groups
+
+Groups are enabled (`Pages` in `mercury.core.ts`), and only administrators
+can create them. A group's owner, or any site administrator, manages it from
+the group page:
+
+- **Who can join:** open, invite only, or closed (nobody new can join).
+- **Invites:** invite by username. The user is notified and can accept or
+  decline on the group page. Invites can be revoked.
+- **Members:** remove anyone except the owner, who can't leave their own group.
+
+**In game**, every group has a numeric ID, shown on its page (`player:IsInGroup(id)`).
+It's the group's `engineId` if set, or otherwise a hash of its record ID
+(`Site/src/lib/server/groups.ts`). `Player:IsInGroup`, `GetRankInGroup`
+(255 owner, 1 member, 0 otherwise) and `GetRoleInGroup` are answered by
+`/Game/LuaWebService/HandleSocialRequest.ashx`.
+
+The invite-only **Administrators** group (owned by Mollomm1) has `engineId`
+1200769. Aya's 2016 CoreScripts (`client/resources/content/scripts/Modules/
+TwentySixteen/PlayerlistModule.lua` and `Chat.lua` in aya-dev) give members of
+that group the admin icon in the player list and the admin chat style. Those
+scripts are packed into `Aya.App.data`, so changing them needs a wasm relink.

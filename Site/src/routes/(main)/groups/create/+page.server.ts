@@ -61,10 +61,10 @@ actions.default = async ({ fetch: f, locals, request }) => {
 	const created = await createGroup(f, user.id, name)
 	if (!created.ok) return formError(form, ["other"], [created.msg])
 
-	await db.query(createQuery, {
+	const [, , , id] = await db.query<[null, null, null, string]>(createQuery, {
 		name,
 		user: Record("user", user.id),
 	})
 
-	redirect(302, `/groups/${name}`)
+	redirect(302, `/groups/${id}`)
 }

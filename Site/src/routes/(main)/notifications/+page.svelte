@@ -7,6 +7,7 @@
 	const notificationNotes: { [_: string]: string } = {
 		AssetApproved: "Asset approval",
 		FriendRequest: "Friend request",
+		GroupInvite: "Group invite",
 		Follower: "New follower",
 		ForumPostReply: "Reply to your post",
 		ForumReplyReply: "Reply to your reply",
