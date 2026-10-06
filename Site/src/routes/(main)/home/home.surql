@@ -10,7 +10,9 @@ SELECT
 FROM place WHERE !privateServer AND !deleted;
 
 # Friends
-SELECT status, username FROM $user->friends->user OR $user<-friends<-user;
+# a friendship is stored one way (from whoever sent the request), so both
+# directions; "a OR b" would only return the first non-empty list
+SELECT status, username FROM array::union($user->friends->user, $user<-friends<-user);
 
 # Feed
 SELECT
