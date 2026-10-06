@@ -136,3 +136,29 @@ balance. **Manage** opens a user's page, where an administrator can:
 The Economy service serves `GET /balances` and accepts `?limit=` (up to 5000)
 on `/transactions`. A user's history is now the last N of *their*
 transactions; before, it was their share of the last 100 site-wide.
+
+## Friends and follows in game
+
+In-game friends and follows use the website's friends, requests and follows,
+through `Site/src/lib/server/social.ts` and the routes under `game/social/`:
+
+- **Friends:** the host script points the gameserver's `FriendService` at
+  `/game/social/friends/*` (server key). Friend requests, accepts and unfriends
+  made in game are saved on the site, with the same notifications as the
+  profile buttons. When a player joins, the gameserver loads which players in
+  the server are already their friends (or have pending requests), so the
+  player list shows them. `Player:IsFriendsWith` falls back to
+  `/Game/LuaWebService/HandleSocialRequest.ashx` for players who aren't in the
+  server.
+- **Follows:** the Player's dropdown calls `user/follow`, `user/unfollow`,
+  `user/following-exists` and `user/get-friendship-count` with the player's
+  session, and the gameserver calls `user/multi-following-exists`.
+  `Caddyfile.aya` sends those to `game/social/*`. `/user/follow` and
+  `/user/unfollow` are only rerouted for POSTs with no query string, so the
+  profile pages of users with those names, and their form actions, still work.
+
+These URLs are set when a gameserver starts, so servers that were already
+running pick them up only after they restart. `Caddyfile.aya` is mounted as a
+single file: after editing it, recreate the container
+(`docker compose up -d --force-recreate caddy`), because a reload still reads
+the old copy.

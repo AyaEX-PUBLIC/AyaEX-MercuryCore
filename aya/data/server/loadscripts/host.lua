@@ -73,6 +73,27 @@ end)
 pcall(function()
 	game:GetService("GamePassService"):SetPlayerHasPassUrl(siteOrigin .. "/game/gamepass/haspass?UserID=%d&PassID=%d")
 end)
+-- friends (Site routes game/social/*): in-game friend requests, accepts and
+-- unfriends are saved on the website, and players see their website friends
+-- (and pending requests) when they join
+pcall(function()
+	local FriendService = game:GetService "FriendService"
+	FriendService:SetCreateFriendRequestUrl(siteOrigin .. "/game/social/friends/request?userId=%d&otherUserId=%d")
+	FriendService:SetMakeFriendUrl(siteOrigin .. "/game/social/friends/make?userId=%d&otherUserId=%d")
+	FriendService:SetBreakFriendUrl(siteOrigin .. "/game/social/friends/break?userId=%d&otherUserId=%d")
+	FriendService:SetDeleteFriendRequestUrl(siteOrigin .. "/game/social/friends/deleterequest?userId=%d&otherUserId=%d")
+	FriendService:SetGetFriendsUrl(siteOrigin .. "/game/social/friends/status?userId=%d")
+	FriendService:SetEnabled(true)
+end)
+pcall(function()
+	local SocialService = game:GetService "SocialService"
+	local social = siteOrigin .. "/Game/LuaWebService/HandleSocialRequest.ashx?method="
+	SocialService:SetFriendUrl(social .. "IsFriendsWith&playerid=%d&userid=%d")
+	SocialService:SetBestFriendUrl(social .. "IsBestFriendsWith&playerid=%d&userid=%d")
+	SocialService:SetGroupUrl(social .. "IsInGroup&playerid=%d&groupid=%d")
+	SocialService:SetGroupRankUrl(social .. "GetGroupRank&playerid=%d&groupid=%d")
+	SocialService:SetGroupRoleUrl(social .. "GetGroupRole&playerid=%d&groupid=%d")
+end)
 pcall(function() InsertService:SetBaseSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=10&type=base") end)
 pcall(function() InsertService:SetUserSetsUrl(url .. "/Game/Tools/InsertAsset.ashx?nsets=20&type=user&userid=%d") end)
 pcall(function() InsertService:SetCollectionUrl(url .. "/Game/Tools/InsertAsset.ashx?sid=%d") end)

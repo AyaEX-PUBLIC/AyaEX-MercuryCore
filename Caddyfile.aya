@@ -88,6 +88,26 @@
 		rewrite /Game/GamePass/GamePassHandler.ashx /game/gamepass/haspass
 		rewrite /game/gamepass/gamepasshandler.ashx /game/gamepass/haspass
 		rewrite /ownership/hasAsset /ownership/hasasset
+
+		# friends and follows (Site routes game/social/*, lib/server/social.ts)
+		rewrite /Game/LuaWebService/HandleSocialRequest.ashx /game/social/handlesocialrequest
+		rewrite /user/following-exists /game/social/following-exists
+		rewrite /user/multi-following-exists /game/social/multi-following-exists
+		rewrite /user/get-friendship-count /game/social/get-friendship-count
+		# /user/follow and /user/unfollow are also profile URLs (/user/{name});
+		# profile buttons always post a form action (?/follow), the Player never does
+		@engineFollow {
+			method POST
+			path /user/follow
+			expression {http.request.uri.query} == ""
+		}
+		rewrite @engineFollow /game/social/follow
+		@engineUnfollow {
+			method POST
+			path /user/unfollow
+			expression {http.request.uri.query} == ""
+		}
+		rewrite @engineUnfollow /game/social/unfollow
 		# gameservers complete developer product receipts with a form-encoded POST
 		# and no Origin header, which SvelteKit's cross-site form check would
 		# reject; the route authenticates them with the server key instead
