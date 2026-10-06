@@ -1,10 +1,11 @@
 import { error } from "@sveltejs/kit"
+import { rewardPlaytime } from "$lib/server/playtime"
 import { db, findWhere } from "$lib/server/surreal"
 import pingQuery from "./ping.surql"
 
 // Aya.Server doesn't identify as Roblox/WinInet, so the place's secret server
 // ticket is what authorises the ping
-export async function GET({ url }) {
+export async function GET({ fetch, url }) {
 	const ticket = url.searchParams.get("ticket") as string
 	if (!ticket) error(400, "Invalid Request")
 	if (!(await findWhere("place", "serverTicket = $ticket", { ticket })))
@@ -17,7 +18,9 @@ export async function GET({ url }) {
 		.filter(name => /^[A-Za-z0-9_]{3,21}$/.test(name))
 		.slice(0, 100)
 
-	await db.query(pingQuery, { ticket, players })
+	const results = await db.query<unknown[]>(pingQuery, { ticket, players })
+	const inGame = results.at(-1)
+	if (Array.isArray(inGame) && inGame.length) await rewardPlaytime(fetch, inGame as string[])
 
 	return new Response("OK", {
 		headers: {

@@ -279,6 +279,10 @@ DEFINE TABLE OVERWRITE user SCHEMAFULL TYPE NORMAL;
 		ASSERT string::is_email($value) OR $value == "";
 	DEFINE FIELD OVERWRITE hashedPassword ON user TYPE string;
 	DEFINE FIELD OVERWRITE lastOnline ON user TYPE datetime DEFAULT ALWAYS time::now();
+	# playtime rewards (lib/server/playtime.ts): when the user was last seen in a
+	# game, and when their next reward is due
+	DEFINE FIELD OVERWRITE lastInGame ON user TYPE option<datetime>;
+	DEFINE FIELD OVERWRITE playRewardAt ON user TYPE option<datetime>;
 	DEFINE FIELD OVERWRITE permissionLevel ON user TYPE int;
 	DEFINE FIELD OVERWRITE status ON user TYPE string COMPUTED
 		IF ->playing[WHERE valid AND ping > time::now() - 35s] {

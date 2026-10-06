@@ -185,3 +185,13 @@ The invite-only **Administrators** group (owned by Mollomm1) has `engineId`
 TwentySixteen/PlayerlistModule.lua` and `Chat.lua` in aya-dev) give members of
 that group the admin icon in the player list and the admin chat style. Those
 scripts are packed into `Aya.App.data`, so changing them needs a wasm relink.
+
+## Playtime rewards
+
+Players earn 5 currency for every 5 minutes in game ("Playtime reward" in their
+economy history). The gameserver's presence ping (`/game/serverpresence`, about
+every 5 seconds, authorised by the place's server ticket) lists who is
+connected. Only players who joined through the website count. Each account has
+one timer (`user.playRewardAt`), so being in two servers doesn't double it. Out
+of game for more than a minute restarts the timer. The amount and interval are
+at the top of `Site/src/lib/server/playtime.ts`.

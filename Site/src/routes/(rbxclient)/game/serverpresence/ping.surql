@@ -12,3 +12,6 @@ IF $place {
 		};
 	};
 };
+# the reported players who joined through the website (playtime rewards)
+RETURN IF $place THEN array::distinct(SELECT VALUE record::id(in) FROM playing
+	WHERE out = $place AND in.username IN $players AND ping > time::now() - 10s) ELSE [] END;
