@@ -118,3 +118,21 @@ played with the site currency. Logged-in users only.
   can't double spend.
 - Big wins (10×, 50× and 200× and up) get a full-screen celebration. Sounds are
   synthesised in the browser and can be muted from the casino header.
+
+## Managing currency (administrators)
+
+**Admin → Economy → User balances** (`/admin/balances`) lists every user's
+balance. **Manage** opens a user's page, where an administrator can:
+
+- **Change the balance:** add, remove or set an exact amount, with a reason.
+  The change is a mint or burn in the Economy service. It shows in the user's
+  transaction history and in the audit log (action "Economy").
+- **Review purchases:** every item they own, with when they got it and what
+  they paid (matched from the ledger, so free items appear too). Also their
+  developer product purchases (granted or pending) and up to 2000 currency
+  transactions, which can be filtered into purchases, sales, casino and
+  stipends/adjustments.
+
+The Economy service serves `GET /balances` and accepts `?limit=` (up to 5000)
+on `/transactions`. A user's history is now the last N of *their*
+transactions; before, it was their share of the last 100 site-wide.

@@ -33,7 +33,8 @@
 			],
 			Catalog: [["Asset creation", "create", "fa-file-circle-plus"]],
 			Economy: [
-				["Transactions", "transactions", "fa-money-bill-transfer"]
+				["Transactions", "transactions", "fa-money-bill-transfer"],
+				["User balances", "balances", "fa-coins"]
 			]
 		}
 		tabNames = ["Moderation", "Catalog", "Economy", "Statistics"]

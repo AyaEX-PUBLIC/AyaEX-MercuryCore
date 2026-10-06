@@ -62,8 +62,11 @@ type TxTypes =
 
 type ReceivedTx = BaseTx & TxTypes
 
-export const getTransactions = (f: typeof globalThis.fetch, user: string) =>
-	tryFetchJson<ReceivedTx[]>()(f, `${economyUrl}/transactions/${user}`)
+export const getTransactions = (f: typeof globalThis.fetch, user: string, limit = 100) =>
+	tryFetchJson<ReceivedTx[]>()(f, `${economyUrl}/transactions/${user}?limit=${limit}`)
+/** Every user's balance by user ID (users who never had currency are missing) */
+export const getAllBalances = (f: typeof globalThis.fetch) =>
+	tryFetchJson<{ [user: string]: number }>()(f, `${economyUrl}/balances`)
 export const getAdminTransactions = (f: typeof globalThis.fetch) =>
 	tryFetchJson<ReceivedTx[]>()(f, `${economyUrl}/transactions`)
 
