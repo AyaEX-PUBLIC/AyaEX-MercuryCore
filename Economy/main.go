@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
+	"sync"
 	"time"
 
 	c "github.com/TwiN/go-color"
@@ -31,6 +33,31 @@ func toReadable(c Currency) string {
 
 type EconomyServer struct {
 	*Economy
+	mu sync.Mutex // handlers run concurrently, and the ledger's maps aren't safe for that
+}
+
+// locked runs a handler with the economy to itself
+func (e *EconomyServer) locked(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		h(w, r)
+	}
+}
+
+// limit reads ?limit= (how many transactions to list): 100 by default, at most 5000
+func limit(r *http.Request) int {
+	n, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || n < 1 {
+		return 100
+	}
+	return min(n, 5000)
+}
+
+func (e *EconomyServer) balancesRoute(w http.ResponseWriter, r *http.Request) {
+	if err := json.NewEncoder(w).Encode(e.GetBalances()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // func (e *EconomyServer) currentFeeRoute(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +82,7 @@ func (e *EconomyServer) balanceRoute(w http.ResponseWriter, r *http.Request) {
 func (e *EconomyServer) adminTransactionsRoute(w http.ResponseWriter, r *http.Request) {
 	transactions, err := e.LastNTransactions(func(tx map[string]any) bool {
 		return true
-	}, 100)
+	}, limit(r))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,7 +97,7 @@ func (e *EconomyServer) transactionsRoute(w http.ResponseWriter, r *http.Request
 
 	transactions, err := e.LastNTransactions(func(tx map[string]any) bool {
 		return tx["From"] != nil && User(tx["From"].(string)) == id || tx["To"] != nil && User(tx["To"].(string)) == id
-	}, 100)
+	}, limit(r))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -180,17 +207,18 @@ func main() {
 
 	e.Stats()
 
-	es := EconomyServer{Economy: e}
+	es := &EconomyServer{Economy: e}
 
 	// http.HandleFunc("GET /currentFee", es.currentFeeRoute)
-	http.HandleFunc("GET /currentStipend", es.currentStipendRoute)
-	http.HandleFunc("GET /balance/{id}", es.balanceRoute)
-	http.HandleFunc("GET /transactions", es.adminTransactionsRoute)
-	http.HandleFunc("GET /transactions/{id}", es.transactionsRoute)
-	http.HandleFunc("POST /transact", es.transactRoute)
-	http.HandleFunc("POST /mint", es.mintRoute)
-	http.HandleFunc("POST /burn", es.burnRoute)
-	http.HandleFunc("POST /stipend/{id}", es.stipendRoute)
+	http.HandleFunc("GET /currentStipend", es.locked(es.currentStipendRoute))
+	http.HandleFunc("GET /balance/{id}", es.locked(es.balanceRoute))
+	http.HandleFunc("GET /balances", es.locked(es.balancesRoute))
+	http.HandleFunc("GET /transactions", es.locked(es.adminTransactionsRoute))
+	http.HandleFunc("GET /transactions/{id}", es.locked(es.transactionsRoute))
+	http.HandleFunc("POST /transact", es.locked(es.transactRoute))
+	http.HandleFunc("POST /mint", es.locked(es.mintRoute))
+	http.HandleFunc("POST /burn", es.locked(es.burnRoute))
+	http.HandleFunc("POST /stipend/{id}", es.locked(es.stipendRoute))
 
 	fmt.Println(c.InGreen("~ Economy service is up on port 2009 ~")) // 03/Jan/2009 Chancellor on brink of second bailout for banks
 	if err := http.ListenAndServe(":2009", nil); err != nil {

@@ -131,6 +131,15 @@ func (e *Economy) GetBalance(u User) Currency {
 	return e.balances[u]
 }
 
+// GetBalances copies every user's balance
+func (e *Economy) GetBalances() map[User]Currency {
+	balances := make(map[User]Currency, len(e.balances))
+	for u, b := range e.balances {
+		balances[u] = b
+	}
+	return balances
+}
+
 func (e *Economy) GetInventory(u User) Assets {
 	return e.inventories[u]
 }
@@ -443,10 +452,16 @@ func (e *Economy) LastNTransactions(validate func(tx map[string]any) bool, n int
 	if err != nil {
 		return
 	}
-	ll := len(lines)
-
-	for _, line := range lines[:min(n, ll)] { // Get the last 100 transactions
+	// the last n transactions that pass validate (filtering only the last n
+	// overall would hide a user's history behind everyone else's)
+	for _, line := range lines {
+		if len(transactions) >= n {
+			break
+		}
 		parts := strings.SplitN(line, " ", 2)
+		if len(parts) < 2 {
+			continue
+		}
 
 		var tx any
 		if err = json.Unmarshal([]byte(parts[1]), &tx); err != nil {
