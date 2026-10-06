@@ -9,7 +9,7 @@ export default {
 	LauncherURI: "mercury-launcher:",
 	WebPlayerURL: "/runtime?apptype=player",
 	CurrencySymbol: "屌",
-	Pages: ["Statistics"],
+	Pages: ["Statistics", "Groups"],
 
 	Database: {
 		AutoStart: false,

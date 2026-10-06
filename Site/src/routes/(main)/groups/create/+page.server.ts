@@ -12,8 +12,12 @@ const schema = type({
 	name: "3 <= string <= 40",
 })
 
-export async function load() {
+// only administrators can create groups
+const canCreate = 5
+
+export async function load({ locals }) {
 	exclude("Groups")
+	await authorise(locals, canCreate)
 	const price = await getGroupPrice()
 	return {
 		form: await superValidate(arktype(schema)),
@@ -33,7 +37,7 @@ const errors: { [_: string]: string } = Object.freeze({
 export const actions: import("./$types").Actions = {}
 actions.default = async ({ fetch: f, locals, request }) => {
 	exclude("Groups")
-	const { user } = await authorise(locals)
+	const { user } = await authorise(locals, canCreate)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
 

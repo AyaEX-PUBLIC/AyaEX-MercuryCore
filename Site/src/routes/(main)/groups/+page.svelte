@@ -13,7 +13,9 @@
 	<div class="flex pb-6">
 		<h1 class="w-1/2">
 			<span class="pr-6">Groups</span>
-			<a href="/groups/create" class="btn btn-primary">Create</a>
+			{#if (data.user?.permissionLevel ?? 0) >= 5}
+				<a href="/groups/create" class="btn btn-primary">Create</a>
+			{/if}
 		</h1>
 	</div>
 
@@ -27,7 +29,7 @@
 			<Pagination totalPages={data.pages} />
 		{/key}
 	{:else}
-		<h2 class="text-center">No groups yet. Be the first to create one!</h2>
+		<h2 class="text-center">No groups yet.</h2>
 	{/if}
 </div>
 
