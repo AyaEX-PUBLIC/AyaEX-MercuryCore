@@ -209,6 +209,13 @@ DEFINE TABLE OVERWRITE playing SCHEMAFULL TYPE RELATION FROM user TO place ENFOR
 	DEFINE FIELD OVERWRITE ping ON playing TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE valid ON playing TYPE bool DEFAULT true;
 
+# One-time proof that the Site sent a player to a gameserver: issued with the
+# Aya join configuration, spent by the gameserver when the player arrives
+DEFINE TABLE OVERWRITE joinTicket SCHEMAFULL;
+	DEFINE FIELD OVERWRITE user ON joinTicket TYPE record<user>;
+	DEFINE FIELD OVERWRITE place ON joinTicket TYPE record<place>;
+	DEFINE FIELD OVERWRITE created ON joinTicket TYPE datetime DEFAULT time::now();
+
 DEFINE TABLE OVERWRITE recentlyWorn SCHEMAFULL TYPE RELATION FROM user TO asset ENFORCED;
 	DEFINE FIELD OVERWRITE id ON recentlyWorn TYPE string;
 	DEFINE FIELD OVERWRITE time ON recentlyWorn TYPE datetime DEFAULT ALWAYS time::now();

@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto"
 import { error } from "@sveltejs/kit"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
@@ -54,6 +55,20 @@ export async function GET({ locals, url }) {
 	const origin = siteOrigin()
 	const server = gameserverAddress(place.id)
 
+	// The gameserver only keeps players who arrive with a ticket from here (see
+	// /game/verifyticket). It travels in the CharacterAppearance URL, which the
+	// Player hands to the server, and is spent when the player joins.
+	const ticket = randomBytes(24).toString("hex")
+	await db.query(
+		// tickets that were never used expire after five minutes
+		"DELETE joinTicket WHERE created < time::now() - 5m; CREATE $ticket SET user = $user, place = $place",
+		{
+			ticket: Record("joinTicket", ticket),
+			user: Record("user", locals.user.id),
+			place: Record("place", place.id),
+		}
+	)
+
 	const joinconfig = {
 		ClientPort: 0,
 		MachineAddress: server.address,
@@ -61,7 +76,7 @@ export async function GET({ locals, url }) {
 		UserName: user.username,
 		DisplayName: user.username,
 		UserId: engineUserId(user.username),
-		CharacterAppearance: `${origin}/asset/characterfetch/${user.username}`,
+		CharacterAppearance: `${origin}/asset/characterfetch/${user.username}?ticket=${ticket}`,
 		// presence is reported by the gameserver (see /game/serverpresence)
 		PingUrl: "",
 		PingInterval: 0,

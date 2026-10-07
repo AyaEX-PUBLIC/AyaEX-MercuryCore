@@ -100,7 +100,30 @@ pcall(function() InsertService:SetCollectionUrl(url .. "/Game/Tools/InsertAsset.
 pcall(function() InsertService:SetAssetUrl(url .. "/asset?id=%d") end)
 pcall(function() InsertService:SetAssetVersionUrl(url .. "/asset?assetversionid=%d") end)
 
+-- Only players sent by the Site may stay. The Aya join configuration puts a
+-- one-time ticket in the CharacterAppearance URL; the Site checks that it was
+-- issued to this account for this place and spends it (/game/verifyticket).
+local function hasJoinTicket(player)
+	local ticket = player.CharacterAppearance:match "[?&]ticket=(%x+)"
+	if not ticket then
+		return false
+	end
+	-- HttpGetAsync yields until the reply arrives (HttpGet with synchronous=false
+	-- returns nothing), and a plain pcall cannot be yielded across: use ypcall
+	local ok, result = ypcall(function()
+		return game:HttpGetAsync(
+			siteOrigin .. "/game/verifyticket?ticket=" .. ticket .. "&userId=" .. player.userId .. "&placeId=" .. placeId
+		)
+	end)
+	return ok and result == "true"
+end
+
 Players.PlayerAdded:connect(function(player)
+	if not hasJoinTicket(player) then
+		print("[Host]: Player " .. player.userId .. " has no valid join ticket, kicking")
+		player:Kick "This game can only be joined from the website."
+		return
+	end
 	print("Player " .. player.userId .. " added")
 	hostPing("PlayerAdded\n" .. tostring(player.userId))
 	reportPresence()
