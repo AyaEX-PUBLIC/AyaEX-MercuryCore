@@ -279,6 +279,9 @@ DEFINE TABLE OVERWRITE user SCHEMAFULL TYPE NORMAL;
 		DEFINE FIELD OVERWRITE bodyColours.Torso ON user TYPE int;
 	DEFINE FIELD OVERWRITE created ON user TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE css ON user TYPE string DEFAULT ALWAYS "";
+	# Aya client channel the user plays on (lib/clientChannels.ts)
+	DEFINE FIELD OVERWRITE clientChannel ON user TYPE string DEFAULT ALWAYS "stable"
+		ASSERT $value IN ["stable", "dev"];
 	DEFINE FIELD OVERWRITE description ON user TYPE array<object> DEFAULT ALWAYS [];
 		DEFINE FIELD OVERWRITE description.*.text ON user TYPE string;
 		DEFINE FIELD OVERWRITE description.*.updated ON user TYPE datetime DEFAULT ALWAYS time::now();

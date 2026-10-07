@@ -6,6 +6,15 @@
 :8010 {
 	# Unified Aya WebAssembly runtime. Multithreaded Wasm needs cross-origin
 	# isolation, so the launcher and its assets carry COOP/COEP.
+	# Client channels: the Site sets this cookie from the user's settings
+	# (Site/src/lib/clientChannels.ts). dev is the live aya-dev build output,
+	# which is missing or half-written while the client builds and links;
+	# stable is a snapshot made by aya/promote-stable.sh.
+	map {http.request.cookie.ayaClientChannel} {aya_runtime_root} {
+		dev /srv/runtime-dev
+		default /srv/runtime-channels/stable
+	}
+
 	@runtimeAll path /runtime /runtime/ /runtime/*
 	header @runtimeAll {
 		Cross-Origin-Opener-Policy "same-origin"
@@ -16,7 +25,7 @@
 	@runtimeLauncher path /runtime /runtime/
 	handle @runtimeLauncher {
 		header Cache-Control "no-store"
-		root * /srv/runtime
+		root * {aya_runtime_root}
 		rewrite * /Aya.App.html
 		file_server
 	}
@@ -26,7 +35,7 @@
 		header @versioned Cache-Control "public, max-age=31536000, immutable, no-transform"
 		@unversioned not query v=*
 		header @unversioned Cache-Control "no-cache"
-		root * /srv/runtime
+		root * {aya_runtime_root}
 		@unknownRuntimeAsset not path /Aya.App.js /Aya.App.wasm /Aya.App.data /Aya.App.Brand.png /Aya.GameWebRtc.js /Aya.App.StreamingFrame.js /Aya.Diagnostics.js
 		respond @unknownRuntimeAsset 404
 		file_server

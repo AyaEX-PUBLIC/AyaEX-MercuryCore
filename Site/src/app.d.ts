@@ -36,6 +36,7 @@ declare global {
 		lastOnline: Date
 		permissionLevel: number
 		css: string
+		clientChannel?: import("$lib/clientChannels").ClientChannel
 		theme: number
 	}
 

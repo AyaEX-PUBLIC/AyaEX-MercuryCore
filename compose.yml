@@ -58,8 +58,11 @@ services:
         restart: unless-stopped
         volumes:
             - ./Caddyfile.aya:/etc/caddy/Caddyfile:ro
-            # the unified Aya WebAssembly runtime (Player)
-            - ${AYA_APP_DIST_DIR:-../aya-dev/build/wasm-app-rel/bin}:/srv/runtime:ro
+            # the unified Aya WebAssembly runtime (Player), per client channel:
+            # dev is the live build output, stable a snapshot made by
+            # aya/promote-stable.sh (data/runtime/stable -> releases/<version>)
+            - ${AYA_APP_DIST_DIR:-../aya-dev/build/wasm-app-rel/bin}:/srv/runtime-dev:ro
+            - ./data/runtime:/srv/runtime-channels:ro
         depends_on:
             - site
 

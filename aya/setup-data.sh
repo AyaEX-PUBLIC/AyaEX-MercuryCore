@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 force=0
 [[ "${1:-}" == "--force" ]] && force=1
 
-mkdir -p "$ROOT"/data/{assets,avatars,economy,icons,places,surreal,thumbnails}
+mkdir -p "$ROOT"/data/{assets,avatars,economy,icons,places,runtime,surreal,thumbnails}
 while IFS= read -r -d '' src; do
 	rel="${src#"$ROOT/aya/"}"
 	dest="$ROOT/$rel"
@@ -21,4 +21,10 @@ if [[ ! -e "$ROOT/data/PrivateKey.pem" ]]; then
 	openssl genrsa -out "$ROOT/data/PrivateKey.pem" 1024 2>/dev/null
 	chmod 600 "$ROOT/data/PrivateKey.pem"
 	echo "generated data/PrivateKey.pem"
+fi
+
+# the stable client channel needs a snapshot of a finished runtime build
+if [[ ! -e "$ROOT/data/runtime/stable" ]]; then
+	"$ROOT/aya/promote-stable.sh" ||
+		echo "no stable client yet: run aya/promote-stable.sh after building the runtime"
 fi

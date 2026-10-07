@@ -26,7 +26,7 @@ context, so the multithreaded Player works over plain HTTP.
 ## Running
 
 ```bash
-aya/setup-data.sh                    # loadscripts, render scripts, signing key into data/
+aya/setup-data.sh                    # loadscripts, render scripts, signing key, stable client into data/
 docker compose up -d --build         # database, economy, site, caddy
 ../MercuryRCC/run.sh                 # RCC proxy + Orbiter (run from a desktop session)
 ../MercuryRCC/stop.sh                # stop them and their Aya.Server processes
@@ -38,7 +38,7 @@ OpenGL window. Logs are in `../MercuryRCC/logs/`.
 Paths that compose expects (override with environment variables):
 
 - `AYA_APP_DIST_DIR` (default `../aya-dev/build/wasm-app-rel/bin`): the
-  unified runtime.
+  unified runtime, served as the dev client channel.
 - `AYA_ASSETS_HOST_DIR` (default `../aya-dev/assets`): Aya's local asset
   library (`<id>.<ext>`), served by `/asset` for IDs Mercury doesn't have,
   such as the default animations.
@@ -47,6 +47,36 @@ Paths that compose expects (override with environment variables):
 The RCC proxy's `Proxy/.env` sets `RCC_EXE` (the native `Aya.Server`) and
 `RCC_ARGS`. `--contentPath` points at `aya-dev/client/resources/content`,
 because the native build's `bin/content` copy isn't refreshed by CMake.
+
+## Client channels
+
+Players choose a client channel in **Settings → Client**: `stable` (the
+default) or `dev`. Any user can switch; it's stored on the user
+(`clientChannel`) and mirrored by the Site into the `ayaClientChannel` cookie
+(`Site/src/hooks.server.ts`). Caddy serves `/runtime` from that channel's
+directory, so the URLs are the same for both:
+
+| Channel | Served from | Updates |
+| --- | --- | --- |
+| `dev` | `AYA_APP_DIST_DIR`, the live aya-dev build output | on every build; missing or broken while a build compiles and links |
+| `stable` | `data/runtime/stable` → `releases/<runtime version>` | only when promoted |
+
+After a dev build has been tested, promote it:
+
+```bash
+aya/promote-stable.sh                # snapshot the dev build as stable
+aya/promote-stable.sh --list         # kept releases (* = stable)
+aya/promote-stable.sh --use VERSION  # roll stable back to a kept release
+```
+
+Promoting refuses while `build_app_wasm.sh` is running or if the build output
+is incomplete, copies the files Caddy serves into a new release directory, and
+then switches the `stable` symlink atomically, so stable players never load a
+half-copied build. The three newest releases are kept (`KEEP=n` to change).
+The runtime caches by build version, so switching channels is safe.
+
+Gameservers are native `Aya.Server` builds and aren't channelled; a client
+on either channel joins the same servers.
 
 ## Hosting flow
 

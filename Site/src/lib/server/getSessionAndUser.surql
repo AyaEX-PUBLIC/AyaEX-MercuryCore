@@ -12,6 +12,7 @@ LET $u = (SELECT
     lastOnline,
     permissionLevel,
     css,
+    clientChannel,
     theme,
 	status,
 	username

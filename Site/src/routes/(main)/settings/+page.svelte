@@ -4,6 +4,7 @@
 	import TabData from "$components/TabData"
 	import TabNav from "$components/TabNav.svelte"
 	import Account from "./Account.svelte"
+	import Client from "./Client.svelte"
 	import Profile from "./Profile.svelte"
 	import Security from "./Security.svelte"
 	import Styling from "./Styling.svelte"
@@ -15,8 +16,8 @@
 	let tabData = $state(
 		TabData(
 			data.url,
-			["Profile", "Account", "Security", "Styling"],
-			["fa-id-card", "fa-user", "fa-lock", "fa-paint-brush"]
+			["Profile", "Account", "Security", "Styling", "Client"],
+			["fa-id-card", "fa-user", "fa-lock", "fa-paint-brush", "fa-sliders"]
 		)
 	)
 </script>
@@ -57,5 +58,13 @@
 	<Tab bind:tabData>
 		<h2 class="text-xl pb-6">Styling</h2>
 		<Styling {data} />
+	</Tab>
+
+	<Tab bind:tabData>
+		<h2 class="text-xl">Client</h2>
+		<p class="grey-text pb-6">
+			Choose which build of the game client opens when you press Play.
+		</p>
+		<Client {data} />
 	</Tab>
 </div>

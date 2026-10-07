@@ -2,12 +2,17 @@
 // See https://kit.svelte.dev/docs/hooks/ for more info.
 
 import { type Handle, redirect } from "@sveltejs/kit"
+import { dev } from "$app/environment"
 import pc from "picocolors"
 import {
 	cookieName,
 	cookieOptions,
 	validateSessionToken,
 } from "$lib/server/auth"
+import {
+	clientChannelCookie,
+	defaultClientChannel,
+} from "$lib/clientChannels"
 import config from "$lib/server/config"
 import { stipend } from "$lib/server/economy"
 import { db, Record } from "$lib/server/surreal"
@@ -106,6 +111,18 @@ export async function handle(e) {
 	event.locals.session = session
 	event.locals.user = user
 	event.cookies.set(cookieName, session, cookieOptions)
+
+	// Caddy picks the /runtime directory from this cookie, so keep it in step
+	// with the account setting (a new device, or a change made elsewhere)
+	const channel = user.clientChannel || defaultClientChannel
+	if (event.cookies.get(clientChannelCookie) !== channel)
+		event.cookies.set(clientChannelCookie, channel, {
+			secure: !dev,
+			httpOnly: true,
+			sameSite: "lax",
+			maxAge: 365 * 24 * 60 * 60,
+			path: "/",
+		})
 
 	const [, moderated] = await db.query<boolean[][]>(moderatedQuery, {
 		user: Record("user", user.id),
