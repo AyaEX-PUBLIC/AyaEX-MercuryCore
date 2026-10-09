@@ -25,14 +25,8 @@ export async function load({ locals }) {
 	}
 }
 
-const errors: { [_: string]: string } = Object.freeze({
-	create: Buffer.from(
-		"RXJyb3IgMTY6IGR1bWIgbmlnZ2EgZGV0ZWN0ZWQ",
-		"base64"
-	).toString(),
-	changed: "Dickhead",
-	wisely: "GRRRRRRRRRRRRRRRRRRRRR!!!!!!!!!!!!!!!!!",
-})
+// "create" would collide with this page's URL
+const reservedNames = Object.freeze(["create", "changed", "wisely"])
 
 export const actions: import("./$types").Actions = {}
 actions.default = async ({ fetch: f, locals, request }) => {
@@ -43,8 +37,8 @@ actions.default = async ({ fetch: f, locals, request }) => {
 
 	const { name } = form.data
 	const lowercaseName = name.toLowerCase()
-	if (errors[lowercaseName])
-		return formError(form, ["name"], [errors[lowercaseName]])
+	if (reservedNames.includes(lowercaseName))
+		return formError(form, ["name"], ["This group name is not available"])
 
 	const foundGroup = await findWhere(
 		"group",
