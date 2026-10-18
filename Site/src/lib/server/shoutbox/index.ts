@@ -47,12 +47,17 @@ const toShout = (row: Row<Shout>): Shout => ({
 let channels: Channel[] = []
 let loaded: Promise<void> | null = null
 
+type ChannelRow = Omit<Channel, "last" | "lastBy"> & {
+	position: number
+	latest?: { created: Date; by: string }
+}
+
 async function loadChannels() {
-	const [rows] =
-		await db.query<Row<Channel & { position: number }>[][]>(channelsQuery)
-	channels = rows.map(({ position, ...c }) => ({
+	const [rows] = await db.query<ChannelRow[][]>(channelsQuery)
+	channels = rows.map(({ position, latest, ...c }) => ({
 		...c,
-		last: c.last?.getTime() || null,
+		last: latest?.created.getTime() || null,
+		lastBy: latest?.by || null,
 	}))
 }
 
@@ -200,6 +205,7 @@ export async function send(channel: string, input: string, user: User) {
 
 	const shout = toShout(row)
 	c.last = shout.created
+	c.lastBy = user.username
 	publish({ type: "new", channel: c.id, shout })
 	return shout
 }

@@ -8,8 +8,9 @@ export type Channel = {
 	writeLevel: number
 	/** Seconds between one person's messages; staff aren't limited */
 	slowmode: number
-	/** When the newest message was sent, for unread markers */
+	/** When the newest message was sent, and by whom, for unread markers */
 	last: number | null
+	lastBy: string | null
 }
 
 export type Shout = {

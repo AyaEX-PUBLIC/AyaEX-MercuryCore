@@ -78,7 +78,7 @@
 	function resize() {
 		if (!textarea) return
 		textarea.style.height = "auto"
-		textarea.style.height = `${Math.min(textarea.scrollHeight + 2, 160)}px`
+		textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`
 	}
 
 	async function send() {
@@ -251,7 +251,9 @@
 		border-top: 1px solid var(--accent2);
 	}
 
+	/* one line of text is as tall as the buttons, which stay on the last line */
 	.row {
+		--line: 2.5rem;
 		display: flex;
 		align-items: flex-end;
 		background: var(--darker);
@@ -267,10 +269,12 @@
 		& textarea {
 			flex: 1;
 			min-width: 0;
+			min-height: var(--line);
 			max-height: 10rem;
-			padding: 0.5625rem 0.75rem;
+			padding: calc((var(--line) - 1.3125rem) / 2) 0.75rem;
 			font: inherit;
 			font-size: 0.875rem;
+			line-height: 1.3125rem;
 			color: var(--light-text);
 			background: transparent;
 			border: 0;
@@ -281,11 +285,15 @@
 	}
 
 	.icon {
-		align-self: stretch;
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
 		width: 2.375rem;
-		max-height: 2.5rem;
-		margin-top: auto;
+		height: var(--line);
+		padding: 0;
 		font-size: 0.9375rem;
+		line-height: 1;
 		color: var(--grey-text);
 		background: none;
 		border: 0;
@@ -300,15 +308,17 @@
 			}
 		}
 		& .smile {
+			font-size: 1rem;
 			filter: grayscale(1);
 			opacity: 0.65;
 			transition: opacity 0.15s;
 		}
 	}
 
+	/* covers the row's border, so it lines up with the box's edges */
 	.send {
-		align-self: stretch;
-		max-height: 2.5rem;
+		flex-shrink: 0;
+		height: calc(var(--line) + 2px);
 		margin: -1px -1px -1px 0.25rem;
 		padding: 0 0.875rem;
 	}

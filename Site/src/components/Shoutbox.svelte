@@ -201,7 +201,10 @@
 	function add(shout: Shout) {
 		const entry = logs[shout.channel]
 		const c = channels.find(c => c.id === shout.channel)
-		if (c) c.last = Math.max(c.last || 0, shout.created)
+		if (c && shout.created >= (c.last || 0)) {
+			c.last = shout.created
+			c.lastBy = shout.author.username
+		}
 		if (!entry || entry.messages.some(m => m.id === shout.id)) return false
 		entry.messages.push(shout)
 		if (entry.messages.length > keep) {
@@ -331,8 +334,14 @@
 		try {
 			seen = JSON.parse(localStorage.getItem(seenKey) || "{}") || {}
 		} catch {}
+		// (your own message isn't news to you, even from another device)
 		for (const c of channels)
-			if (c.id !== active && c.last && c.last > (seen[c.id] || 0))
+			if (
+				c.id !== active &&
+				c.last &&
+				c.last > (seen[c.id] || 0) &&
+				c.lastBy !== user.username
+			)
 				unread[c.id] = { count: 0, mention: false }
 		scrollToBottom()
 		connect()
@@ -427,11 +436,9 @@
 					{/if}
 					{c.name}
 					{#if u && c.id !== active}
-						{#if u.count}
-							<span class="count">{u.count > 99 ? "99+" : u.count}</span>
-						{:else}
-							<span class="new" aria-label="New messages"></span>
-						{/if}
+						<span class="count" title="New messages">
+							{u.count ? (u.count > 99 ? "99+" : u.count) : "new"}
+						</span>
 					{/if}
 				</button>
 			{/each}
@@ -592,21 +599,22 @@
 				color: var(--light-text);
 			}
 		}
-		& .new {
-			width: 0.375rem;
-			height: 0.375rem;
-			background: var(--light-text);
-		}
 		& .count {
 			padding: 0 0.3rem;
 			font-family: var(--font-mono);
 			font-size: 0.625rem;
-			line-height: 1rem;
-			color: var(--light-text);
-			background: var(--accent3);
+			font-weight: 500;
+			line-height: 0.875rem;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+			color: var(--primary-text);
+			background: var(--primary-soft);
+			border: 1px solid var(--primary-line);
 		}
 		& .mention .count {
+			color: #fff;
 			background: var(--primary);
+			border-color: var(--primary);
 		}
 	}
 
