@@ -10,7 +10,7 @@
 -->
 <Navbar {data} />
 
-<main class="py-5vh <lg:pt-2.5vh flex-1">
+<main class="flex-1 pt-8 lg:pt-10">
 	{@render children?.()}
 </main>
 

@@ -1,55 +1,4 @@
-.dropdown-content {
-	@apply transition transition-all duration-300 ease-in-out;
-	z-index: 1000;
-	padding-left: 0.5rem;
-	max-height: 25rem !important;
-	overflow-y: auto;
-	right: 0;
-	filter: drop-shadow(0 10px 8px rgba(255, 255, 255, 0.04))
-		drop-shadow(0 0px 3px rgba(255, 255, 255, 0.1));
-
-	& ul {
-		list-style: none;
-		width: 10rem;
-		background: var(--darker);
-		margin: 0;
-	}
-
-	& a,
-	& button {
-		transition: background 0.2s !important;
-		width: 100%;
-		border: none;
-		text-align: start !important;
-	}
-
-	& a:hover,
-	& button:hover,
-	& a:focus,
-	& button:focus,
-	& a[data-highlighted],
-	& button[data-highlighted] {
-		color: var(--grey-text) !important;
-		background: rgba(119, 51, 255, 0.5);
-	}
-
-	& a:active,
-	& button:active {
-		background: rgba(102, 26, 255, 0.4);
-	}
-
-	& li {
-		padding: 0px;
-		transition: background 0.2s;
-	}
-}
-
-.dropdown-ellipsis {
-	cursor: pointer;
-	padding: 0 0.5rem;
-	transition: opacity 0.2s;
-	opacity: 0.5;
-}
+/* A menu shown on hover or focus: <div class="dropdown"><trigger /><div class="dropdown-content"><ul>…</ul></div></div> */
 
 .dropdown {
 	position: relative;
@@ -64,16 +13,87 @@
 		position: absolute;
 		visibility: hidden;
 		opacity: 0;
+		translate: 0 -0.25rem;
 	}
 
 	&:focus-within .dropdown-content,
-	&:hover .dropdown-content,
-	&:hover .dropdown-ellipsis {
+	&:hover .dropdown-content {
 		visibility: visible;
+		opacity: 1;
+		translate: 0 0;
+	}
+
+	&:hover .dropdown-ellipsis,
+	&:focus-within .dropdown-ellipsis {
 		opacity: 1;
 	}
 
 	&:is(details) summary::-webkit-details-marker {
 		display: none;
 	}
+}
+
+.dropdown-content {
+	z-index: 1000;
+	right: 0;
+	padding-top: 0.375rem;
+	max-height: 25rem !important;
+	overflow-y: auto;
+	transition:
+		opacity 0.15s,
+		translate 0.15s,
+		visibility 0.15s;
+
+	& ul {
+		list-style: none;
+		min-width: 11rem;
+		margin: 0;
+		padding: 0.25rem !important;
+		background: var(--background);
+		border: 1px solid var(--accent2);
+		border-radius: 0 !important;
+		box-shadow: 0 1rem 2rem -0.75rem rgb(0 0 0 / 0.7);
+	}
+
+	& li {
+		padding: 0;
+		border-radius: 0 !important;
+	}
+
+	& a,
+	& button {
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		width: 100%;
+		gap: 0.5rem;
+		padding: 0.5rem 0.75rem !important;
+		font-size: 0.875rem;
+		border: none;
+		text-align: start !important;
+		transition: background 0.15s !important;
+	}
+
+	& a:hover,
+	& button:hover,
+	& a:focus-visible,
+	& button:focus-visible,
+	& a[data-highlighted],
+	& button[data-highlighted] {
+		background: var(--accent);
+		outline: none;
+	}
+
+	& fa {
+		width: 1rem;
+		padding: 0 !important;
+		text-align: center;
+	}
+}
+
+.dropdown-ellipsis {
+	cursor: pointer;
+	padding: 0.25rem 0.5rem;
+	transition: opacity 0.15s;
+	opacity: 0.5;
 }

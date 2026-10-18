@@ -73,13 +73,21 @@
 	})
 
 	let notifications = $derived(data.notifications.filter(n => !n.read))
+	// only the newest few; the rest are a click away
+	const maxToasts = 3
 </script>
 
 <svelte:head>
 	<meta charset="utf-8" />
-	<meta name="theme-color" content="#0f0e11" />
+	<meta name="theme-color" content="#18181a" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<link rel="icon" href="/assets/favicon" />
+	<link
+		rel="preload"
+		href="/fonts/Geist-latin.woff2"
+		as="font"
+		type="font/woff2"
+		crossorigin="anonymous" />
 
 	<!-- todo: document analytics setup -->
 	<!-- {#if !dev}
@@ -91,47 +99,90 @@
 </svelte:head>
 
 <!-- Toast notifications -->
-<div class="max-w-110 fixed bottom-0 end-0 p-4 flex flex-col gap-4 z-10">
-	{#each notifications as notification}
-		<div
-			class="show bg-darker light-text rounded-2"
-			role="alert"
-			aria-live="assertive"
-			aria-atomic="true">
-			<div class="bg-a light-text flex p-2 rounded-t-2">
+{#if notifications.length > 0}
+	<div class="toasts">
+		{#each notifications.slice(0, maxToasts) as notification (notification.id)}
+			<div
+				class="toast"
+				role="alert"
+				aria-live="assertive"
+				aria-atomic="true">
+				<div class="flex items-center gap-3 px-3 pt-3">
+					<a
+						href="/user/{notification.sender.username}"
+						class="light-text flex gap-3 items-center min-w-0 flex-1">
+						<User
+							user={notification.sender}
+							size="1.75rem"
+							bg="accent"
+							image />
+						<span class="min-w-0">
+							<b class="block text-sm truncate">
+								{notificationNotes[notification.type]}
+							</b>
+							<small class="eyebrow block normal-case tracking-normal">
+								{notification.created.toLocaleString()}
+							</small>
+						</span>
+					</a>
+					<form
+						use:enhance
+						method="post"
+						action="/notifications?s={notification.id}">
+						<button
+							class="btn btn-quatenary btn-sm px-2"
+							aria-label="Dismiss">
+							<fa fa-xmark-large></fa>
+						</button>
+					</form>
+				</div>
 				<a
-					href="/user/{notification.sender.username}"
-					class="light-text flex gap-3 items-center w-full no-underline">
-					<User
-						user={notification.sender}
-						size="1.6rem"
-						bg="background"
-						image />
-					<strong>
-						{notificationNotes[notification.type]}
-					</strong>
-					<small class="grey-text pr-4">
-						{notification.created.toLocaleString()}
-					</small>
+					href={notification.link}
+					class="light-text block px-3 pt-2 pb-3 text-sm">
+					{notification.note}
 				</a>
-				<form
-					use:enhance
-					method="post"
-					action="/notifications?s={notification.id}">
-					<button
-						class="btn p-0 px-1 text-white hover:text-neutral-500"
-						aria-label="Close">
-						<fa fa-xmark-large></fa>
-					</button>
-				</form>
 			</div>
-			<a
-				href={notification.link}
-				class="light-text p-3 no-underline block rounded-2">
-				{notification.note}
+		{/each}
+		{#if notifications.length > maxToasts}
+			<a href="/notifications" class="toast more">
+				{notifications.length - maxToasts} more unread
+				<fa fa-arrow-right></fa>
 			</a>
-		</div>
-	{/each}
-</div>
+		{/if}
+	</div>
+{/if}
 
 {@render children()}
+
+<style>
+	.toasts {
+		position: fixed;
+		right: 0;
+		bottom: 0;
+		z-index: 30;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		width: min(100%, 24rem);
+		padding: 1rem;
+	}
+
+	.toast {
+		background: var(--background);
+		border: 1px solid var(--accent2);
+		border-left: 2px solid var(--primary);
+		box-shadow: 0 1rem 2rem -0.75rem rgb(0 0 0 / 0.7);
+		&.more {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 0.5rem 0.75rem;
+			font-size: 0.8125rem;
+			color: var(--grey-text);
+			border-left-color: var(--accent3);
+			&:hover {
+				color: var(--light-text);
+			}
+		}
+	}
+</style>
