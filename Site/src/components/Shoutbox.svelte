@@ -435,9 +435,9 @@
 						<span class="hash">#</span>
 					{/if}
 					{c.name}
-					{#if u && c.id !== active}
+					{#if u?.count && c.id !== active}
 						<span class="count" title="New messages">
-							{u.count ? (u.count > 99 ? "99+" : u.count) : "new"}
+							{u.count > 99 ? "99+" : u.count}
 						</span>
 					{/if}
 				</button>
