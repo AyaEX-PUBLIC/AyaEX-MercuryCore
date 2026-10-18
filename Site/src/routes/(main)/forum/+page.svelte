@@ -10,72 +10,79 @@
 
 <Head name={data.siteName} title="Forum" />
 
-<div class="ctnr light-text max-w-280 flex flex-col gap-4">
-	<h1 class="pb-6">Forum</h1>
+<div class="ctnr max-w-280">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Community</div>
+			<h1>Forum</h1>
+		</div>
+		{#if user.permissionLevel === 5}
+			<a href="/forum/create/category" class="btn btn-tertiary">
+				<fa fa-plus></fa>
+				New category
+			</a>
+		{/if}
+	</div>
 	{#if data.categories.length > 0}
-		{#each data.categories as category, num}
-			<div
-				in:fade|global={{ num, total: data.categories.length }}
-				class="category card bg-darker p-4">
-				<div class="flex flex-wrap">
+		<div class="panel">
+			{#each data.categories as category, num}
+				<div
+					in:fade|global={{ num, total: data.categories.length }}
+					class="category">
 					<a
-						class="light-text flex w-full lg:w-3/4 md:w-7/12 no-underline"
+						class="light-text min-w-0 flex-1"
 						href="/forum/{category.name.toLowerCase()}">
-						<div class="w-3/4">
-							<h2>
-								{category.name}
-							</h2>
-							{category.description}
-						</div>
-						<h3 class="w-1/4">
-							{category.postCount || "No"} post{category.postCount ==
-							1
-								? ""
-								: "s"}
-						</h3>
+						<h2 class="text-base">{category.name}</h2>
+						<span class="grey-text text-sm">{category.description}</span>
 					</a>
-					<div class="w-full lg:w-1/4 md:w-5/12">
+					<span class="eyebrow shrink-0 w-24">
+						{category.postCount || "No"} post{category.postCount == 1 ? "" : "s"}
+					</span>
+					<div class="latest">
 						{#if category.latestPost}
-							{@const content =
-								category.latestPost.currentContent}
-							<a
-								href="/comment/{category.latestPost.id}"
-								class="light-text no-underline">
-								Latest post:
-								<h3>
-									{content.slice(0, 30)}{content.length > 30
-										? "..."
-										: ""}
-								</h3>
+							{@const content = category.latestPost.currentContent}
+							<a href="/comment/{category.latestPost.id}" class="light-text text-sm block truncate">
+								{content.slice(0, 40)}{content.length > 40 ? "..." : ""}
 							</a>
-							<span class="flex gap-2">
+							<span class="flex items-center gap-2 pt-1 text-xs grey-text">
 								by
-								<User
-									user={category.latestPost.author}
-									full
-									thin
-									size="1.5rem" />
+								<User user={category.latestPost.author} full thin size="1.25rem" />
 							</span>
 						{/if}
 					</div>
 				</div>
-			</div>
-		{/each}
+			{/each}
+		</div>
 	{:else}
-		<h2 class="text-center">
-			There are no categories available in the forum yet.
-		</h2>
-		{#if user.permissionLevel === 5}
-			<h3 class="text-center">
-				Why not <a href="/forum/create/category">create one?</a>
-			</h3>
-		{/if}
+		<div class="empty">
+			<b>There are no categories in the forum yet</b>
+			{#if user.permissionLevel === 5}
+				<p>Why not <a href="/forum/create/category">create one</a>?</p>
+			{/if}
+		</div>
 	{/if}
 </div>
 
 <style>
 	.category {
-		border: 1px solid var(--accent2);
-		transition: all 0.3s ease-out;
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		padding: 1rem 1.25rem;
+		& + .category {
+			border-top: 1px solid var(--accent2);
+		}
+		@media (max-width: 767.9px) {
+			flex-wrap: wrap;
+			gap: 0.5rem 1.5rem;
+		}
+	}
+
+	.latest {
+		width: 16rem;
+		min-width: 0;
+		@media (max-width: 767.9px) {
+			width: 100%;
+		}
 	}
 </style>

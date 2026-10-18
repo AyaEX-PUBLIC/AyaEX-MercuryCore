@@ -58,13 +58,15 @@
 	{@const c = await comment}
 	{@const { comments, content, type, visibility } = c}
 	<!-- huge padding cuz otherwise the dropdown on the bottom comments arent visible lmfao -->
-	<div class={["ctnr max-w-280", { "pb-32": comments.length > 0 }]}>
-		<Breadcrumbs path={getBreadcrumb(c)} final={elide(content[0].text)} />
+	<div class={["ctnr max-w-240", { "pb-32": comments.length > 0 }]}>
+		<div class="pb-4">
+			<Breadcrumbs path={getBreadcrumb(c)} final={elide(content[0].text)} />
+		</div>
 
 		{#if visibility === "Deleted" || visibility === "Moderated"}
-			<div class="pt-2 pb-6">
+			<div class="pb-6">
 				<div class="alert alert-red" role="alert">
-					<fa class="pr-4" fa-eye-slash></fa>
+					<fa class="pr-2" fa-eye-slash></fa>
 					<b>
 						This comment has been {visibility === "Deleted"
 							? "deleted"
@@ -93,7 +95,9 @@
 			{/if}
 		{/if}
 
-		<PostReply {formData} />
+		<div class="pt-6">
+			<PostReply {formData} />
+		</div>
 
 		{#if comments.length > 0}
 			{#each comments as c, num (c.id)}
@@ -106,9 +110,10 @@
 					{user} />
 			{/each}
 		{:else}
-			<h3 class="text-center pt-6">
-				No comments yet. Be the first to post one!
-			</h3>
+			<div class="empty mt-4">
+				<b>No replies yet</b>
+				<p>Be the first to post one!</p>
+			</div>
 		{/if}
 	</div>
 {/if}

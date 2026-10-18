@@ -22,43 +22,50 @@
 
 <div
 	in:fade|global={{ num, total }}
-	class={[
-		"card bg-darker flex-row overflow-hidden h-40 border-(1px solid)",
-		{ "border-green-5!": post.pinned }
-	]}>
+	class={["post", { pinned: post.pinned }]}>
 	<CommentLike
-		class={["bg-a p-1 z-1", { "opacity-33": hidden }]}
+		class={["votes", { "opacity-33": hidden }]}
 		{likeForm}
 		comment={post} />
-	<div class={["pl-2 flex flex-col w-full", { "opacity-33": hidden }]}>
-		<div class="flex pt-4 px-4 justify-between items-center w-full">
-			<User user={post.author} full />
-			<em class="light-text px-4">
+	<div class={["flex flex-col min-w-0 flex-1 p-4", { "opacity-33": hidden }]}>
+		<div class="flex justify-between items-center gap-3">
+			<User user={post.author} full thin size="1.5rem" />
+			<time class="eyebrow normal-case tracking-normal">
 				{post.created.toLocaleString()}
-			</em>
+			</time>
 		</div>
-		<a
-			href="/comment/{post.id}"
-			class="light-text px-4 pt-2 no-underline w-full">
-			<div class="gradient w-full h-20 absolute bottom-0 left-0"></div>
-			<p class="break-all text-lg whitespace-pre-line">
-				{post.currentContent}
-			</p>
+		<a href="/comment/{post.id}" class="light-text content">
+			{post.currentContent}
 		</a>
 	</div>
 </div>
 
 <style>
-	.card {
-		border-color: var(--accent2);
-		transition: all 0.3s ease-out;
+	.post {
+		display: flex;
+		max-height: 11rem;
+		overflow: hidden;
+		background: var(--background);
+		border: 1px solid var(--accent2);
+		transition: border-color 0.15s;
 		&:hover {
-			background: var(--background);
-			border: 1px solid var(--accent3);
+			border-color: var(--accent3);
+		}
+		&.pinned {
+			border-left: 2px solid var(--success);
+		}
+		& :global(.votes) {
+			background: var(--darker);
+			border-right: 1px solid var(--accent2);
 		}
 	}
 
-	.gradient {
-		background: linear-gradient(rgba(0, 0, 0, 0), var(--darker));
+	.content {
+		display: block;
+		padding-top: 0.75rem;
+		overflow: hidden;
+		overflow-wrap: anywhere;
+		white-space: pre-line;
+		mask-image: linear-gradient(black 60%, transparent);
 	}
 </style>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	// The friends, followers, and following pages for a user.
 
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
+	import FriendsNav from "$components/FriendsNav.svelte"
 	import Head from "$components/Head.svelte"
 	import UserCard from "$components/UserCard.svelte"
 
@@ -11,33 +13,34 @@
 		followers: () => `${data.username}'s followers`,
 		following: () => `Followed by ${data.username}`
 	})
-	let title = titles[data.f]()
+	let title = $derived(titles[data.f]())
+	let mine = $derived(data.username === data.user.username)
 </script>
 
 <Head name={data.siteName} {title} />
 
-<div class="text-center">
-	<h1>{title} ({data.count})</h1>
-	<a href="/user/{data.username}" class="no-underline accent-text">
-		<fa fa-caret-left></fa>
-		Back to {data.username}'s profile
-	</a>
+<div class="ctnr max-w-260">
+	<div class="pb-4">
+		<Breadcrumbs
+			path={[[data.username, `/user/${data.username}`]]}
+			final={data.f} />
+	</div>
+	<h1 class="pb-6">
+		{title}
+		<span class="dim-text font-400">{data.count}</span>
+	</h1>
+
+	<FriendsNav username={data.username} {mine} current={data.f} />
+
+	{#if data.users.length > 0}
+		<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3">
+			{#each data.users as user, num (user.username)}
+				<UserCard {user} {num} total={data.users.length} />
+			{/each}
+		</div>
+	{:else}
+		<div class="empty">
+			<b>Nobody here yet</b>
+		</div>
+	{/if}
 </div>
-
-<div class="ctnr pt-12 grid">
-	{#each data.users as user, num}
-		<UserCard {user} {num} total={data.users.length} />
-	{/each}
-</div>
-
-<style>
-	.ctnr {
-		max-width: 100%;
-		font-size: 0.9rem;
-
-		grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-		column-gap: 1rem;
-		row-gap: 1rem;
-		place-items: center;
-	}
-</style>

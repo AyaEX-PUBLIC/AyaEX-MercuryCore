@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Form from "$components/forms/Form.svelte"
 	import Textarea from "$components/forms/Textarea.svelte"
 	import Head from "$components/Head.svelte"
@@ -12,24 +13,22 @@
 
 <Head name={data.siteName} title="Create a post in {data.categoryName}" />
 
-<div class="text-center">
-	<h1>Create a post in {data.categoryName}</h1>
-	<a href="/forum/{data.categoryName}" class="no-underline accent-text">
-		<fa fa-caret-left></fa>
-		Back to forum
-	</a>
-</div>
-
-<div class="ctnr pt-12 max-w-200 light-text">
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs
+				path={[
+					["Forum", "/forum"],
+					[data.categoryName, `/forum/${data.categoryName}`]
+				]}
+				final="New post" />
+			<h1>Create a post in {data.categoryName}</h1>
+		</div>
+	</div>
 	<Form {formData} submit="Post">
-		<!-- <Input
-			{formData}
-			name="title"
-			label="Post title"
-			placeholder="Make sure to make it accurate" /> -->
 		<Textarea
 			{formData}
-			rows={3}
+			rows={5}
 			name="content"
 			label="Post content"
 			placeholder="Up to 3000 characters" />

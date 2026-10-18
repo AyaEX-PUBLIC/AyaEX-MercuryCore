@@ -10,17 +10,22 @@
 <Head name={data.siteName} title="Groups" />
 
 <div class="ctnr">
-	<div class="flex pb-6">
-		<h1 class="w-1/2">
-			<span class="pr-6">Groups</span>
-			{#if (data.user?.permissionLevel ?? 0) >= 5}
-				<a href="/groups/create" class="btn btn-primary">Create</a>
-			{/if}
-		</h1>
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Community</div>
+			<h1>Groups</h1>
+			<p>Join groups to hang out with people who like the same things. Games can check which groups you're in.</p>
+		</div>
+		{#if (data.user?.permissionLevel ?? 0) >= 5}
+			<a href="/groups/create" class="btn btn-primary">
+				<fa fa-plus></fa>
+				Create a group
+			</a>
+		{/if}
 	</div>
 
 	{#if data.groups.length > 0}
-		<div class="grid text-0.9rem">
+		<div class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 			{#each data.groups as group, num (group.name)}
 				<Group {group} {num} total={data.groups.length} />
 			{/each}
@@ -29,15 +34,8 @@
 			<Pagination totalPages={data.pages} />
 		{/key}
 	{:else}
-		<h2 class="text-center">No groups yet.</h2>
+		<div class="empty">
+			<b>No groups yet</b>
+		</div>
 	{/if}
 </div>
-
-<style>
-	.grid {
-		grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-		column-gap: 0.7rem;
-		row-gap: 0.7rem;
-		place-items: center;
-	}
-</style>

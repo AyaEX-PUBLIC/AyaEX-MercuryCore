@@ -16,20 +16,19 @@
 	{@const { name, posts, pages } = await category}
 	<Head name={data.siteName} title="{name} - Forum" />
 
-	<div class="ctnr max-w-200">
-		<Breadcrumbs path={[["Forum", "/forum"]]} final={name} />
-
-		<h1 class="pb-8">
-			{name} &ndash; Forum
-			<span class="pl-6">
-				<a href="/forum/create?category={name}" class="btn btn-primary">
-					<fa fa-file class="pr-2"></fa>
-					Create post
-				</a>
-			</span>
-		</h1>
+	<div class="ctnr max-w-220">
+		<div class="page-head">
+			<div>
+				<Breadcrumbs path={[["Forum", "/forum"]]} final={name} />
+				<h1>{name}</h1>
+			</div>
+			<a href="/forum/create?category={name}" class="btn btn-primary">
+				<fa fa-file></fa>
+				New post
+			</a>
+		</div>
 		{#if posts.length > 0}
-			<div class="flex flex-col gap-4">
+			<div class="flex flex-col gap-3">
 				{#each posts as post, num (post.id)}
 					<!-- Make sure to put this in an @const here, and separate it from the .enhance() call in the component property, or else ALL HELL WILL BREAK LOOSE -->
 					{@const likePost = likeForm.for(post.id)}
@@ -45,8 +44,10 @@
 				<Pagination totalPages={pages} />
 			{/key}
 		{:else}
-			<h2 class="text-center">No posts in this category yet.</h2>
-			<h3 class="pt-4 text-center">Be the first to write one!</h3>
+			<div class="empty">
+				<b>No posts in this category yet</b>
+				<p>Be the first to write one!</p>
+			</div>
 		{/if}
 	</div>
 {/if}

@@ -23,30 +23,62 @@
 
 <Head name={data.siteName} title="Notifications" />
 
-<h1 class="text-center">Notifications ({data.notifications.length})</h1>
-
-<div class="ctnr pt-8 max-w-200">
-	{#each data.notifications as notification}
-		<div class="pb-4">
-			<div class={["card p-4", { "bg-darker": notification.read }]}>
-				<span class="flex gap-3 items-center pb-4">
-					<User
-						user={notification.sender}
-						size="3rem"
-						bg="background" />
-					<h2 class="text-base pt-1">
-						{notificationNotes[notification.type]}
-					</h2>
-				</span>
-				<a href={notification.link} class="light-text">
-					<p>
-						{notification.note}
-					</p>
-				</a>
-			</div>
+<div class="ctnr max-w-220">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">You</div>
+			<h1>Notifications</h1>
+			<p>
+				{data.notifications.length > 0
+					? `${data.notifications.length} notification${data.notifications.length === 1 ? "" : "s"}. Opening this page marks them all as read.`
+					: "Friend requests, replies and more will show up here."}
+			</p>
 		</div>
-	{/each}
-	{#if data.notifications.length === 0}
-		<h2 class="pt-12 text-center">No notifications yet.</h2>
+	</div>
+
+	{#if data.notifications.length > 0}
+		<div class="panel">
+			{#each data.notifications as notification}
+				<div class={["notification", { unread: !notification.read }]}>
+					<User user={notification.sender} size="2.75rem" bg="accent" class="self-start" />
+					<div class="min-w-0 flex-1">
+						<div class="flex flex-wrap items-baseline justify-between gap-x-3">
+							<b class="text-sm">
+								{notificationNotes[notification.type]}
+							</b>
+							<time class="eyebrow normal-case tracking-normal">
+								{notification.created.toLocaleString()}
+							</time>
+						</div>
+						{#if notification.link}
+							<a href={notification.link} class="light-text block pt-1 break-words">
+								{notification.note}
+							</a>
+						{:else}
+							<span class="block pt-1 break-words">{notification.note}</span>
+						{/if}
+					</div>
+				</div>
+			{/each}
+		</div>
+	{:else}
+		<div class="empty">
+			<b>No notifications yet</b>
+		</div>
 	{/if}
 </div>
+
+<style>
+	.notification {
+		display: flex;
+		gap: 1rem;
+		padding: 1rem 1.25rem;
+		& + .notification {
+			border-top: 1px solid var(--accent2);
+		}
+		&.unread {
+			background: var(--primary-soft);
+			box-shadow: inset 2px 0 0 var(--primary);
+		}
+	}
+</style>

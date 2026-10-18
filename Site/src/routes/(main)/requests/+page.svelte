@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from "$app/forms"
 	import { page } from "$app/state"
+	import FriendsNav from "$components/FriendsNav.svelte"
 	import Head from "$components/Head.svelte"
 	import Pagination from "$components/Pagination.svelte"
 	import User from "$components/User.svelte"
@@ -11,42 +12,48 @@
 
 <Head name={data.siteName} title="Friend requests" />
 
-<h1 class="text-center">Friend requests ({data.users.length})</h1>
+<div class="ctnr max-w-260">
+	<div class="page-head mb-0! border-b-0! pb-6!">
+		<div>
+			<div class="eyebrow">Social</div>
+			<h1>Friends</h1>
+			<p>
+				{data.users.length > 0
+					? `You have ${data.users.length} friend request${data.users.length === 1 ? "" : "s"} waiting.`
+					: "People who want to be your friend show up here."}
+			</p>
+		</div>
+	</div>
 
-<div class="ctnr pt-8">
+	<FriendsNav username={data.user.username} mine current="requests" />
+
 	{#if data.users.length > 0}
-		<div class="grid max-w-300 mx-auto">
-			{#each data.users as user, num}
+		<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3">
+			{#each data.users as user, num (user.username)}
 				<div
 					in:fade|global={{ num, total: data.users.length, max: 12 }}
-					class="card bg-darker w-full">
-					<div class="flex p-6">
-						<User {user} size="6rem" bg="accent" />
+					class="flex items-center gap-4 p-4">
+					<User {user} size="3.5rem" bg="accent" />
+					<div class="min-w-0 flex-1">
 						<a
-							class="pl-12 text-xl text-white no-underline"
+							class="light-text font-500 block truncate"
 							href="/user/{user.username}">
 							{user.username}
 						</a>
-					</div>
-					<div class="flex gap-2 px-2">
-						<form
-							use:enhance
-							method="post"
-							action="/user/{user.username}?/accept"
-							class="w-full">
-							<button class="btn btn-secondary w-full">
-								Accept
-							</button>
-						</form>
-						<form
-							use:enhance
-							method="post"
-							action="/user/{user.username}?/decline"
-							class="w-full">
-							<button class="btn btn-red-secondary w-full">
-								Decline
-							</button>
-						</form>
+						<div class="flex gap-2 pt-2">
+							<form
+								use:enhance
+								method="post"
+								action="/user/{user.username}?/accept">
+								<button class="btn btn-sm btn-primary">Accept</button>
+							</form>
+							<form
+								use:enhance
+								method="post"
+								action="/user/{user.username}?/decline">
+								<button class="btn btn-sm btn-tertiary">Decline</button>
+							</form>
+						</div>
 					</div>
 				</div>
 			{/each}
@@ -55,25 +62,9 @@
 			<Pagination totalPages={data.pages} />
 		{/key}
 	{:else}
-		<h2 class="pt-12 text-center">No friend requests.</h2>
+		<div class="empty">
+			<b>No friend requests</b>
+			<p>When someone sends you a request, you can accept it here.</p>
+		</div>
 	{/if}
 </div>
-
-<style>
-	.ctnr {
-		max-width: 100%;
-		font-size: 0.9rem;
-		grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-		column-gap: 1rem;
-		row-gap: 1rem;
-		place-items: center;
-	}
-
-	.card {
-		max-width: 25rem;
-		text-decoration: none;
-		& div {
-			word-break: break-all;
-		}
-	}
-</style>

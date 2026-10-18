@@ -24,24 +24,18 @@
 	const refreshComments = () => onResult
 </script>
 
-<div
-	class={[
-		"post card bg-darker flex-row border-(1px solid)",
-		{ "border-green-5!": comment.pinned }
-	]}>
-	<CommentLike class="bg-a p-1 rounded-l-1" {comment} {likeForm} />
-	<div class="p-4 pl-6 no-underline w-full">
-		<div class="flex pb-4">
-			<div class="flex justify-between items-center w-full">
-				<User user={comment.author} full />
-				<i class="px-4">
-					{comment.created.toLocaleString()}
-				</i>
-			</div>
+<div class={["post", { pinned: comment.pinned }]}>
+	<CommentLike class="votes" {comment} {likeForm} />
+	<div class="p-5 min-w-0 flex-1">
+		<div class="flex items-center gap-3 pb-4">
+			<User user={comment.author} full size="2rem" />
+			<time class="eyebrow normal-case tracking-normal ml-auto">
+				{comment.created.toLocaleString()}
+			</time>
 			<span class="dropdown">
-				<fa fa-ellipsis-h class="dropdown-ellipsis py-2"></fa>
+				<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
 				<div class="dropdown-content">
-					<ul class="p-2 rounded-3">
+					<ul>
 						{#if comment.author.username === user.username}
 							<DeleteButton id={comment.id} />
 						{:else}
@@ -62,15 +56,23 @@
 				</div>
 			</span>
 		</div>
-		<p class="break-all whitespace-pre-line">
+		<p class="text-lg break-words whitespace-pre-line p-0">
 			{comment.content[0].text}
 		</p>
 	</div>
 </div>
 
 <style>
-	.card {
-		border-color: var(--accent2);
-		transition: all 0.3s ease-out;
+	.post {
+		display: flex;
+		background: var(--background);
+		border: 1px solid var(--accent2);
+		&.pinned {
+			border-left: 2px solid var(--success);
+		}
+		& :global(.votes) {
+			background: var(--darker);
+			border-right: 1px solid var(--accent2);
+		}
 	}
 </style>

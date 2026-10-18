@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import Head from "$components/Head.svelte"
@@ -12,9 +13,13 @@
 
 <Head name={data.siteName} title="Create a forum category" />
 
-<h1 class="text-center">Create a forum category</h1>
-
-<div class="ctnr pt-12 max-w-200 light-text">
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Forum", "/forum"]]} final="New category" />
+			<h1>Create a forum category</h1>
+		</div>
+	</div>
 	<Form {formData} submit="Create">
 		<Input
 			{formData}

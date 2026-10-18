@@ -23,33 +23,29 @@
 	const refreshComments = () => onResult
 </script>
 
-<a href="/comment/{comment.parentId}" class="no-underline">
-	<fa fa-arrow-up class="pr-2"></fa>
+<a href="/comment/{comment.parentId}" class="inline-flex items-center gap-2 text-sm pb-3">
+	<fa fa-arrow-up></fa>
 	Parent comment
 </a>
 
-<div
-	class={[
-		"py-4 no-underline w-full",
-		{ "border-(solid 1px green-5)!": comment.pinned }
-	]}>
-	<div class="flex pb-4">
-		<User user={comment.author} full />
-		<i class="pl-4 self-center">
+<div class={["reply", { pinned: comment.pinned }]}>
+	<div class="flex items-center gap-3 pb-3">
+		<User user={comment.author} full size="2rem" />
+		<time class="eyebrow normal-case tracking-normal ml-auto">
 			{comment.created.toLocaleString()}
-		</i>
+		</time>
 	</div>
-	<p class="break-all whitespace-pre-line">
+	<p class="break-words whitespace-pre-line">
 		{comment.content[0].text}
 	</p>
 
-	<div class="flex gap-2">
+	<div class="flex items-center gap-2 -ml-1.5">
 		<CommentLike {comment} {likeForm} small />
 
 		<span class="dropdown">
 			<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
-			<div class="dropdown-content pt-2">
-				<ul class="p-2 rounded-3">
+			<div class="dropdown-content">
+				<ul>
 					{#if user.permissionLevel >= 4}
 						<PinButton
 							{refreshComments}
@@ -64,3 +60,14 @@
 		</span>
 	</div>
 </div>
+
+<style>
+	.reply {
+		padding: 1.25rem;
+		background: var(--background);
+		border: 1px solid var(--accent2);
+		&.pinned {
+			border-left: 2px solid var(--success);
+		}
+	}
+</style>

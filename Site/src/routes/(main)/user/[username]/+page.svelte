@@ -1,15 +1,14 @@
 <script lang="ts">
 	import { applyAction, enhance } from "$app/forms"
 	import { invalidateAll } from "$app/navigation"
-	import Accordion from "$components/Accordion.svelte"
-	import AccordionItem from "$components/AccordionItem.svelte"
+	import Group from "$components/Group.svelte"
 	import Head from "$components/Head.svelte"
+	import Place from "$components/Place.svelte"
 	import ReportButton from "$components/ReportButton.svelte"
 	import User from "$components/User.svelte"
 	import fade from "$lib/fade"
 	import permissionLevels from "$lib/permissionLevels"
 	import Interactions from "./Interactions.svelte"
-	import ProfilePlace from "./ProfilePlace.svelte"
 
 	const { data, form } = $props()
 
@@ -37,287 +36,246 @@
 
 <Head name={data.siteName} title={data.username} />
 
-<div class="ctnr max-w-240">
-	<div class="card bg-darker p-4 lg:p-6">
-		<div class="flex">
-			<span class="<lg:hidden pr-6">
-				<User
-					user={data}
-					size="7rem"
-					bg="accent"
-					image
-					rerender={{ form, regenerating }} />
-			</span>
-			<span class="lg:hidden pr-4">
-				<User
-					user={data}
-					size="6rem"
-					bg="accent"
-					image
-					rerender={{ form, regenerating }} />
-			</span>
-			<div class="w-full">
-				<div class="flex mb-2 justify-between">
-					<div class="flex items-center">
-						<h1 class="inline pr-4 mb-0">
-							{data.username}
-						</h1>
-						{#if data.follower}
-							<span class="grey-text bg-a px-2 rounded">
-								Follows you
-							</span>
-						{/if}
-					</div>
-					<div class="flex self-start">
-						<b style="color: {perms[0]}">
-							<fa class="{perms[1]} pr-1"></fa>
-							{perms[2]}
-						</b>
-					</div>
-				</div>
-				<div id="interactions" class="flex justify-between">
-					<div class="flex gap-6">
-						<a
-							href="/user/{data.username}/friends"
-							class="light-text text-center no-underline">
-							Friends
-							<h2>
-								{data.friendCount}
-							</h2>
-						</a>
-						<a
-							href="/user/{data.username}/followers"
-							class="light-text text-center no-underline">
-							Followers
-							<h2>
-								{data.followerCount}
-							</h2>
-						</a>
-						<a
-							href="/user/{data.username}/following"
-							class="light-text text-center no-underline">
-							Following
-							<h2>
-								{data.followingCount}
-							</h2>
-						</a>
-					</div>
-
-					{#if data.username !== user.username}
-						<span class="<lg:hidden">
-							<Interactions {data} />
-						</span>
+<div class="ctnr max-w-300">
+	<!-- Who they are -->
+	<section class="panel mb-6">
+		<div class="flex <sm:flex-col gap-5 p-5 sm:items-center">
+			<User
+				user={data}
+				size="6rem"
+				bg="accent"
+				image
+				rerender={{ form, regenerating }} />
+			<div class="min-w-0 flex-1">
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+					<h1 class="text-3xl break-all">{data.username}</h1>
+					<span class="badge" style="color: {perms[0]}">
+						<fa class={perms[1]}></fa>
+						{perms[2]}
+					</span>
+					{#if data.follower}
+						<span class="badge">Follows you</span>
 					{/if}
 				</div>
+				<div class="flex flex-wrap gap-x-6 gap-y-1 pt-3 text-sm">
+					<a href="/user/{data.username}/friends" class="grey-text">
+						<b class="light-text mono">{data.friendCount}</b>
+						friends
+					</a>
+					<a href="/user/{data.username}/followers" class="grey-text">
+						<b class="light-text mono">{data.followerCount}</b>
+						followers
+					</a>
+					<a href="/user/{data.username}/following" class="grey-text">
+						<b class="light-text mono">{data.followingCount}</b>
+						following
+					</a>
+				</div>
+			</div>
+			<div class="flex items-center gap-2 flex-wrap">
 				{#if data.username !== user.username}
-					<span class="<lg:hidden dropdown float-end">
+					<Interactions {data} />
+					<span class="dropdown">
 						<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
-						<div class="dropdown-content pt-2">
-							<ul class="p-2 rounded-3">
-								b1<ReportButton
+						<div class="dropdown-content">
+							<ul>
+								<ReportButton
 									user={data.username}
 									url="/user/{data.username}" />
 							</ul>
 						</div>
 					</span>
+				{:else}
+					<a href="/settings" class="btn btn-tertiary">
+						<fa fa-pencil></fa>
+						Edit profile
+					</a>
+					<a href="/character" class="btn btn-tertiary">
+						<fa fa-user-pen></fa>
+						Character
+					</a>
 				{/if}
 			</div>
 		</div>
-		{#if data.username !== user.username}
-			<span class="lg:hidden flex justify-between items-end pt-2">
-				<Interactions {data} />
-				<span class="dropdown float-end">
-					<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
-					<div class="dropdown-content pt-2">
-						<ul class="p-2 rounded-3">
-							b2<ReportButton
-								user={data.username}
-								url="/user/{data.username}" />
-						</ul>
-					</div>
-				</span>
-			</span>
-		{/if}
-	</div>
-	<div class="sm:grid grid-cols-2 gap-4">
-		<div>
-			{#if data.description}
-				<div class="pt-6">
-					<div class="flex justify-between">
-						<h2>Description</h2>
-						{#if data.username === user.username}
-							<a
-								href="/settings"
-								class="btn light-text text-lg p-0 px-2"
-								aria-label="Edit description">
-								<fa fa-pencil></fa>
-							</a>
-						{/if}
-					</div>
-					<p class="pl-2 pt-4 whitespace-pre-line">
-						{data.description}
-					</p>
-				</div>
-			{:else if data.username === user.username}
-				<p class="pt-6 text-center">
-					Add a description in
-					<a href="/settings">Settings</a>
-					to tell others about yourself! It will display here.
-				</p>
-			{/if}
-			<div class="pt-6">
-				<h2>Avatar</h2>
-				<div class="card bg-darker p-4">
-					<img
-						class={[
-							"transition-opacity duration-300",
-							{ "opacity-50": regenerating }
-						]}
-						src={form?.avatarBody ||
-							`/api/avatar/${data.username}-body`}
-						alt={data.username} />
+	</section>
+
+	<div class="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[20rem_minmax(0,1fr)] gap-6 items-start">
+		<!-- Left: avatar and about -->
+		<div class="flex flex-col gap-6">
+			<section class="panel">
+				<div class="panel-head">
+					<span>Avatar</span>
 					{#if user?.permissionLevel >= 5}
 						<form
 							use:enhance={enhanceRegen}
-							in:fade
 							method="post"
-							action="?/rerender"
-							class="absolute text-right end-0 pr-4">
-							<button class="btn btn-sm btn-tertiary">
+							action="?/rerender">
+							<button class="btn btn-sm btn-quatenary normal-case tracking-normal font-sans">
 								<fa fa-arrows-rotate></fa>
 								Rerender
 							</button>
-							<small class="text-red-500 block">
-								{form?.msg || ""}
-							</small>
 						</form>
 					{/if}
 				</div>
-			</div>
-		</div>
-		<div>
-			{#if data.places.length > 0}
-				<div class="pt-6">
-					<h2>Creations</h2>
-					<Accordion class="flex flex-col gap-2">
-						{#snippet children(accordion)}
-							{#each data.places as place, id}
-								<AccordionItem
-									{accordion}
-									ai={{ id, title: place.name }}>
-									<ProfilePlace {place} />
-								</AccordionItem>
-							{/each}
-						{/snippet}
-					</Accordion>
+				<div class="avatar">
+					<img
+						class={["transition-opacity duration-300", { "opacity-50": regenerating }]}
+						src={form?.avatarBody || `/api/avatar/${data.username}-body`}
+						alt={data.username} />
 				</div>
+				{#if form?.msg}
+					<small class="block text-red-400 px-4 pb-3">{form.msg}</small>
+				{/if}
+			</section>
+
+			<section class="panel">
+				<div class="panel-head">
+					<span>About</span>
+					{#if data.username === user.username}
+						<a href="/settings" aria-label="Edit description">Edit</a>
+					{/if}
+				</div>
+				<div class="p-4">
+					{#if data.description}
+						<p class="whitespace-pre-line break-words p-0">{data.description}</p>
+					{:else if data.username === user.username}
+						<p class="grey-text text-sm p-0">
+							Add a description in <a href="/settings">Settings</a>
+							to tell others about yourself.
+						</p>
+					{:else}
+						<p class="grey-text text-sm p-0">No description yet.</p>
+					{/if}
+				</div>
+			</section>
+		</div>
+
+		<!-- Right: what they've made and done -->
+		<div class="flex flex-col gap-6 min-w-0">
+			<section>
+				<h2 class="section">
+					Creations
+					<span class="dim-text">{data.places.length}</span>
+				</h2>
+				{#if data.places.length > 0}
+					<div class="tiles grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
+						{#each data.places as place, num (place.id)}
+							<Place {place} {num} total={data.places.length} />
+						{/each}
+					</div>
+				{:else}
+					<p class="grey-text text-sm">No games yet.</p>
+				{/if}
+			</section>
+
+			{#if data.badges.length > 0}
+				<section>
+					<h2 class="section">
+						Badges
+						<span class="dim-text">{data.badges.length}</span>
+					</h2>
+					<div class="tiles grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-6">
+						{#each data.badges as badge (badge.id)}
+							<a
+								href="/place/{badge.place}"
+								class="badge-tile light-text"
+								title="{badge.name}: {badge.placeName}">
+								<img
+									src="/catalog/{badge.id}/item/icon"
+									alt=""
+									class="w-full aspect-square object-contain" />
+								<small class="block truncate pt-2">{badge.name}</small>
+							</a>
+						{/each}
+					</div>
+				</section>
 			{/if}
-		</div>
-		{#if data.badges.length > 0}
-			<div class="pt-6">
-				<h2>Badges</h2>
-				<div class="grid grid-cols-3 sm:grid-cols-4 gap-3">
-					{#each data.badges as badge (badge.id)}
-						<a
-							href="/place/{badge.place}"
-							class="card bg-darker p-2 no-underline text-center"
-							title="{badge.name}: {badge.placeName}">
-							<img
-								src="/catalog/{badge.id}/item/icon"
-								alt=""
-								class="w-full aspect-square rounded-2" />
-							<small class="block truncate">{badge.name}</small>
-						</a>
-					{/each}
-				</div>
-			</div>
-		{/if}
-		{#if data.groupsOwned.length > 0}
-			<div class="pt-6">
-				<div class="pt-6">
-					<h2>Groups owned</h2>
-					{#each data.groupsOwned as group, num}
-						<div class="py-2">
-							<a
-								in:fade={{
-									num,
-									total: data.groupsOwned.length
-								}}
-								class="card bg-darker no-underline"
-								href="/groups/{group.id}">
-								<div class="p-2">
-									<span class="float-start">
-										{group.name}
-									</span>
-									<span class="float-end">
-										<fa fa-user class="opacity-75"></fa>
-										{group.memberCount}
-									</span>
-								</div>
-							</a>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-		{#if data.groups.length > 0}
-			<div class="pt-6">
-				<div class="pt-6">
-					<h2>Groups in</h2>
-					{#each data.groups as group, num}
-						<div class="py-2">
-							<a
-								in:fade={{
-									num,
-									total: data.groups.length
-								}}
-								class="card bg-darker no-underline"
-								href="/groups/{group.id}">
-								<div class="p-2">
-									<span class="float-start">
-										{group.name}
-									</span>
-									<span class="float-end">
-										<fa fa-user class="opacity-75"></fa>
-										{group.memberCount}
-									</span>
-								</div>
-							</a>
-						</div>
-					{/each}
-				</div>
-			</div>
-		{/if}
-		<div class="col-span-2">
+
+			{#if data.groupsOwned.length > 0 || data.groups.length > 0}
+				<section>
+					<h2 class="section">
+						Groups
+						<span class="dim-text">
+							{new Set([...data.groupsOwned, ...data.groups].map(g => g.id)).size}
+						</span>
+					</h2>
+					<div class="tiles grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
+						{#each data.groupsOwned as group, num (group.id)}
+							<Group {group} {num} total={data.groupsOwned.length} />
+						{/each}
+						{#each data.groups.filter(g => !data.groupsOwned.some(o => o.id === g.id)) as group, num (group.id)}
+							<Group {group} {num} total={data.groups.length} />
+						{/each}
+					</div>
+				</section>
+			{/if}
+
 			{#if data.comments.length > 0}
-				<h2 class="pt-6">Latest comments</h2>
-				<div class="grid md:grid-cols-2 gap-4">
-					{#each data.comments.sort((a, b) => b.created.getTime() - a.created.getTime()) as comment, num}
-						<div
-							in:fade={{
-								num,
-								total: data.comments.length,
-								max: 9
-							}}
-							class="card bg-darker p-3 h-full">
-							<div id="user" class="flex pb-2 justify-between">
-								<User
-									user={data}
-									size="2rem"
-									full
-									image
-									bg="accent" />
-								<span class="italic flex-end">
+				<section>
+					<h2 class="section">Latest posts</h2>
+					<div class="panel">
+						{#each data.comments.toSorted((a, b) => b.created.getTime() - a.created.getTime()) as comment, num (comment.id)}
+							<a
+								in:fade={{ num, total: data.comments.length, max: 9 }}
+								href="/comment/{comment.id}"
+								class="post light-text">
+								<time class="eyebrow normal-case tracking-normal">
 									{comment.created.toLocaleString()}
+								</time>
+								<span class="block break-words whitespace-pre-line pt-1">
+									{comment.content}
 								</span>
-							</div>
-							<p class="text-start mb-0">
-								{comment.content}
-							</p>
-						</div>
-					{/each}
-				</div>
+							</a>
+						{/each}
+					</div>
+				</section>
 			{/if}
 		</div>
 	</div>
 </div>
+
+<style>
+	.avatar {
+		aspect-ratio: 1;
+		background: var(--darker);
+		& img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+	}
+
+	.section {
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+		padding-bottom: 0.75rem;
+		font-size: 1.125rem;
+		& span {
+			font-size: 0.875rem;
+			font-weight: 400;
+		}
+	}
+
+	.badge-tile {
+		display: block;
+		padding: 0.75rem;
+		background: var(--background);
+		transition: background-color 0.15s;
+		&:hover {
+			background: var(--accent);
+		}
+	}
+
+	.post {
+		display: block;
+		padding: 0.875rem 1rem;
+		transition: background-color 0.15s;
+		&:hover {
+			background: var(--accent);
+		}
+		& + .post {
+			border-top: 1px solid var(--accent2);
+		}
+	}
+</style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import Head from "$components/Head.svelte"
@@ -15,16 +16,22 @@
 
 <Head name={data.siteName} title="Create a group" />
 
-<h1 class="text-center">Create a group</h1>
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Groups", "/groups"]]} final="New group" />
+			<h1>Create a group</h1>
+		</div>
+	</div>
 
-<Form
-	{formData}
-	nopad
-	class="ctnr pt-12 max-w-200 light-text"
-	submit="Create ({data.currencySymbol}{c1}{c2 ? '.' : ''}{c2})">
-	<Input
+	<Form
 		{formData}
-		name="name"
-		label="Group name"
-		placeholder="This cannot be changed. Choose wisely." />
-</Form>
+		nopad
+		submit="Create ({data.currencySymbol}{c1}{c2 ? '.' : ''}{c2})">
+		<Input
+			{formData}
+			name="name"
+			label="Group name"
+			placeholder="This cannot be changed. Choose wisely." />
+	</Form>
+</div>
