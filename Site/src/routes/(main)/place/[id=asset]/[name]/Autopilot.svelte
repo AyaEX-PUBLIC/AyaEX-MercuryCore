@@ -56,14 +56,13 @@
 	</button>
 
 	<div class="dropdown">
-		<div
-			class="btn btn-tertiary dropdown-toggle border-[--accent2] rounded-l-0">
+		<div class="btn btn-tertiary dropdown-toggle" aria-label="More hosting options">
 		</div>
-		<div class="dropdown-content pt-2">
-			<ul class="p-2 rounded-3">
-				<li class="rounded-2">
+		<div class="dropdown-content">
+			<ul>
+				<li>
 					<button
-						class="btn light-text pl-4 pr-0 text-start"
+						class="btn light-text"
 						onclick={host}
 						type="button">
 						Begin Hosting (no Studio tools)

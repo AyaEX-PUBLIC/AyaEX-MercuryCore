@@ -19,7 +19,7 @@
 
 <div
 	in:fade
-	class="carousel inline-flex overflow-hidden scroll-smooth rounded-4">
+	class="carousel flex overflow-hidden scroll-smooth">
 	{#each thumbnails as _, i}
 		{@const thumbs = thumbnails.length}
 		<div
@@ -30,8 +30,8 @@
 			]}>
 			<img
 				src="/place/{id}/{slug}/thumbnail/{i + 1}"
-				class="w-full"
-				alt="Placeholder place thumbnail" />
+				class="w-full aspect-video object-cover block"
+				alt="Place thumbnail" />
 			{#if thumbs > 1}
 				<div
 					class="absolute flex justify-between top-1/2 -translate-y-1/2 left-4 right-4">
@@ -68,8 +68,15 @@
 	}
 
 	.carousel-button {
-		@apply flex items-center justify-center text-white no-underline size-10 rounded-full;
-		background: var(--background);
+		display: grid;
+		place-items: center;
+		width: 2.25rem;
+		height: 2.25rem;
+		color: var(--light-text);
+		background: color-mix(in srgb, var(--background) 80%, transparent);
 		border: 1px solid var(--accent3);
+		&:hover {
+			background: var(--background);
+		}
 	}
 </style>

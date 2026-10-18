@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { applyAction, enhance } from "$app/forms"
 	import { invalidateAll } from "$app/navigation"
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Comment from "$components/Comment.svelte"
 	import Head from "$components/Head.svelte"
 	import PostReply from "$components/PostReply.svelte"
-	import Tab from "$components/Tab.svelte"
-	import TabData from "$components/TabData"
-	import TabNav from "$components/TabNav.svelte"
 	import User from "$components/User.svelte"
 	import types from "$lib/assetTypes"
 	import { superForm } from "$lib/validate"
@@ -36,149 +34,135 @@
 	let comments = $derived(data.asset.comments)
 
 	let formData = $derived(superForm(data.form))
-
-	let tabData = $state(TabData(data.url, ["Recommended", "Comments"]))
 </script>
 
 <Head name={data.siteName} title={data.asset.name} />
 
-<div class="ctnr max-w-240">
-	<div class="flex <sm:flex-col">
-		<div class="pr-4 pb-4">
+<div class="ctnr max-w-260">
+	<div class="pb-4">
+		<Breadcrumbs path={[["Catalog", "/catalog"]]} final={data.asset.name} />
+	</div>
+
+	<div class="panel md:grid! grid-cols-[minmax(0,2fr)_minmax(0,3fr)] mb-8">
+		<div class="preview md:line-r <md:line-b">
 			<img
-				class={[
-					"image transition-opacity duration-300 aspect-1 w-80vw max-w-100",
-					{ "opacity-50": regenerating }
-				]}
+				class={["transition-opacity duration-300", { "opacity-50": regenerating }]}
 				src={form?.icon ||
 					`/catalog/${data.asset.id}/${data.slug}/icon`}
 				alt={data.asset.name} />
 		</div>
-		<div class="light-text w-full">
-			<div class="flex justify-between">
-				<h1>{data.asset.name}</h1>
 
-				<div class="flex flex-col items-center">
-					{#if data.asset.isCreator || user.permissionLevel >= 4}
-						<div>
+		<div class="flex flex-col">
+			<div class="p-5 pb-6 flex flex-col gap-4">
+				<div class="flex items-center gap-2">
+					<span class="badge">{types[data.asset.type]}</span>
+					{#if data.asset.owned}
+						<span class="badge badge-success">
+							<fa fa-check></fa>
+							Owned
+						</span>
+					{/if}
+					<span class="ml-auto flex items-center">
+						{#if data.asset.isCreator || user.permissionLevel >= 4}
 							<a
 								aria-label="Asset settings"
-								href="/catalog/{data.asset
-									.id}/{data.slug}/settings"
-								class="btn btn-sm btn-secondary">
+								href="/catalog/{data.asset.id}/{data.slug}/settings"
+								class="btn btn-sm btn-quatenary tooltip px-2">
 								<fa fa-sliders></fa>
 							</a>
-						</div>
-					{/if}
-					{#if user.permissionLevel >= 5 && [8, 11, 12].includes(data.asset.type)}
-						<span class="dropdown pt-2">
-							<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
-							<div class="dropdown-content">
-								<ul class="p-2 rounded-3">
-									<li class="rounded-2">
-										<form
-											use:enhance={enhanceRegen}
-											method="post"
-											action="?/rerender">
-											<button
-												class="btn accent-text pl-4 pr-0 text-start">
-												<fa
-													fa-arrows-rotate
-													class="pr-2">
-												</fa>
-												<b>Rerender</b>
-											</button>
-										</form>
-									</li>
-								</ul>
-							</div>
+						{/if}
+						{#if user.permissionLevel >= 5 && [8, 11, 12].includes(data.asset.type)}
+							<span class="dropdown">
+								<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
+								<div class="dropdown-content">
+									<ul>
+										<li>
+											<form
+												use:enhance={enhanceRegen}
+												method="post"
+												action="?/rerender">
+												<button class="btn accent-text">
+													<fa fa-arrows-rotate></fa>
+													Rerender
+												</button>
+											</form>
+										</li>
+									</ul>
+								</div>
+							</span>
+						{/if}
+					</span>
+				</div>
+
+				<div>
+					<h1 class="text-3xl break-words">{data.asset.name}</h1>
+					{#if data.asset.creator}
+						<span class="flex items-center gap-2 pt-3 text-sm grey-text">
+							by
+							<User
+								user={data.asset.creator}
+								size="1.5rem"
+								full
+								thin
+								bg="accent" />
 						</span>
 					{/if}
 				</div>
-			</div>
-			<div class="flex">
-				<strong class="pr-2">by:</strong>
 
-				{#if data.asset.creator}
-					<User
-						user={data.asset.creator}
-						size="1.5rem"
-						full
-						thin
-						bg="accent" />
-				{/if}
+				<p class="grey-text whitespace-pre-line break-words p-0">
+					{data.asset.description || "No description available."}
+				</p>
 			</div>
-			<p class="pt-2">
-				{#if data.asset.description}
-					{data.asset.description}
+
+			<dl class="kv line-t mt-auto">
+				<div>
+					<dt>Sold</dt>
+					<dd>{data.asset.sold}</dd>
+				</div>
+				{#if data.asset.forSale && !itsFree}
+					<div>
+						<dt>Price</dt>
+						<dd class="mono text-emerald-400">
+							{data.currencySymbol}{data.asset.price}
+						</dd>
+					</div>
+					<div>
+						<dt>Fee</dt>
+						<dd class="mono text-amber-400">
+							{data.currencySymbol}{fee}
+						</dd>
+					</div>
+				{/if}
+			</dl>
+
+			<div class="p-5 line-t">
+				{#if !data.asset.forSale}
+					<button class="btn btn-lg btn-tertiary w-full" disabled>
+						Not for sale
+					</button>
+				{:else if data.asset.owned}
+					<button class="btn btn-lg btn-tertiary w-full" disabled>
+						<fa fa-check></fa>
+						You own this item
+					</button>
 				{:else}
-					<em>No description available</em>
+					<button popovertarget="buy" class="btn btn-lg btn-primary w-full">
+						{#if itsFree}
+							Get it for free
+						{:else}
+							Buy for {data.currencySymbol}{totalPrice}
+						{/if}
+					</button>
 				{/if}
-			</p>
-
-			<hr />
-			<div class="flex flex-wrap pb-2">
-				<div class="w-full md:w-1/3">
-					<p class="pb-2">
-						<strong>{data.asset.sold}</strong>
-						sold
-					</p>
-					<p>
-						<strong>Type</strong>
-						{types[data.asset.type]}
-					</p>
-				</div>
-				<div class="w-full md:w-2/3 flex flex-row-reverse">
-					{#if data.asset.forSale}
-						<div class="card light-text p-4">
-							{#if itsFree}
-								<b class="pb-2">Free</b>
-							{:else}
-								<table>
-									<tbody>
-										<tr>
-											<td>Price</td>
-											<td class="text-emerald-600">
-												{data.currencySymbol}
-												{data.asset.price}
-											</td>
-										</tr>
-										<tr>
-											<td>Fee</td>
-											<td class="text-yellow-500">
-												{data.currencySymbol}
-												{fee}
-											</td>
-										</tr>
-									</tbody>
-								</table>
-							{/if}
-							{#if !data.asset.owned}
-								<button
-									popovertarget="buy"
-									class="btn btn-success">
-									<strong class="text-xl">
-										{itsFree ? "Get" : "Buy now"}
-									</strong>
-								</button>
-							{:else}
-								<strong
-									class="btn btn-dark bg-a3 pointer-events-none text-xl">
-									Owned
-								</strong>
-							{/if}
-						</div>
-					{/if}
-				</div>
 			</div>
 		</div>
 	</div>
 
-	<TabNav bind:tabData justify />
-
-	<Tab bind:tabData />
-
-	<Tab bind:tabData class={{ "pb-32": comments.length > 0 }}>
+	<section class={{ "pb-32": comments.length > 0 }}>
+		<h2 class="text-lg pb-4 mb-4 line-b">
+			Comments
+			<span class="dim-text font-400">{comments.length}</span>
+		</h2>
 		<PostReply {formData} />
 		{#if comments.length > 0}
 			{#each comments as _, num}
@@ -191,87 +175,87 @@
 					{user} />
 			{/each}
 		{:else}
-			<h3 class="text-center pt-6">
-				No comments yet. Be the first to post one!
-			</h3>
+			<div class="empty mt-4">
+				<b>No comments yet</b>
+				<p>Be the first to post one!</p>
+			</div>
 		{/if}
-	</Tab>
+	</section>
 </div>
 
-<div id="buy" class="light-text p-4 min-w-120" popover="auto">
+<div id="buy" class="buy" popover="auto">
 	{#if data.balance >= totalPrice}
-		<h3 class="text-lg font-bold">Purchase {data.asset.name}</h3>
-		<p class="pb-4">
+		<div class="eyebrow pb-2">{itsFree ? "Get item" : "Purchase"}</div>
+		<h3 class="text-xl pb-2">{data.asset.name}</h3>
+		<p class="grey-text">
 			Would you like to {itsFree ? "get" : "buy"}
 			{data.asset.name} for
 			{#if itsFree}
-				<strong>FREE?</strong>
+				<strong class="light-text">free</strong>?
 			{:else}
-				{data.currencySymbol}
-				{totalPrice}
-				?
+				<strong class="light-text mono">
+					{data.currencySymbol}{totalPrice}</strong
+				>?
 			{/if}
 		</p>
 
-		<form method="post" action="?/buy" class="inline">
-			<button class="btn btn-success">
-				{itsFree ? "Get" : "Buy now"}
+		<div class="flex gap-2 pt-2">
+			<form method="post" action="?/buy">
+				<button class="btn btn-primary">
+					{itsFree ? "Get" : "Buy now"}
+				</button>
+			</form>
+			<button
+				popovertarget="buy"
+				popovertargetaction="hide"
+				class="btn btn-tertiary">
+				{data.noText}
 			</button>
-		</form>
-		<button
-			popovertarget="buy"
-			popovertargetaction="hide"
-			class="btn btn-dark ml-2">
-			{data.noText}
-		</button>
+		</div>
 	{:else}
-		<h3 class="text-lg font-bold">Insufficient funds</h3>
-		<span>
-			You don't have enough {data.currencySymbol} to buy this item.
-		</span>
-		<p>
-			You'll need <strong>
-				{totalPrice - data.balance}
-			</strong>
+		<div class="eyebrow pb-2">Purchase</div>
+		<h3 class="text-xl pb-2">Insufficient funds</h3>
+		<p class="grey-text">
+			You don't have enough {data.currencySymbol} to buy this item. You'll
+			need <strong class="light-text mono">{totalPrice - data.balance}</strong>
 			more.
 		</p>
 
 		<button
 			popovertarget="buy"
 			popovertargetaction="hide"
-			class="btn btn-dark">
+			class="btn btn-tertiary">
 			{data.failText}
 		</button>
 	{/if}
 </div>
 
 <style>
-	.image {
-		background: var(--accent1);
-		background-image: linear-gradient(
-				45deg,
-				var(--darker) 25%,
-				transparent 25%,
-				transparent 75%,
-				var(--darker) 75%
-			),
-			linear-gradient(
-				45deg,
-				var(--darker) 25%,
-				transparent 25%,
-				transparent 75%,
-				var(--darker) 75%
-			);
-		background-size: 20px 20px;
+	.preview {
+		display: grid;
+		place-items: center;
+		aspect-ratio: 1;
+		padding: 10%;
+		background-color: var(--darker);
+		background-image:
+			linear-gradient(45deg, var(--background) 25%, transparent 25%),
+			linear-gradient(-45deg, var(--background) 25%, transparent 25%),
+			linear-gradient(45deg, transparent 75%, var(--background) 75%),
+			linear-gradient(-45deg, transparent 75%, var(--background) 75%);
+		background-size: 24px 24px;
 		background-position:
 			0 0,
-			10px 10px;
+			0 12px,
+			12px -12px,
+			-12px 0;
+		& img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
 	}
 
-	td {
-		padding: 0;
-		&:first-child {
-			padding-right: 0.5rem;
-		}
+	.buy {
+		width: min(26rem, calc(100vw - 2rem));
 	}
 </style>

@@ -2,7 +2,7 @@
 	import { page } from "$app/state"
 	import Head from "$components/Head.svelte"
 	import Pagination from "$components/Pagination.svelte"
-	import PlaceCard from "./PlaceCard.svelte"
+	import Place from "$components/Place.svelte"
 
 	const { data } = $props()
 </script>
@@ -10,26 +10,32 @@
 <Head name={data.siteName} title="Discover" />
 
 <div class="ctnr">
-	<div class="flex pb-12 gap-4 <sm:flex-wrap">
-		<div class="flex w-full sm:w-1/2">
-			<h1 class="pr-6">Games</h1>
-			<a href="/games/create" class="btn btn-primary">
-				<fa fa-plus class="pr-2"></fa>
-				Create
-			</a>
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Play</div>
+			<h1>Games</h1>
+			<p>Places made by the community. Open one and press Play to jump in.</p>
 		</div>
+		<a href="/games/create" class="btn btn-primary">
+			<fa fa-plus></fa>
+			Create a place
+		</a>
 	</div>
+
 	{#if data.places.length > 0}
-		<div class="flex flex-wrap gap-4 justify-center">
+		<div
+			class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 			{#each data.places as place, num (place.id)}
-				<PlaceCard {place} {num} total={data.places.length} />
+				<Place {place} {num} total={data.places.length} />
 			{/each}
 		</div>
 		{#key page.url}
 			<Pagination totalPages={data.pages} />
 		{/key}
 	{:else}
-		<h2 class="text-center">No games yet.</h2>
-		<h3 class="pt-4 text-center">Be the first to create one!</h3>
+		<div class="empty">
+			<b>No games yet</b>
+			<p>Be the first to <a href="/games/create">create one</a>!</p>
+		</div>
 	{/if}
 </div>

@@ -3,61 +3,91 @@
 	import Group from "$components/Group.svelte"
 	import Head from "$components/Head.svelte"
 	import Place from "$components/Place.svelte"
-	import User from "$components/User.svelte"
-	import fade from "$lib/fade"
+	import UserCard from "$components/UserCard.svelte"
 
 	const { data } = $props()
+
+	const categoryNames: { [_: string]: string } = {
+		users: "Users",
+		places: "Places",
+		assets: "Catalog",
+		groups: "Groups"
+	}
 </script>
 
 <Head name={data.siteName} title="Search for {data.query}" />
 
-<h1 class="text-center">
-	Search for "{data.query}" in {data.category}
-</h1>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Search &middot; {categoryNames[data.category] || data.category}</div>
+			<h1 class="break-all">"{data.query}"</h1>
+		</div>
+		<nav class="flex flex-wrap gap-1" aria-label="Search in">
+			{#each Object.entries(categoryNames) as [category, name]}
+				{#if category !== "groups" || data.pages.includes("Groups")}
+					<a
+						href="/search?q={encodeURIComponent(data.query)}&c={category}"
+						class={["btn btn-sm", category === data.category ? "btn-secondary" : "btn-quatenary"]}>
+						{name}
+					</a>
+				{/if}
+			{/each}
+		</nav>
+	</div>
 
-<div class="pt-12 px-4">
 	{#if data.category === "users" && data.users}
-		<div class="grid">
-			{#each data.users as user, num}
-				<div in:fade={{ num, total: data.users.length }}>
-					<User {user} size="7rem" bg="accent" bottom />
-				</div>
-			{/each}
-		</div>
+		{#if data.users.length > 0}
+			<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+				{#each data.users as user, num}
+					<UserCard {user} {num} total={data.users.length} />
+				{/each}
+			</div>
+		{:else}
+			{@render nothing()}
+		{/if}
 	{:else if data.category === "places" && data.places}
-		<div class="grid">
-			{#each data.places as place, num}
-				<div class="px-2 pb-2">
+		{#if data.places.length > 0}
+			<div class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+				{#each data.places as place, num}
 					<Place {place} {num} total={data.places.length} />
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:else}
+			{@render nothing()}
+		{/if}
 	{:else if data.category === "assets" && data.assets}
-		<div class="grid">
-			{#each data.assets as asset, num}
-				<div class="pb-4">
+		{#if data.assets.length > 0}
+			<div class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+				{#each data.assets as asset, num}
 					<Asset
 						{asset}
 						{num}
 						total={data.assets.length}
 						symbol={data.currencySymbol} />
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:else}
+			{@render nothing()}
+		{/if}
 	{:else if data.category === "groups" && data.groups}
-		<div class="grid">
-			{#each data.groups as group, num}
-				<div class="px-2 pb-2">
+		{#if data.groups.length > 0}
+			<div class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+				{#each data.groups as group, num}
 					<Group {group} {num} total={data.groups.length} />
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:else}
+			{@render nothing()}
+		{/if}
+	{:else}
+		{@render nothing()}
 	{/if}
 </div>
 
-<style>
-	.grid {
-		grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
-		grid-gap: 0 1rem;
-	}
-</style>
+{#snippet nothing()}
+	<div class="empty">
+		<b>No results</b>
+		<p>Nothing matched "{data.query}". Try another word or category.</p>
+	</div>
+{/snippet}

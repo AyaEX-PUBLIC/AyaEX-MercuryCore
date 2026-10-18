@@ -41,16 +41,20 @@
 
 <Head name={data.siteName} title="Casino" />
 
-<div class="grid sm:grid-cols-2 gap-4">
+<div class="tiles grid sm:grid-cols-2">
 	{#each games as game, i}
 		<a
 			href={game.href}
-			class="game no-underline rounded-4 p-6 flex flex-col gap-2"
+			class="game light-text"
 			style="--from: {game.from}; --to: {game.to}; --i: {i}">
 			<span class="emoji" aria-hidden="true">{game.emoji}</span>
-			<span class="text-2xl font-bold text-white">{game.name}</span>
-			<span class="text-white/85">{game.blurb}</span>
-			<span class="play self-start mt-2 px-4 py-1 rounded-full font-bold">Play</span>
+			<span class="eyebrow">Game {i + 1}</span>
+			<span class="text-2xl font-600 pt-2">{game.name}</span>
+			<span class="grey-text text-sm pt-2 max-w-72">{game.blurb}</span>
+			<span class="btn btn-sm btn-secondary self-start mt-auto">
+				Play
+				<fa fa-arrow-right></fa>
+			</span>
 		</a>
 	{/each}
 </div>
@@ -58,50 +62,40 @@
 <style>
 	.game {
 		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-height: 14rem;
+		padding: 1.5rem;
 		overflow: hidden;
-		min-height: 13rem;
-		background: linear-gradient(135deg, var(--from), var(--to));
-		box-shadow: 0 8px 24px -12px var(--to);
-		transition:
-			transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1),
-			box-shadow 0.25s;
-		animation: rise 0.5s calc(var(--i) * 80ms) cubic-bezier(0.2, 1.3, 0.4, 1) backwards;
-	}
-	.game::after {
-		content: "";
-		position: absolute;
-		inset: 0;
-		background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.25) 50%, transparent 70%);
-		transform: translateX(-100%);
-		transition: transform 0.6s;
-	}
-	.game:hover {
-		transform: translateY(-4px) scale(1.02);
-		box-shadow: 0 16px 36px -12px var(--to);
-	}
-	.game:hover::after {
-		transform: translateX(100%);
+		background: var(--background);
+		transition: background-color 0.2s;
+		animation: rise 0.4s calc(var(--i) * 60ms) ease-out backwards;
+		&::before {
+			content: "";
+			position: absolute;
+			inset: 0 auto 0 0;
+			width: 3px;
+			background: linear-gradient(var(--from), var(--to));
+		}
+		&:hover {
+			background: var(--accent);
+			& .emoji {
+				transform: rotate(-10deg) scale(1.1);
+			}
+		}
 	}
 	.emoji {
 		position: absolute;
-		right: 1rem;
-		bottom: 0.5rem;
-		font-size: 6rem;
+		right: 1.25rem;
+		bottom: 1rem;
+		font-size: 5.5rem;
 		line-height: 1;
-		filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.35));
-		transition: transform 0.4s cubic-bezier(0.2, 1.6, 0.4, 1);
-	}
-	.game:hover .emoji {
-		transform: rotate(-12deg) scale(1.15);
-	}
-	.play {
-		background: rgb(255 255 255 / 0.92);
-		color: var(--to);
+		transition: transform 0.3s cubic-bezier(0.2, 1.6, 0.4, 1);
 	}
 	@keyframes rise {
 		from {
 			opacity: 0;
-			transform: translateY(24px);
+			translate: 0 0.75rem;
 		}
 	}
 </style>

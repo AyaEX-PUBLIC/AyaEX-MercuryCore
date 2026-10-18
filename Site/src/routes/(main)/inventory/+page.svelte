@@ -26,12 +26,24 @@
 
 <Head name={data.siteName} title="Inventory" />
 
-<h1 class="text-center pb-4">Inventory</h1>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">You</div>
+			<h1>Inventory</h1>
+			<p>Everything you own. Wear items from the <a href="/character">Character</a> page.</p>
+		</div>
+		<a href="/catalog" class="btn btn-tertiary">
+			<fa fa-book-open-cover></fa>
+			Shop the catalog
+		</a>
+	</div>
+</div>
 
-<SidebarShell bind:tabData space>
+<SidebarShell bind:tabData>
 	{#if assets.length > 0}
 		<div
-			class="grid gap-4 grid-cols-2 xl:grid-cols-6 md:grid-cols-4 sm:grid-cols-3">
+			class="tiles grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 			{#each assets as asset, num (asset.id)}
 				<Asset
 					{asset}
@@ -44,17 +56,13 @@
 			<Pagination totalPages={data.pages} />
 		{/key}
 	{:else}
-		<h2 class="pt-12 text-center">
-			You don't have any {tabData.currentTab} yet.
-		</h2>
-		<h3 class="pt-4 text-center">
-			Head to the
+		<div class="empty">
+			<b>You don't have any {tabData.currentTab} yet</b>
 			<!--
 				?tab= works questionably due to url/local state mismatch...
-				eh, I signed up for that	
+				eh, I signed up for that
 			-->
-			<a href="/catalog?tab={tabData.currentTab}">Catalog</a>
-			to get some!
-		</h3>
+			<p>Head to the <a href="/catalog?tab={tabData.currentTab}">catalog</a> to get some!</p>
+		</div>
 	{/if}
 </SidebarShell>

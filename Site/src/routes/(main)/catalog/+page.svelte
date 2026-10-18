@@ -43,85 +43,43 @@
 
 <Head name={data.siteName} title="Catalog" />
 
-<div class="ctnr light-text">
-	<div class="grid lg:grid-cols-[1fr_2fr] md:grid-cols-[1fr_3fr] pb-4">
-		<h1>Catalog</h1>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Shop</div>
+			<h1>Catalog</h1>
+			<p>Hats, faces, clothing and gear to dress up your character.</p>
+		</div>
+		<a href="/develop" class="btn btn-tertiary">
+			<fa fa-hammer></fa>
+			Make your own
+		</a>
 	</div>
 
-	<!-- <div class="grid gap-2 lg:grid-cols-[1fr_5fr] md:(grid-cols-[1fr_4fr] gap-4)"> -->
-	<div class="grid">
-		<!-- <div>
-			<h2>Filters</h2>
-			<div class="text-neutral-400 pt-4 pb-2">Sort by</div>
-			<div class="grid grid-cols-[1fr_9fr] items-center gap-1">
+	<div class="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[13rem_minmax(0,1fr)] gap-x-10">
+		<aside class="sidebar">
+			<form action="/search" role="search" class="pb-5 <md:pb-4">
+				<input type="hidden" name="c" value="assets" />
 				<input
-					type="radio"
-					name="sort"
-					id="bestselling" />
-				<label for="bestselling">Best selling</label>
-				<input
-					type="radio"
-					name="sort"
-					id="recent" />
-				<label for="recent">Recently created</label>
-				<input
-					type="radio"
-					name="sort"
-					id="official" />
-				<label for="official">By {data.siteName}</label>
-				<input
-					type="radio"
-					name="sort"
-					id="highToLow" />
-				<label for="highToLow">Price (high to low)</label>
-				<input
-					type="radio"
-					name="sort"
-					id="lowToHigh" />
-				<label for="lowToHigh">Price (low to high)</label>
-			</div>
-			<div class="text-neutral-400 pt-4 pb-2">Price</div>
-			<div class="grid grid-cols-[1fr_9fr] items-center gap-1">
-				<input
-					type="radio"
-					name="price"
-					id="any"
-					checked />
-				<label for="any">Any price</label>
-				<input
-					class="self-start"
-					type="radio"
-					name="price" />
-				<div>
-					<input
-						class="mb-2"
-						type="number"
-						min="0"
-						max="999"
-						placeholder="Minimum price" />
-					<input
-						class="mb-2"
-						type="number"
-						min="0"
-						max="999"
-						placeholder="Maximum price" />
-					<button class="btn btn-tertiary btn-sm">Set</button>
-				</div>
-			</div>
-		</div> -->
-		<div>
-			<TabNav bind:tabData justify class="<sm:hidden" />
-			<TabNav bind:tabData vertical class="sm:hidden pb-4" />
+					type="search"
+					name="q"
+					required
+					placeholder="Search the catalog"
+					aria-label="Search the catalog" />
+			</form>
+			<div class="eyebrow pb-2 <md:hidden">Categories</div>
+			<TabNav bind:tabData vertical />
+		</aside>
 
+		<div class="min-w-0">
 			<svelte:boundary>
 				<Assets {data} {tabTypes} {tabData} />
 
 				{#snippet failed(_, reset)}
-					<div class="text-center">
-						<p class="text-red-600 pt-12 pb-2">
-							An error occurred while loading the assets.
-						</p>
-						<button class="btn btn-tertiary btn-sm" onclick={reset}>
+					<div class="empty">
+						<b>Couldn't load the items</b>
+						<p class="pb-3!">An error occurred while loading the assets.</p>
+						<button class="btn btn-sm btn-tertiary" onclick={reset}>
 							Retry
 						</button>
 					</div>
@@ -130,3 +88,13 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.sidebar {
+		@media (min-width: 768px) {
+			position: sticky;
+			top: calc(var(--header-height) + 1.5rem);
+			align-self: start;
+		}
+	}
+</style>

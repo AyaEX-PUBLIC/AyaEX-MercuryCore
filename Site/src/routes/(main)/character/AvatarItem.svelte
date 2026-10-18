@@ -28,38 +28,73 @@
 	method="post"
 	action="/character?/{asset.wearing
 		? 'un'
-		: ''}equip&tab={currentTab}&id={asset.id}"
-	class="no-underline">
+		: ''}equip&tab={currentTab}&id={asset.id}">
 	<button
 		in:fade|global={{ num, total }}
-		class="card bg-a assetcard size-full p-4 cursor-pointer">
+		class={["item", { wearing: asset.wearing }]}
+		title={asset.wearing ? `Take off ${asset.name}` : `Wear ${asset.name}`}>
 		{#if asset.wearing}
-			<small
-				class="top-0 end-0 absolute p-2 py-1 rounded-1.5 font-bold bg-blue-500">
+			<span class="badge badge-primary tag">
+				<fa fa-check></fa>
 				Wearing
-			</small>
+			</span>
 		{/if}
-		<div class="text-center w-full pb-4">
-			<img
-				class="w-85%"
-				src="/catalog/{asset.id}/{asset.name}/icon"
-				alt={asset.name} />
-		</div>
-		<span class="text-base w-full">
-			{asset.name}
+		<span class="thumb">
+			<img src="/catalog/{asset.id}/{asset.name}/icon" alt="" loading="lazy" />
 		</span>
+		<span class="name">{asset.name}</span>
 	</button>
 </form>
 
 <style>
-	.card {
-		border: 1px solid var(--accent2);
+	form {
+		height: 100%;
 	}
 
-	.assetcard {
-		transition: 0.3s;
+	.item {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		padding: 0 0 0.75rem;
+		font: inherit;
+		text-align: left;
+		color: var(--light-text);
+		background: var(--background);
+		border: 0;
+		cursor: pointer;
+		transition: background-color 0.15s;
 		&:hover {
-			background: var(--darker);
+			background: var(--accent);
 		}
+		&.wearing {
+			background: var(--primary-soft);
+			box-shadow: inset 0 0 0 1px var(--primary-line);
+		}
+	}
+
+	.tag {
+		position: absolute;
+		top: 0.5rem;
+		left: 0.5rem;
+	}
+
+	.thumb {
+		display: grid;
+		place-items: center;
+		aspect-ratio: 1;
+		padding: 14%;
+		& img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+	}
+
+	.name {
+		padding: 0 0.75rem;
+		font-size: 0.875rem;
+		line-height: 1.3;
 	}
 </style>

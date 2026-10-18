@@ -22,7 +22,7 @@
 
 {#if assets.length > 0}
 	<div
-		class="grid gap-4 grid-cols-2 xl:grid-cols-7 md:grid-cols-6 sm:grid-cols-3">
+		class="tiles grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 		{#each assets as asset, num (asset.id)}
 			<Asset
 				{asset}
@@ -35,7 +35,8 @@
 		<Pagination totalPages={pages} />
 	{/key}
 {:else}
-	<h2 class="pt-12 text-center">
-		No {tabData.currentTab} available.
-	</h2>
+	<div class="empty">
+		<b>No {tabData.currentTab} available</b>
+		<p>Check back later, or <a href="/develop">make some yourself</a>.</p>
+	</div>
 {/if}

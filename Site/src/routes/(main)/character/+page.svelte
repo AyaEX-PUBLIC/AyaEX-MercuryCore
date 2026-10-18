@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { applyAction, enhance } from "$app/forms"
 	import { invalidateAll } from "$app/navigation"
+	import Head from "$components/Head.svelte"
 	import TabData from "$components/TabData"
 	import TabNav from "$components/TabNav.svelte"
 	import { brickColours, brickToHex } from "$lib/brickColours"
@@ -46,11 +47,11 @@
 	const bodyPartPopovers: { [_: string]: HTMLDivElement } = $state({})
 	const styles: { [_: string]: string } = Object.freeze({
 		Head: "left-17 size-12",
-		Torso: "left-12 top-14 size-22",
-		LeftArm: "left-0 top-14 h-22 w-10",
-		RightArm: "left-36 top-14 h-22 w-10",
-		LeftLeg: "left-12 top-38 h-22 w-10",
-		RightLeg: "left-24 top-38 h-22 w-10"
+		Torso: "left-12 top-13 size-22",
+		LeftArm: "left-1 top-13 h-22 w-10",
+		RightArm: "left-35 top-13 h-22 w-10",
+		LeftLeg: "left-12 top-36 h-22 w-10.5",
+		RightLeg: "left-23.5 top-36 h-22 w-10.5"
 	})
 
 	let assets = $derived(
@@ -64,53 +65,66 @@
 	)
 </script>
 
-<div class="ctnr light-text">
-	<h1>Character</h1>
-	<div class="grid lg:grid-cols-4 gap-4 pt-6">
-		<div class="<md:col-span-3 flex lg:flex-col gap-4">
-			<div class="card w-full p-4">
-				<form use:enhance={enhanceRegen} method="post" action="?/regen">
-					<button class="btn btn-secondary w-full">
-						<fa fa-rotate></fa>
-						Regenerate
-					</button>
-				</form>
-				<p class="text-red-500">
-					{form?.msg || ""}
-				</p>
-				<img
-					alt="Your character"
-					class={[
-						"w-full transition-opacity duration-300",
-						{ "opacity-50": regenerating }
-					]}
-					src={form?.avatar || `/api/avatar/${user.username}-body`} />
-			</div>
-			<div class="card w-full p-4">
-				Body colours
-				<div class="flex justify-center pt-4">
-					<div class="relative h-60 w-46">
+<Head name={data.siteName} title="Character" />
+
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Avatar</div>
+			<h1>Character</h1>
+			<p>Choose what you wear and your body colours. Changes show up the next time you join a game.</p>
+		</div>
+		<a href="/catalog" class="btn btn-tertiary">
+			<fa fa-book-open-cover></fa>
+			Shop the catalog
+		</a>
+	</div>
+
+	<div class="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[19rem_minmax(0,1fr)] gap-6 items-start">
+		<div class="grid sm:grid-cols-2 lg:grid-cols-1 gap-6">
+			<section class="panel">
+				<div class="panel-head">
+					<span>Preview</span>
+					<form use:enhance={enhanceRegen} method="post" action="?/regen">
+						<button class="btn btn-sm btn-quatenary normal-case tracking-normal font-sans">
+							<fa fa-rotate></fa>
+							Regenerate
+						</button>
+					</form>
+				</div>
+				<div class="preview">
+					<img
+						alt="Your character"
+						class={["transition-opacity duration-300", { "opacity-50": regenerating }]}
+						src={form?.avatar || `/api/avatar/${user.username}-body`} />
+				</div>
+				{#if form?.msg}
+					<p class="text-red-400 text-sm px-4 pb-3">{form.msg}</p>
+				{/if}
+			</section>
+
+			<section class="panel">
+				<div class="panel-head">Body colours</div>
+				<div class="flex justify-center p-6">
+					<div class="relative h-58 w-46">
 						{#each Object.keys(bodyParts) as bodyPart}
 							<button
 								popovertarget={bodyPart}
-								style="background-color: #{brickToHex[
-									bodyParts[bodyPart]
-								]}"
-								class="btn bodyPart absolute p-0 {styles[
-									bodyPart
-								]}"
-								aria-label={bodyPart}>
+								style="background-color: #{brickToHex[bodyParts[bodyPart]]}"
+								class="bodyPart absolute {styles[bodyPart]}"
+								aria-label="Change {bodyPart} colour">
 							</button>
 						{/each}
 					</div>
 				</div>
-			</div>
+				<p class="grey-text text-xs text-center px-4 pb-4">Click a body part to change its colour.</p>
+			</section>
 		</div>
-		<div class="col-span-3">
-			<TabNav bind:tabData justify />
+
+		<section class="min-w-0">
+			<TabNav bind:tabData />
 			{#if assets.length > 0}
-				<div
-					class="grid xl:grid-cols-6 sm:grid-cols-4 grid-cols-3 gap-4">
+				<div class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
 					{#each assets || [] as asset, num}
 						<AvatarItem
 							{asset}
@@ -121,18 +135,21 @@
 					{/each}
 				</div>
 			{:else if tabData.currentTab === "Recent"}
-				<h2 class="text-center">No recently worn items.</h2>
+				<div class="empty">
+					<b>No recently worn items</b>
+					<p>Items you wear will show up here.</p>
+				</div>
 			{:else}
-				<h2 class="text-center">
-					You don't have any {tabData.currentTab} yet.
-				</h2>
-				<h3 class="pt-4 text-center">
-					Head to the
-					<a href="/catalog?tab={tabData.currentTab}">Catalog</a>
-					to get some!
-				</h3>
+				<div class="empty">
+					<b>You don't have any {tabData.currentTab} yet</b>
+					<p>
+						Head to the
+						<a href="/catalog?tab={tabData.currentTab}">catalog</a>
+						to get some!
+					</p>
+				</div>
 			{/if}
-		</div>
+		</section>
 	</div>
 </div>
 
@@ -141,9 +158,10 @@
 		bind:this={bodyPartPopovers[bodyPart]}
 		id={bodyPart}
 		popover="auto"
-		class="light-text p-4">
-		<h1 class="text-lg pb-2">Choose a {bodyPart} color</h1>
-		<div class="text-left max-w-108 flex flex-wrap gap-2">
+		class="colours">
+		<div class="eyebrow pb-1">Body colours</div>
+		<h2 class="text-lg pb-4">Choose a {bodyPart.replace(/([a-z])([A-Z])/, "$1 $2").toLowerCase()} colour</h2>
+		<div class="flex flex-wrap gap-1.5">
 			{#each brickColours as colour}
 				<form
 					use:enhance={enhanceRegen}
@@ -155,7 +173,7 @@
 					}}
 					class="inline">
 					<button
-						class="btn colour size-10"
+						class={["colour", { current: bodyParts[bodyPart] === colour }]}
 						style="background-color: #{brickToHex[colour]}"
 						aria-label={colour.toString()}>
 					</button>
@@ -166,22 +184,48 @@
 {/each}
 
 <style>
-	.card {
-		border: 1px solid var(--accent2);
-	}
-
-	.bodyPart {
-		border-radius: 3px;
-		&:first-child {
-			border-radius: 12px;
+	.preview {
+		aspect-ratio: 1;
+		background: var(--darker);
+		& img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
 		}
 	}
 
-	.bodyPart,
-	.colour {
-		transition: all 0.2s ease-out;
+	.bodyPart {
+		padding: 0;
+		border: 1px solid rgb(0 0 0 / 0.35);
+		cursor: pointer;
+		transition:
+			filter 0.15s,
+			outline-color 0.15s;
+		outline: 2px solid transparent;
+		outline-offset: 2px;
 		&:hover {
-			filter: brightness(70%);
+			filter: brightness(115%);
+			outline-color: var(--light-text);
+		}
+	}
+
+	.colours {
+		width: min(29rem, calc(100vw - 2rem));
+	}
+
+	.colour {
+		width: 2.25rem;
+		height: 2.25rem;
+		padding: 0;
+		border: 1px solid rgb(0 0 0 / 0.35);
+		cursor: pointer;
+		transition: transform 0.1s;
+		&:hover {
+			transform: scale(1.12);
+		}
+		&.current {
+			outline: 2px solid var(--light-text);
+			outline-offset: 2px;
 		}
 	}
 </style>
