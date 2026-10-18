@@ -23,6 +23,7 @@
 		after?: string
 		type?: HTMLInputTypeAttribute
 		inline?: boolean
+		/** Labels are always above their inputs now; kept for compatibility */
 		column?: boolean
 		disabled?: boolean
 		formData: import("$lib/validate").SuperForm<any>
@@ -31,16 +32,33 @@
 	let { errors } = $derived(formData)
 </script>
 
-<div class="flex flex-wrap {inline ? 'flex-1' : 'pb-8'}">
-	{#if label}
-		<label for={name} class={["w-full", { "md:w-1/4": !column }]}>
+{#if type === "checkbox"}
+	<div class="pb-6">
+		<label class="check">
+			<SubInput {...rest} {name} {type} {disabled} {formData} />
 			{label}
 		</label>
-	{/if}
-	<div class={["w-full", { "md:w-3/4": label && !column }]}>
+		{#if help}
+			<small class="formhelp">
+				{@html help}
+			</small>
+		{/if}
+		{#if $errors[name]}
+			<small class="block text-red-400 pt-1">
+				{$errors[name]}
+			</small>
+		{/if}
+	</div>
+{:else}
+	<div class={inline ? "flex-1" : "pb-6"}>
+		{#if label}
+			<label for={name} class="block pb-2">
+				{label}
+			</label>
+		{/if}
 		<!-- welp, boilerplate begets boilerplate -->
 		{#if after}
-			<div class="flex items-center">
+			<div class="flex items-center gap-2">
 				<SubInput {...rest} {name} {type} {disabled} {formData} />
 				{@html after}
 			</div>
@@ -55,9 +73,18 @@
 		{/if}
 
 		{#if $errors[name]}
-			<small class="block text-red-500">
+			<small class="block text-red-400 pt-1">
 				{$errors[name]}
 			</small>
 		{/if}
 	</div>
-</div>
+{/if}
+
+<style>
+	.check {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.75rem;
+		cursor: pointer;
+	}
+</style>

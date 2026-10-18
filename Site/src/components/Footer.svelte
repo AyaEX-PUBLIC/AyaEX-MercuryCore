@@ -6,59 +6,155 @@
 	} = $props()
 
 	let clicked = $state(false)
+
+	type Column = [string, [string, string][]]
+
+	let columns = $derived.by(() => {
+		const about: Column = [data.siteName, [["About", "/about"]]]
+		if (!data.user)
+			return [
+				[
+					"Account",
+					[
+						["Log in", "/login"],
+						["Register", "/register"]
+					]
+				],
+				about
+			] as Column[]
+
+		if (data.pages.includes("Statistics"))
+			about[1].push(["Statistics", "/statistics"])
+		const play: Column = [
+			"Play",
+			[
+				["Games", "/games"],
+				["Catalog", "/catalog"],
+				["Create", "/develop"],
+				["Casino", "/casino"]
+			]
+		]
+		if (data.pages.includes("Groups")) play[1].push(["Groups", "/groups"])
+		if (data.pages.includes("Forum")) play[1].push(["Forum", "/forum"])
+
+		const you: Column = [
+			"You",
+			[
+				["Profile", `/user/${data.user.username}`],
+				["Character", "/character"],
+				["Friends", "/requests"],
+				["Settings", "/settings"]
+			]
+		]
+		return [play, you, about]
+	})
 </script>
 
-<footer class="bg-darker relative flex justify-center <lg:pb-20!">
-	<div
-		class="flex <sm:flex-col justify-between items-start w-200 p-4 sm:pb-8">
-		<div>
-			<img
-				src="/assets/icon"
-				alt="{data.siteName} logo"
-				class="size-8 opacity-50" />
-			<a href="/" class="no-underline pl-2">{data.siteName}</a>
-			{#if data.tagline}
-				<span class="grey-text pl-1">&ndash;</span>
-				<span class="grey-text pl-1">
-					{data.tagline}
-				</span>
-			{/if}
-		</div>
-		<div class="sm:text-right <sm:pt-4">
-			<div class="flex <sm:flex-col sm:gap-4 justify-end pb-2">
-				<a class="light-text" href="/about">About</a>
-				{#if data.user && data.pages.includes("Statistics")}
-					<a class="light-text" href="/statistics">Statistics</a>
+<footer>
+	<div class="ctnr">
+		<div class="flex <md:flex-col justify-between gap-10 py-12">
+			<div class="max-w-72">
+				<a href="/" class="brand">
+					<img src="/assets/icon" alt="" class="size-5" />
+					{data.siteName}
+				</a>
+				{#if data.longTagline || data.tagline}
+					<p class="grey-text text-sm pt-3">
+						{data.longTagline || data.tagline}
+					</p>
 				{/if}
 			</div>
+			<div class="flex flex-wrap gap-x-16 gap-y-8">
+				{#each columns as [title, links]}
+					<div>
+						<div class="text-sm font-500 pb-3">{title}</div>
+						<ul>
+							{#each links as [name, href]}
+								<li><a {href}>{name}</a></li>
+							{/each}
+						</ul>
+					</div>
+				{/each}
+			</div>
+		</div>
+		<div class="fine">
+			<span>
+				&copy; {new Date().getFullYear()}
+				{data.siteName}{data.tagline ? ` · ${data.tagline}` : ""}
+			</span>
 			<button
 				onmousedown={() => {
 					clicked = !clicked
 				}}
 				id="heart"
-				class={[
-					"grey-text border-0 p-0 cursor-pointer text-base bg-transparent",
-					{ clicked }
-				]}>
-				<span class="grey-text s1">made with</span>
+				class={{ clicked }}>
+				<span class="s1">made with</span>
 				<fa fa-heart></fa>
-				<span class="grey-text s2">in 🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
+				<span class="s2">in 🏴󠁧󠁢󠁳󠁣󠁴󠁿</span>
 			</button>
 		</div>
 	</div>
 </footer>
 
 <noscript>
-	<div id="nojs" class="fixed bottom-0 block w-screen">
-		<p class="light-text text-center">
-			Javascript is disabled. You may have a diminished experience while
-			using {data.siteName}.
-		</p>
+	<div id="nojs">
+		Javascript is disabled. You may have a diminished experience while using {data.siteName}.
 	</div>
 </noscript>
 
 <style>
+	footer {
+		flex-shrink: 0;
+		margin-top: 4rem;
+		border-top: 1px solid var(--accent2);
+	}
+
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--light-text);
+	}
+
+	ul {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
+	}
+
+	li a {
+		font-size: 0.875rem;
+		color: var(--grey-text);
+		&:hover {
+			color: var(--light-text);
+		}
+	}
+
+	.fine {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem 2rem;
+		padding: 1.25rem 0 1.5rem;
+		font-size: 0.8125rem;
+		color: var(--dim-text);
+		border-top: 1px solid var(--accent2);
+	}
+
 	#heart {
+		display: inline-flex;
+		align-items: center;
+		padding: 0;
+		font: inherit;
+		color: var(--dim-text);
+		background: none;
+		border: 0;
+		cursor: pointer;
+
 		& fa {
 			transition: 0.2s;
 		}
@@ -69,21 +165,19 @@
 			overflow: hidden;
 			white-space: nowrap;
 			width: 0;
-			vertical-align: middle;
-			margin-top: -0.2rem;
 		}
 
 		&:hover .s1 {
-			width: 5.2rem;
-			padding: 0 0.2rem;
+			width: 5rem;
+			padding: 0 0.3rem;
 		}
 		&:hover .s2 {
 			width: 2.5rem;
-			padding: 0 0.2rem;
+			padding: 0 0.3rem;
 		}
 
 		&:not(.clicked) fa:hover {
-			color: var(--light-text) !important;
+			color: var(--light-text);
 		}
 	}
 
@@ -101,7 +195,7 @@
 		}
 		40% {
 			transform: scale(1.2);
-			filter: drop-shadow(0 0 3px #f4b);
+			filter: drop-shadow(0 0 3px var(--pixel-3));
 		}
 		100% {
 			transform: scale(1);
@@ -115,23 +209,17 @@
 	.clicked {
 		& fa,
 		& span {
-			color: #f4b !important;
-		}
-	}
-
-	footer {
-		flex-shrink: 0;
-		padding: 1vh;
-		& a {
-			text-decoration: none;
-			&:hover {
-				text-decoration: underline;
-			}
+			color: var(--pixel-3) !important;
 		}
 	}
 
 	#nojs {
-		background: rgba(0, 0, 0, 0.5);
-		transform: translate(0, 1rem);
+		position: fixed;
+		bottom: 0;
+		width: 100%;
+		padding: 0.5rem;
+		font-size: 0.875rem;
+		text-align: center;
+		background: rgb(0 0 0 / 0.75);
 	}
 </style>

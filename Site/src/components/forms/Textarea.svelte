@@ -30,13 +30,13 @@
 	})
 </script>
 
-<div class="flex flex-wrap {lowpad ? 'pb-4' : 'pb-8'}">
+<div class={lowpad ? "pb-4" : "pb-6"}>
 	{#if label}
-		<label for={name} class="w-full md:w-1/4">
+		<label for={name} class="block pb-2">
 			{label}
 		</label>
 	{/if}
-	<div class={["w-full", { "md:w-3/4": label }]}>
+	<div>
 		<textarea
 			{...rest}
 			bind:value={$form[name]}
@@ -54,8 +54,10 @@
 			</small>
 		{/if}
 
-		<small class="pb-4 text-red-500">
-			{$errors[name] || ""}
-		</small>
+		{#if $errors[name]}
+			<small class="block text-red-400 pt-1">
+				{$errors[name]}
+			</small>
+		{/if}
 	</div>
 </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	// Link to a place used on the homepage and the search page.
+	// A place tile, used on the games, home and search pages and on profiles.
 
 	import fade from "$lib/fade"
 	import { encode } from "$lib/urlName"
@@ -10,11 +10,13 @@
 		total
 	}: {
 		place: {
-			id: number
+			id: number | string
 			name: string
 			likeCount: number
 			dislikeCount: number
 			playerCount: number
+			serverPing?: number
+			clientVersion?: number
 		}
 		num: number
 		total: number
@@ -26,54 +28,120 @@
 			(place.likeCount / (place.likeCount + place.dislikeCount)) * 100
 		)
 	)
+	let online = $derived(
+		place.serverPing !== undefined &&
+			place.serverPing > Date.now() / 1000 - 35
+	)
 </script>
 
 <a
 	in:fade|global={{ num, total }}
-	class="rounded-3 text-center light-text no-underline"
+	class="place light-text"
 	href="/place/{place.id}/{slug}">
-	<div id="shadow" class="rounded-1 mb-2 overflow-hidden bg-black">
+	<div class="thumb">
 		<img
 			src="/place/{place.id}/{slug}/icon"
-			alt={place.name}
-			class="w-full h-full" />
+			alt=""
+			loading="lazy" />
+		{#if place.clientVersion}
+			<span class="badge version">{place.clientVersion}</span>
+		{/if}
+		{#if online}
+			<span class="badge badge-success live">
+				<span class="dot on"></span>
+				Live
+			</span>
+		{/if}
 	</div>
-	<p class="mb-0 pb-1">
-		{place.name}
-	</p>
-	<span class="float-start pl-1 pt-1">
-		<fa fa-thumbs-up class="opacity-75"></fa>
-		{Number.isNaN(ratio) ? "--" : ratio}%
-	</span>
-	<span class="float-end pr-1 pt-1">
-		<fa fa-user class="opacity-75"></fa>
-		{place.playerCount}
-	</span>
+	<div class="info">
+		<span class="name">{place.name}</span>
+		<span class="stats">
+			<span title="Rating">
+				<fa fa-thumbs-up></fa>
+				{Number.isNaN(ratio) ? "--" : ratio}%
+			</span>
+			<span title="Playing now">
+				<fa fa-user></fa>
+				{place.playerCount}
+			</span>
+		</span>
+	</div>
 </a>
 
 <style>
-	a {
-		line-height: 1.2;
-		transition: all 0.2s;
+	.place {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		background: var(--background);
+		transition: background-color 0.15s;
 		&:hover {
-			transition: all 0.2s;
-			& #shadow::after {
-				box-shadow: inset 0 0 4rem 0 rgba(255, 255, 255, 0.133);
+			background: var(--accent);
+			& img {
+				scale: 1.04;
 			}
 		}
 	}
 
-	#shadow {
-		aspect-ratio: 1;
+	.thumb {
 		position: relative;
-		&::after {
-			transition: all 0.3s;
-			content: "";
-			position: absolute;
-			top: 0;
-			left: 0;
+		aspect-ratio: 1;
+		overflow: hidden;
+		background: var(--darker);
+		border-bottom: 1px solid var(--accent2);
+		& img {
 			width: 100%;
 			height: 100%;
+			object-fit: cover;
+			transition: scale 0.3s;
+		}
+		& .badge {
+			position: absolute;
+			color: var(--light-text);
+			background: rgb(0 0 0 / 0.7);
+			border-color: rgb(255 255 255 / 0.15);
+		}
+		& .version {
+			left: 0.5rem;
+			bottom: 0.5rem;
+		}
+		& .live {
+			top: 0.5rem;
+			left: 0.5rem;
+			color: var(--success);
+			border-color: var(--success-line);
+		}
+	}
+
+	.info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.375rem;
+		flex: 1;
+		padding: 0.625rem 0.75rem 0.75rem;
+	}
+
+	.name {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		font-size: 0.875rem;
+		font-weight: 500;
+		line-height: 1.3;
+	}
+
+	.stats {
+		display: flex;
+		justify-content: space-between;
+		margin-top: auto;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--grey-text);
+		& fa {
+			font-size: 0.6875rem;
+			padding-right: 0.25rem;
+			opacity: 0.8;
 		}
 	}
 </style>

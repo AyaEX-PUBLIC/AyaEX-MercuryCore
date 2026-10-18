@@ -8,32 +8,34 @@
 </script>
 
 <form use:enhance method="post" action="?/comment" class="py-2">
-	<label for="content" class="light-text py-2">Post a comment</label>
-	<fieldset class="max-w-140 flex gap-4 items-end">
+	<label for="content" class="block pb-2">Post a comment</label>
+	<fieldset class="max-w-160 flex flex-col gap-3">
 		<textarea
 			bind:value={$form.content}
 			{...$constraints.content}
 			class={{ "is-invalid": $errors.content }}
+			id="content"
 			name="content"
 			placeholder="What are your thoughts?"
-			rows="4">
+			rows="3">
 		</textarea>
-		<button class="btn btn-secondary">
-			{#if $delayed}
-				Working...
-			{:else}
-				Comment
+		<div class="flex items-center gap-4">
+			<button class="btn btn-primary">
+				<fa fa-message></fa>
+				{$delayed ? "Working..." : "Comment"}
+			</button>
+			{#if $message || $errors.content}
+				<span
+					class={[
+						"text-sm",
+						{
+							"text-emerald-400": page.status === 200,
+							"text-red-400": page.status >= 400 || $errors.content
+						}
+					]}>
+					{$message || $errors.content}
+				</span>
 			{/if}
-		</button>
+		</div>
 	</fieldset>
-	<p
-		class={[
-			"pb-4",
-			{
-				"text-emerald-600": page.status === 200,
-				"text-red-500": page.status >= 400
-			}
-		]}>
-		{$message || $errors.content || ""}
-	</p>
 </form>

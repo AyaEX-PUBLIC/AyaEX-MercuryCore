@@ -19,13 +19,13 @@
 	const { form, errors, constraints } = formData
 </script>
 
-<div class="flex flex-wrap pb-8">
+<div class="pb-6">
 	{#if label}
-		<label for={name} class="w-full md:w-1/4">
+		<label for={name} class="block pb-2">
 			{label}
 		</label>
 	{/if}
-	<div class={["w-full", { "md:w-3/4": label }]}>
+	<div>
 		<textarea
 			{...rest}
 			bind:value={$form[name]}
@@ -34,7 +34,7 @@
 			id={name}
 			{rows}
 			placeholder={placeholder || null}
-			class={{ "is-invalid": $errors[name] }}>
+			class={["code", { "is-invalid": $errors[name] }]}>
 		</textarea>
 
 		{#if help}
@@ -43,8 +43,18 @@
 			</small>
 		{/if}
 
-		<small class="pb-4 text-red-500">
-			{$errors[name] || ""}
-		</small>
+		{#if $errors[name]}
+			<small class="block text-red-400 pt-1">
+				{$errors[name]}
+			</small>
+		{/if}
 	</div>
 </div>
+
+<style>
+	.code {
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		tab-size: 4;
+	}
+</style>

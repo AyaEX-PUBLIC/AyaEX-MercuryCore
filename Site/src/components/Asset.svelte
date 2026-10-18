@@ -1,5 +1,5 @@
 <script lang="ts">
-	// A catalog item component, used in the catalog and inventory pages.
+	// A catalog item tile, used in the catalog, inventory and search pages.
 
 	import fade from "$lib/fade"
 
@@ -13,9 +13,7 @@
 			id: number
 			name: string
 			price: number
-			// ratio?: string | number
 		}
-		// ratio?: string | number
 		num: number
 		total: number
 		symbol: string
@@ -25,23 +23,81 @@
 <a
 	in:fade|global={{ num, total }}
 	href="/catalog/{asset.id}/{asset.name}"
-	class="card bg-a h-full p-4 no-underline">
-	<div class="text-center pb-4">
+	class="item light-text">
+	<div class="thumb">
 		<img
 			src="/catalog/{asset.id}/{asset.name}/icon"
-			alt={asset.name}
-			class="w-85%" />
+			alt=""
+			loading="lazy" />
 	</div>
-	<p>{asset.name}</p>
-	<p class="text-emerald-600">{symbol}{asset.price}</p>
+	<div class="info">
+		<span class="name">{asset.name}</span>
+		<span class="price">
+			{#if asset.price > 0}
+				<span class="symbol">{symbol}</span>
+				{asset.price}
+			{:else}
+				Free
+			{/if}
+		</span>
+	</div>
 </a>
 
 <style>
-	.card {
-		border: 1px solid var(--accent2);
-		transition: 0.3s;
+	.item {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		background: var(--background);
+		transition: background-color 0.15s;
 		&:hover {
-			background: var(--darker) !important;
+			background: var(--accent);
+			& img {
+				scale: 1.06;
+			}
 		}
+	}
+
+	.thumb {
+		display: grid;
+		place-items: center;
+		aspect-ratio: 1;
+		padding: 12%;
+		overflow: hidden;
+		& img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+			transition: scale 0.3s;
+		}
+	}
+
+	.info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+		padding: 0 0.75rem 0.75rem;
+	}
+
+	.name {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		font-size: 0.875rem;
+		line-height: 1.3;
+	}
+
+	.price {
+		margin-top: auto;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--success);
+	}
+
+	.symbol {
+		opacity: 0.8;
 	}
 </style>

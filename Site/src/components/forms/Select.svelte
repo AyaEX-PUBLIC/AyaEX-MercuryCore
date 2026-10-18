@@ -49,11 +49,11 @@
 	)
 </script>
 
-<div class="flex flex-wrap pb-8">
-	<label {...select.label} class="w-full md:w-1/4">
+<div class="pb-6">
+	<label {...select.label} class="block pb-2">
 		{label}
 	</label>
-	<div class="w-full md:w-3/4">
+	<div>
 		<NoScript>
 			<!-- fallback to standard select (i don't *think* we need to bind here, and sometimes bugs) -->
 			<select
@@ -88,7 +88,7 @@
 					<button {...select.getOption(opt)} type="button" class="btn light-text">
 						<fa
 							fa-check
-							class={["pr-2", { hidden: opt !== select.value }]}>
+							class={["accent-text", { invisible: opt !== select.value }]}>
 						</fa>
 						{opt}
 					</button>
@@ -102,8 +102,10 @@
 			</small>
 		{/if}
 
-		<small class="pb-4 text-red-500">
-			{$errors[name] || ""}
-		</small>
+		{#if $errors[name]}
+			<small class="block text-red-400 pt-1">
+				{$errors[name]}
+			</small>
+		{/if}
 	</div>
 </div>

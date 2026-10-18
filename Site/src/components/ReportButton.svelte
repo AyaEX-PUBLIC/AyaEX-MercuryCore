@@ -8,9 +8,9 @@
 	} = $props()
 </script>
 
-<li class="rounded-2">
-	<a class="btn text-red-500 pl-4 pr-0" href="/report?user={user}&url={url}">
-		<fa fa-flag class="pr-2"></fa>
+<li>
+	<a class="btn text-red-400" href="/report?user={user}&url={url}">
+		<fa fa-flag></fa>
 		Report abuse
 	</a>
 </li>

@@ -42,14 +42,12 @@
 
 {#if comment && comment.author}
 	<div class="pt-4 flex" in:fade|global={{ num }}>
-		<span class="flex flex-col pt-2">
-			<User user={comment.author} thin size="1.5rem" />
+		<span class="flex flex-col items-center pt-1">
+			<User user={comment.author} size="1.75rem" />
 			<button
 				onclick={collapse(comment.id)}
 				aria-label="Collapse reply"
-				class="collapseBar {comment.pinned
-					? 'bg-green-500'
-					: 'bg-a2'} p-0 border-0 h-full mt-4 cursor-pointer">
+				class={["collapseBar", { pinned: comment.pinned }]}>
 			</button>
 		</span>
 
@@ -59,22 +57,12 @@
 				in:fade={{ delay: 350, duration: 150 }}
 				onclick={collapse(comment.id)}
 				aria-label="Expand reply"
-				class="expandBar justify-center pl-4 text-sm cursor-pointer text-left max-h-10 overflow-hidden">
-				<span class="grey-text">
-					{comment.author.username}
-					<!-- {#if reply.author.username === postAuthorName}
-							<fa
-								class={[
-									assetSlug ? "fa-hammer" : "fa-microphone",
-									"pl-1"
-								]}>
-							</fa>
-						{/if} -->
-				</span>
-				- {comment.content[0].text}
+				class="expandBar pl-3 text-sm text-left max-h-10 overflow-hidden">
+				<b class="light-text">{comment.author.username}</b>
+				&ndash; {comment.content[0].text}
 			</button>
 		{:else}
-			<div transition:slide class="min-w-full pe-10">
+			<div transition:slide class="min-w-0 flex-1 pl-3">
 				<CommentMain
 					{likeForm}
 					{comment}
@@ -88,25 +76,41 @@
 {/if}
 
 <style>
-	.collapseBar,
-	.expandBar {
-		transition: all 0.2s ease-out;
-	}
-
 	.collapseBar {
-		border-left: 9px solid var(--background);
-		border-right: 13px solid var(--background);
-		&:hover {
-			background: var(--grey-text);
+		flex: 1;
+		width: 1.75rem;
+		margin-top: 0.5rem;
+		padding: 0;
+		background: none;
+		border: 0;
+		cursor: pointer;
+		position: relative;
+		&::before {
+			content: "";
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 50%;
+			width: 1px;
+			background: var(--accent2);
+			transition: background-color 0.15s;
+		}
+		&.pinned::before {
+			background: var(--success);
+		}
+		&:hover::before {
+			width: 2px;
+			background: var(--primary);
 		}
 	}
 
 	.expandBar {
-		border: none;
+		color: var(--grey-text);
 		background: none;
-		color: var(--accent3);
+		border: none;
+		cursor: pointer;
 		&:hover {
-			color: var(--grey-text);
+			color: var(--light-text);
 		}
 	}
 </style>

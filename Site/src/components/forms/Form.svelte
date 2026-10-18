@@ -31,16 +31,16 @@
 </script>
 
 <form use:enhance method="post" {...rest}>
-	<fieldset class={inline ? "input-group" : "pb-2"}>
+	<fieldset class={inline ? "input-group" : ""}>
 		{@render children()}
 		{#if submit}
-			<button class={["btn btn-primary h-full", { nopad }]}>
+			<button class="btn btn-primary">
 				{@html /* ecks ess ess moment */ $delayed ? working : submit}
 			</button>
 		{/if}
 	</fieldset>
 	{#if other}
-		<p class="text-red-500">
+		<p class="text-red-400 text-sm pt-2">
 			{other}
 		</p>
 	{/if}
@@ -48,19 +48,13 @@
 
 {#if $message}
 	<p
-		class={{
-			"mb-0": inline,
-			"text-emerald-600": page.status === 200,
-			"text-red-500": page.status >= 400
-		}}>
+		class={[
+			"text-sm pt-2",
+			{
+				"text-emerald-400": page.status === 200,
+				"text-red-400": page.status >= 400
+			}
+		]}>
 		{$message}
 	</p>
 {/if}
-
-<style>
-	button:not(.nopad) {
-		& :global(fa) {
-			padding-right: 0.5rem;
-		}
-	}
-</style>

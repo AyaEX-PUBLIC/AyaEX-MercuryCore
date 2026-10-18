@@ -1,4 +1,6 @@
 <script lang="ts">
+	// A user row, used on friend, follower and group member lists
+
 	import User from "$components/User.svelte"
 	import fade from "$lib/fade"
 
@@ -15,12 +17,26 @@
 
 <a
 	in:fade|global={{ num, total, max: 12 }}
-	class="card bg-darker light-text h-full w-full max-w-100 flex flex-row no-underline"
+	class="usercard light-text"
 	href="/user/{user.username}">
-	<div class="p-6 flex">
-		<User {user} image size="6rem" bg="accent" />
-	</div>
-	<p class="w-fit break-all text-base p-6">
-		{user.username}
-	</p>
+	<User {user} image size="3rem" bg="accent" />
+	<span class="min-w-0">
+		<span class="block font-500 truncate">{user.username}</span>
+		<span class="eyebrow block">{user.status || "Offline"}</span>
+	</span>
 </a>
+
+<style>
+	.usercard {
+		display: flex;
+		align-items: center;
+		gap: 0.875rem;
+		height: 100%;
+		padding: 0.875rem 1rem;
+		background: var(--background);
+		transition: background-color 0.15s;
+		&:hover {
+			background: var(--accent);
+		}
+	}
+</style>

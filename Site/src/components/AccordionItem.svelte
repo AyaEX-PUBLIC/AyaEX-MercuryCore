@@ -21,19 +21,23 @@
 </script>
 
 <NoScript>
-	<details name="details" class="bg-darker rounded-2">
-		<summary class="p-2 px-4 block">
+	<details name="details" class="panel">
+		<summary class="p-3 px-4 block text-sm font-500">
 			{item.item.title}
 		</summary>
 		{@render children()}
 	</details>
 </NoScript>
 <YesScript>
-	<div class="bg-darker rounded-2">
+	<div class="panel">
 		<button
 			{...item.trigger}
-			class="btn light-text p-2 px-4 w-full text-(left base)">
+			class="btn light-text px-4 py-3 w-full justify-between! text-left">
 			{item.item.title}
+			<fa
+				fa-plus
+				class={["grey-text transition-transform", { "rotate-45": item.isExpanded }]}>
+			</fa>
 		</button>
 
 		{#if item.isExpanded}

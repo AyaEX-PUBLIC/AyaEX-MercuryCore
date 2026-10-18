@@ -15,7 +15,7 @@
 	let text = $derived(pinned ? "unpin" : "pin")
 </script>
 
-<li class="rounded-2">
+<li>
 	<form
 		use:enhance={e => {
 			pinned = !pinned
@@ -24,12 +24,8 @@
 		method="post"
 		action="/comment/{id}?/pin&set={!pinned}"
 		class="inline">
-		<button
-			class={[
-				"btn pl-4 pr-2",
-				pinned ? "text-red-500" : "text-green-500"
-			]}>
-			<fa fa-thumbtack class="pr-2"></fa>
+		<button class={["btn", pinned ? "text-red-400" : "text-emerald-400"]}>
+			<fa fa-thumbtack></fa>
 			{text.charAt(0).toUpperCase() + text.slice(1)}
 		</button>
 	</form>

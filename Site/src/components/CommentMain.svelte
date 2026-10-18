@@ -36,89 +36,74 @@
 </script>
 
 <div class="w-full">
-	<div class="flex items-center pt-2">
+	<div class="flex items-baseline gap-3 flex-wrap">
 		<a
 			href="/user/{comment.author.username}"
-			class={[
-				"userlink light-text items-center no-underline flex flex-row font-bold pl-4",
-				{
-					// [assetSlug ? "text-yellow-500" : "text-blue-600"]:
-					// 	reply.author.username === postAuthorName,
-					// "light-text": reply.author.username !== postAuthorName,
-					"opacity-33": hidden
-				}
-			]}>
+			class={["userlink text-sm font-600", { "opacity-33": hidden }]}>
 			{comment.author.username}
-			<!-- {#if reply.author.username === postAuthorName}
-					<fa
-						class="{assetSlug
-							? 'fa-hammer'
-							: 'fa-microphone'} pl-2">
-					</fa>
-				{/if} -->
 		</a>
-		<small class="light-text pl-6">
+		<small class="eyebrow normal-case tracking-normal">
 			{comment.created.toLocaleString()}
 		</small>
 	</div>
 	<p
 		class={[
-			"py-2 m-0 break-all whitespace-pre-line",
+			"py-1.5 m-0 break-words whitespace-pre-line",
 			{ "opacity-33": hidden }
 		]}>
 		{comment.content[0].text}
 	</p>
 	{#if replyingTo !== comment.id}
-		<CommentLike
-			class={["inline pr-2", { "opacity-33": hidden }]}
-			likeForm={likeFormFor}
-			{comment}
-			small />
-		{#if !hidden}
-			<a
-				href="/comment/{comment.id}"
-				onclick={e => {
-					e.preventDefault()
-					replyingTo = comment.id
-				}}
-				class="btn btn-sm p-0 px-1 text-neutral-5 hover:text-neutral-300">
-				<fa fa-message class="pr-2"></fa>
-				Reply
-			</a>
-			<span class="dropdown">
-				<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
-				<div class="dropdown-content pt-2">
-					<ul class="p-2 rounded-3">
-						{#if comment.author.username === user.username}
-							<DeleteButton id={comment.id} />
-						{:else}
-							<ReportButton
-								user={comment.author.username}
-								url="/comment/{comment.id}" />
-							{#if user.permissionLevel >= 4}
-								<DeleteButton id={comment.id} moderate />
+		<div class="flex items-center gap-1 -ml-1.5">
+			<CommentLike
+				class={{ "opacity-33": hidden }}
+				likeForm={likeFormFor}
+				{comment}
+				small />
+			{#if !hidden}
+				<a
+					href="/comment/{comment.id}"
+					onclick={e => {
+						e.preventDefault()
+						replyingTo = comment.id
+					}}
+					class="btn btn-sm btn-quatenary">
+					<fa fa-message></fa>
+					Reply
+				</a>
+				<span class="dropdown">
+					<fa fa-ellipsis-h class="dropdown-ellipsis"></fa>
+					<div class="dropdown-content">
+						<ul>
+							{#if comment.author.username === user.username}
+								<DeleteButton id={comment.id} />
+							{:else}
+								<ReportButton
+									user={comment.author.username}
+									url="/comment/{comment.id}" />
+								{#if user.permissionLevel >= 4}
+									<DeleteButton id={comment.id} moderate />
+								{/if}
 							{/if}
-						{/if}
-						{#if user.permissionLevel >= 4}
-							<PinButton
-								id={comment.id}
-								{refreshComments}
-								pinned={comment.pinned} />
-						{/if}
-						<li class="rounded-2">
-							<a
-								class="btn pl-3 px-2 text-neutral-5"
-								href="/comment/{comment.id}">
-								<fa fa-link class="pr-2"></fa>
-								Link
-							</a>
-						</li>
-					</ul>
-				</div>
-			</span>
-		{/if}
+							{#if user.permissionLevel >= 4}
+								<PinButton
+									id={comment.id}
+									{refreshComments}
+									pinned={comment.pinned} />
+							{/if}
+							<li>
+								<a class="light-text" href="/comment/{comment.id}">
+									<fa fa-link></fa>
+									Link
+								</a>
+							</li>
+						</ul>
+					</div>
+				</span>
+			{/if}
+		</div>
 	{:else}
-		<div class="card reply bg-darker p-4 pt-2 max-w-3/4">
+		<div class="panel p-4 mt-2 max-w-160">
 			<form
 				use:enhance={e => {
 					replyingTo = ""
@@ -126,8 +111,8 @@
 				}}
 				method="post"
 				action="/comment/{comment.id}?/comment">
-				<label for="content" class="light-text pb-2">
-					Post a Reply
+				<label for="content" class="block pb-2">
+					Reply to {comment.author.username}
 				</label>
 				<fieldset class="flex flex-col gap-3">
 					<textarea
@@ -139,17 +124,17 @@
 						placeholder="What are your thoughts?"
 						rows="4">
 					</textarea>
-					<div class="flex gap-3">
-						<button class="btn btn-secondary">
-							<fa fa-message class="pr-2"></fa>
+					<div class="flex gap-2">
+						<button class="btn btn-sm btn-primary">
+							<fa fa-message></fa>
 							Reply
 						</button>
 						<button
+							type="button"
 							onclick={() => {
 								replyingTo = ""
 							}}
-							class="btn btn-tertiary grey-text">
-							<fa fa-cancel class="pr-2"></fa>
+							class="btn btn-sm btn-tertiary">
 							Cancel
 						</button>
 					</div>
@@ -160,8 +145,8 @@
 </div>
 
 {#if depth > 8}
-	<a href="/comment/{comment.id}" class="no-underline py-2">
-		<fa fa-arrow-down class="pr-2"></fa>
+	<a href="/comment/{comment.id}" class="inline-flex items-center gap-2 text-sm py-2">
+		<fa fa-arrow-down></fa>
 		More comments
 	</a>
 {/if}
@@ -179,14 +164,10 @@
 {/each}
 
 <style>
-	.reply {
-		border-color: var(--accent2);
-	}
-
 	.userlink {
-		transition: color 0.2s;
+		color: var(--light-text);
 		&:hover {
-			color: var(--grey-text) !important;
+			color: var(--grey-text);
 		}
 	}
 </style>

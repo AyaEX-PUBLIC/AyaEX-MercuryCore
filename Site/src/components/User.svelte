@@ -1,15 +1,14 @@
 <script lang="ts">
-	// User profile link component
+	// User profile link component: a square headshot, optionally with the username
 
 	import type { ClassValue } from "svelte/elements"
 
-	const statusColours = Object.freeze({
-		// 8 months late lmao
-		Playing: "#238560",
-		Online: "#3459e6",
-		Offline: "transparent"
+	const statusLabels = Object.freeze({
+		Playing: "Playing",
+		Online: "Online",
+		Offline: ""
 	})
-	const transitionBackgrounds = Object.freeze({
+	const hoverBackgrounds = Object.freeze({
 		darker: "background",
 		background: "accent",
 		accent: "accent1",
@@ -26,7 +25,7 @@
 		bottom = false,
 		rerender = null,
 		size = "2rem",
-		bg = "accent2",
+		bg = "accent",
 		class: class_ = ""
 	}: {
 		user: BasicUser
@@ -41,49 +40,36 @@
 			regenerating?: boolean
 		} | null // Used on profile page for rerender button
 		size?: string
-		bg?: keyof typeof transitionBackgrounds
+		bg?: keyof typeof hoverBackgrounds
 		class?: ClassValue
 	} = $props()
 
-	let style = $derived(
-		`width: ${size}; max-width: ${size}; height: ${size}; min-height: ${size}`
+	let src = $derived(
+		rerender?.form?.avatar || `/api/avatar/${user.username}`
 	)
-	let style2 = $derived(`${style}; background: var(--${bg})`)
-	let pfpstyle = $derived(
-		`${style2}; --hover: var(--${transitionBackgrounds[bg]})`
-	)
+	let status = $derived(statusLabels[user.status] || "")
 </script>
+
+{#snippet avatar()}
+	<span
+		class={["pfp", { faded: rerender?.regenerating }]}
+		style="--size: {size}; --bg: var(--{bg}); --hover: var(--{hoverBackgrounds[bg]})">
+		<img {src} alt={user.username} loading="lazy" />
+		{#if status}
+			<span
+				class={["status", user.status]}
+				title={status}
+				aria-label={status}>
+			</span>
+		{/if}
+	</span>
+{/snippet}
 
 {#if image}
 	<div class={["flex", class_, { "items-center": full }]}>
-		<div class="relative">
-			<!-- css hell -->
-			<div
-				class="status"
-				style="background: {statusColours[user.status]}">
-			</div>
-			<div class="pfp" style={pfpstyle}>
-				{#if rerender}
-					<img
-						src={rerender.form?.avatar ||
-							`/api/avatar/${user.username}`}
-						alt={user.username}
-						class={[
-							"transition-opacity duration-300 rounded-full rounded-t-0",
-							{ "opacity-50": rerender.regenerating }
-						]}
-						{style} />
-				{:else}
-					<img
-						src="/api/avatar/{user.username}"
-						alt={user.username}
-						class="rounded-full rounded-t-0"
-						{style} />
-				{/if}
-			</div>
-		</div>
+		{@render avatar()}
 		{#if full}
-			<span class={thin ? "pl-2 text-base" : "pl-4 font-bold"}>
+			<span class={thin ? "pl-2 text-sm" : "pl-3 font-semibold"}>
 				{user.username}
 			</span>
 		{/if}
@@ -92,35 +78,23 @@
 	<a
 		href="/user/{user.username}"
 		class={[
-			"flex no-underline",
+			"user flex light-text",
 			class_,
 			{
 				"flex-col": bottom,
 				"items-center": full
 			}
 		]}>
-		<div class="relative">
-			<div
-				class="status"
-				style="background: {statusColours[user.status]}">
-			</div>
-			<div class="pfp" style={pfpstyle}>
-				<img
-					src="/api/avatar/{user.username}"
-					alt={user.username}
-					class="rounded-full rounded-t-0"
-					{style} />
-			</div>
-		</div>
+		{@render avatar()}
 		{#if full}
-			<span class={thin ? "pl-2 text-base" : "pl-4 font-bold"}>
+			<span class={thin ? "pl-2 text-sm" : "pl-3 font-semibold"}>
 				{user.username}
 			</span>
 		{:else if bottom}
 			<span
 				class={[
-					"max-h-12 pt-2 text-center",
-					{ small: user.username?.length > 15 }
+					"name pt-2 text-center text-sm truncate",
+					{ "text-xs": user.username?.length > 15 }
 				]}
 				style="max-width: {size}">
 				{user.username}
@@ -131,23 +105,51 @@
 
 <style>
 	.pfp {
-		@apply rounded-full transition-all duration-200;
-	}
-	/* sus */
-	:global(a):hover .pfp {
-		background: var(--hover) !important;
+		position: relative;
+		display: block;
+		flex-shrink: 0;
+		align-self: center; /* stretching would undo the aspect ratio */
+		width: var(--size);
+		aspect-ratio: 1;
+		background: var(--bg);
+		border: 1px solid var(--accent2);
+		transition:
+			background-color 0.15s,
+			border-color 0.15s,
+			opacity 0.3s;
+		&.faded {
+			opacity: 0.5;
+		}
+		& img {
+			display: block;
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+		}
 	}
 
-	img,
+	.user:hover .pfp {
+		background: var(--hover);
+		border-color: var(--accent3);
+	}
+
+	.user:hover .name {
+		color: var(--grey-text);
+	}
+
 	.status {
 		position: absolute;
-	}
-	.status {
-		z-index: 1;
-		border-radius: 50%;
-		bottom: 5%;
-		right: 5%;
-		width: 20%;
+		right: -1px;
+		bottom: -1px;
+		width: clamp(0.375rem, 18%, 0.875rem);
 		aspect-ratio: 1;
+		border: 2px solid var(--background);
+		box-sizing: content-box;
+		&.Playing {
+			background: var(--success);
+		}
+		&.Online {
+			background: #38bdf8;
+		}
 	}
 </style>

@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { interpolateLab } from "d3-interpolate"
 	import type { ClassValue } from "svelte/elements"
-	import { Tween } from "svelte/motion"
 
 	let {
 		tabData = $bindable(),
@@ -18,6 +16,7 @@
 			num: number
 		}
 		justify?: boolean
+		/** A column of tabs (a row that scrolls sideways on small screens) */
 		vertical?: boolean
 		class?: ClassValue
 	} = $props()
@@ -27,55 +26,28 @@
 		tabData.num = 0
 	})
 
-	let colour = new Tween("white", {
-		duration: 200,
-		interpolate: interpolateLab
-	})
+	function href(tab: string) {
+		const search = new URL(tabData.url).searchParams
+		search.set(tabData.name, tab)
+		return `?${search}`
+	}
 </script>
 
 <ul
-	class={[
-		"flex flex-wrap list-none min-w-28 shrink-0",
-		vertical ? "vertical flex-col gap-2 <md:pl-4" : "pl-0 pb-6",
-		class_,
-		{ justified: justify }
-	]}
+	class={["tabnav", vertical ? "vertical" : "horizontal", class_, { justified: justify }]}
 	role="tablist">
 	{#each tabData.tabs as tab, pos}
-		<li
-			class={[
-				"item",
-				vertical ? "rounded-2" : "p-1",
-				{
-					activetab: vertical && tabData.currentTab === tab,
-					active: !vertical && tabData.currentTab === tab
-				}
-			]}
-			style="border-bottom-color: {colour.current}"
-			data-sveltekit-preload-data="off">
+		<li data-sveltekit-preload-data="off">
 			<a
-				class={[
-					"block tab no-underline rounded-2",
-					vertical ? "pl-4 py-2" : "px-3 py-1",
-					{ "disabled active": tabData.currentTab === tab }
-				]}
-				href="?{(() => {
-					const currentSearch = new URL(tabData.url).searchParams
-					currentSearch.set(tabData.name, tab)
-					return currentSearch.toString()
-				})()}"
+				href={href(tab)}
+				role="tab"
+				aria-selected={tabData.currentTab === tab}
 				onclick={e => {
 					e.preventDefault()
-					// get css variable --hue
-					const hue = getComputedStyle(
-						document.body
-					).getPropertyValue("--hue")
-					colour.set(`hsl(${hue}, 100%, 60%)`, { duration: 0 })
 					tabData.currentTab = tab
-					colour.set("white")
 				}}>
-				{#if tabData.icons}
-					<fa class="{tabData.icons[pos]} pr-2"></fa>
+				{#if tabData.icons?.[pos]}
+					<fa class={tabData.icons[pos]}></fa>
 				{/if}
 				{tab}
 			</a>
@@ -84,54 +56,96 @@
 </ul>
 
 <style>
-	.active.item {
-		border-bottom-width: 2px;
-		border-bottom-style: solid;
-	}
-	.activetab.item {
-		background: var(--accent2);
-	}
-
-	.justified .item {
-		flex-basis: 0;
-		flex-grow: 1;
-		text-align: center;
-		width: 100%;
-	}
-
-	.item,
-	.tab {
-		transition: background-color 0.2s;
-	}
-
-	.tab {
-		color: var(--light-text) !important;
-		border-width: 0px 0px 2px !important;
-		--un-ring-color: hsla(var(--hue), 75%, 45%, 0.5);
-	}
-
-	:not(.activetab) > .tab {
-		&:hover {
-			background: hsla(var(--hue), 100%, 60%, 0.5);
+	.tabnav {
+		display: flex;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		min-width: 0;
+		& li {
+			flex-shrink: 0;
 		}
-		&:active {
-			background: hsla(var(--hue), 100%, 55%, 0.4);
-		}
-	}
-
-	.vertical .tab {
-		@apply ring-offset-neutral-9;
-		@media (prefers-reduced-motion: no-preference) {
+		& a {
+			display: flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.625rem 0.875rem;
+			font-size: 0.875rem;
+			white-space: nowrap;
+			color: var(--grey-text);
 			transition:
-				all 0.3s,
-				box-shadow 0.1s ease-in-out;
+				color 0.15s,
+				background-color 0.15s;
+			&:hover {
+				color: var(--light-text);
+			}
+			&[aria-selected="true"] {
+				color: var(--light-text);
+			}
 		}
+		& fa {
+			width: 1rem;
+			font-size: 0.8125rem;
+			text-align: center;
+			opacity: 0.8;
+		}
+	}
 
-		&:focus:not(:active) {
-			@apply ring-2 ring-offset-2;
+	/* underlined row */
+	.horizontal {
+		margin-bottom: 1.5rem;
+		overflow-x: auto;
+		scrollbar-width: none;
+		box-shadow: inset 0 -1px 0 var(--accent2);
+		& a {
+			position: relative;
+			&[aria-selected="true"]::after {
+				content: "";
+				position: absolute;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				height: 2px;
+				background: var(--primary);
+			}
 		}
-		&:active {
-			@apply ring-3;
+		&.justified li {
+			flex: 1 0 auto;
+			& a {
+				justify-content: center;
+			}
+		}
+	}
+
+	/* a column with a bar beside the current tab */
+	.vertical {
+		flex-direction: column;
+		gap: 0.125rem;
+		& a {
+			border-left: 2px solid transparent;
+			&:hover {
+				background: var(--accent);
+			}
+			&[aria-selected="true"] {
+				background: var(--accent);
+				border-left-color: var(--primary);
+			}
+		}
+		@media (max-width: 767.9px) {
+			flex-direction: row;
+			gap: 0;
+			margin-bottom: 1.5rem;
+			overflow-x: auto;
+			scrollbar-width: none;
+			box-shadow: inset 0 -1px 0 var(--accent2);
+			& a {
+				border-left: 0;
+				border-bottom: 2px solid transparent;
+				&[aria-selected="true"] {
+					background: none;
+					border-bottom-color: var(--primary);
+				}
+			}
 		}
 	}
 </style>

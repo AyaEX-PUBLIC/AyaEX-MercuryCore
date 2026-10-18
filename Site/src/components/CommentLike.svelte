@@ -13,8 +13,6 @@
 		small?: boolean
 		class?: ClassValue
 	} = $props()
-
-	let smallClass = $derived(small ? "size-6 p-0" : "p-1")
 </script>
 
 <form
@@ -26,30 +24,20 @@
 	})}
 	class={class_}>
 	<input type="hidden" name="id" value={comment.id} />
-	<span class={{ "flex flex-col": !small }}>
+	<span class={["votes", small ? "small" : "tall"]}>
 		<button
 			name="action"
 			value={comment.likes ? "unlike" : "like"}
 			aria-label={comment.likes ? "Unlike" : "Like"}
-			class={["btn", smallClass]}>
-			<fa
-				fa-thumbs-up
-				class={[
-					"transition",
-					{ "text-lg": !small },
-					comment.likes
-						? "text-emerald-600 hover:text-emerald-300"
-						: "text-neutral-600 hover:text-neutral-400"
-				]}>
-			</fa>
+			class={{ up: comment.likes }}>
+			<fa fa-thumbs-up></fa>
 		</button>
 		<span
 			class={[
-				"text-center",
-				small ? "px-1" : "py-2",
+				"score",
 				{
-					"text-emerald-600 font-bold": comment.likes,
-					"text-red-500 font-bold": comment.dislikes
+					"text-emerald-400": comment.likes,
+					"text-red-400": comment.dislikes
 				}
 			]}>
 			{comment.score}
@@ -58,17 +46,54 @@
 			name="action"
 			value={comment.dislikes ? "undislike" : "dislike"}
 			aria-label={comment.dislikes ? "Undislike" : "Dislike"}
-			class={["btn", smallClass]}>
-			<fa
-				fa-thumbs-down
-				class={[
-					"transition",
-					{ "text-lg": !small },
-					comment.dislikes
-						? "text-red-500 hover:text-red-300"
-						: "text-neutral-600 hover:text-neutral-400"
-				]}>
-			</fa>
+			class={{ down: comment.dislikes }}>
+			<fa fa-thumbs-down></fa>
 		</button>
 	</span>
 </form>
+
+<style>
+	.votes {
+		display: flex;
+		align-items: center;
+		&.tall {
+			flex-direction: column;
+			gap: 0.25rem;
+			padding: 0.5rem 0.25rem;
+		}
+	}
+
+	button {
+		display: grid;
+		place-items: center;
+		width: 1.75rem;
+		height: 1.75rem;
+		padding: 0;
+		font-size: 0.8125rem;
+		color: var(--dim-text);
+		background: none;
+		border: 0;
+		cursor: pointer;
+		transition:
+			color 0.15s,
+			background-color 0.15s;
+		&:hover {
+			color: var(--light-text);
+			background: var(--accent1);
+		}
+		&.up {
+			color: var(--success);
+		}
+		&.down {
+			color: var(--danger);
+		}
+	}
+
+	.score {
+		min-width: 1.5rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		font-weight: 500;
+		text-align: center;
+	}
+</style>
