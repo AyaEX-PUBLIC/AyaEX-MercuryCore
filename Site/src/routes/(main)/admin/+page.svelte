@@ -24,6 +24,7 @@
 					["Banners", "banners", "fa-bullhorn"],
 					["Shoutbox", "shoutbox", "fa-messages"],
 					["Accounts", "accounts", "fa-user"],
+					["Sign-in", "signin", "fa-key"],
 					["Audit logs", "audit", "fa-book"],
 					["Registration keys", "regkeys", "fa-key"],
 					["Gameservers", "gameservers", "fa-server"],

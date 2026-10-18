@@ -64,10 +64,6 @@
 			<section class="panel">
 				<div class="panel-head">Security</div>
 				<div class="p-5">
-					<p class="grey-text text-sm">
-						Keep your account secure by changing your password and
-						signing out other devices.
-					</p>
 					<Security {data} />
 				</div>
 			</section>

@@ -5,39 +5,42 @@
     "": {
       "name": "mercurycore",
       "dependencies": {
-        "@sveltejs/adapter-node": "latest",
-        "@sveltejs/kit": "latest",
-        "@sveltejs/vite-plugin-svelte": "latest",
-        "@threlte/core": "latest",
-        "@threlte/extras": "latest",
-        "@unocss/extractor-svelte": "latest",
-        "@unocss/preset-tagify": "latest",
-        "@unocss/transformer-directives": "latest",
-        "@unocss/transformer-variant-group": "latest",
-        "arktype": "latest",
-        "d3-interpolate": "latest",
-        "melt": "latest",
-        "nodemailer": "latest",
-        "nprogress": "latest",
-        "picocolors": "latest",
-        "sharp": "latest",
-        "stripe-gradient": "latest",
-        "surrealdb": "latest",
-        "svelte": "latest",
-        "svelte-inview": "latest",
-        "sveltekit-superforms": "latest",
-        "typescript": "latest",
-        "unocss": "latest",
-        "vite": "latest",
+        "@noble/curves": "2.4.0",
+        "@noble/hashes": "2.4.0",
+        "@scure/bip39": "2.4.0",
+        "@sveltejs/adapter-node": "^5.5.7",
+        "@sveltejs/kit": "^2.70.2",
+        "@sveltejs/vite-plugin-svelte": "^7.3.0",
+        "@threlte/core": "^8.5.16",
+        "@threlte/extras": "^9.21.0",
+        "@unocss/extractor-svelte": "^66.7.5",
+        "@unocss/preset-tagify": "^66.7.5",
+        "@unocss/transformer-directives": "^66.7.5",
+        "@unocss/transformer-variant-group": "^66.7.5",
+        "arktype": "^2.2.3",
+        "d3-interpolate": "^3.0.1",
+        "melt": "^0.44.0",
+        "nodemailer": "^10.0.0",
+        "nprogress": "^0.2.0",
+        "picocolors": "^1.1.1",
+        "sharp": "^0.35.3",
+        "stripe-gradient": "^1.0.1",
+        "surrealdb": "^2.0.8",
+        "svelte": "^5.56.9",
+        "svelte-inview": "^4.0.4",
+        "sveltekit-superforms": "^2.30.2",
+        "typescript": "^7.0.2",
+        "unocss": "^66.7.5",
+        "vite": "^8.2.1",
       },
       "devDependencies": {
-        "@biomejs/biome": "latest",
-        "@types/bun": "latest",
-        "@types/d3-interpolate": "latest",
-        "@types/nodemailer": "latest",
-        "@types/nprogress": "latest",
-        "svelte-check": "latest",
-        "vite-plugin-devtools-json": "latest",
+        "@biomejs/biome": "^2.5.8",
+        "@types/bun": "^1.3.14",
+        "@types/d3-interpolate": "^3.0.4",
+        "@types/nodemailer": "^8.0.1",
+        "@types/nprogress": "^0.2.3",
+        "svelte-check": "^4.7.6",
+        "vite-plugin-devtools-json": "^1.1.0",
       },
     },
   },
@@ -164,6 +167,10 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg=="],
+
+    "@noble/curves": ["@noble/curves@2.4.0", "", { "dependencies": { "@noble/hashes": "2.4.0" } }, "sha512-P4/62zrgfH33CneE3Dn4WhJVA22YUU0eR51wKIan4NVRvwsA0YnPTwWGpNbpuacSujmSFLvyzpyuR30+fbq2Ew=="],
+
+    "@noble/hashes": ["@noble/hashes@2.4.0", "", {}, "sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA=="],
 
     "@oxc-parser/binding-android-arm-eabi": ["@oxc-parser/binding-android-arm-eabi@0.131.0", "", { "os": "android", "cpu": "arm" }, "sha512-t2xicr9pfzkSRYx5aPqZqlLaayIwJTqgQ81Jor31Xep2nGyL2Aq3d0K5wOfeR7VevaSdxaS9dzSQP9xDwn8fDg=="],
 
@@ -302,6 +309,8 @@
     "@rollup/rollup-win32-x64-gnu": ["@rollup/rollup-win32-x64-gnu@4.59.0", "", { "os": "win32", "cpu": "x64" }, "sha512-laBkYlSS1n2L8fSo1thDNGrCTQMmxjYY5G0WFWjFFYZkKPjsMBsgJfGf4TLxXrF6RyhI60L8TMOjBMvXiTcxeA=="],
 
     "@rollup/rollup-win32-x64-msvc": ["@rollup/rollup-win32-x64-msvc@4.59.0", "", { "os": "win32", "cpu": "x64" }, "sha512-2HRCml6OztYXyJXAvdDXPKcawukWY2GpR5/nxKp4iBgiO3wcoEGkAaqctIbZcNB6KlUQBIqt8VYkNSj2397EfA=="],
+
+    "@scure/bip39": ["@scure/bip39@2.4.0", "", { "dependencies": { "@noble/hashes": "2.4.0" } }, "sha512-82dxFbZUYboyOf0AXiydsQrFQ5Q4h9mX+O2UkE91ROYmsc0BKMGZLwDmy96Jpa2+vrtoxomjUhy1RPIgH/r2nA=="],
 
     "@sideway/address": ["@sideway/address@4.1.5", "", { "dependencies": { "@hapi/hoek": "^9.0.0" } }, "sha512-IqO/DUQHUkPeixNQ8n0JA6102hT9CmaljNTPmQ1u8MEhBo/R4Q8eKLN/vGZxuebwOroDB4cbpjheD4+/sKFK4Q=="],
 
@@ -639,7 +648,7 @@
 
     "node-fetch-native": ["node-fetch-native@1.6.7", "", {}, "sha512-g9yhqoedzIUm0nTnTqAQvueMPVOuIY16bqgAJJC8XOOubYFNwz6IER9qs0Gq2Xd0+CecCKFjtdDTMA4u4xG06Q=="],
 
-    "nodemailer": ["nodemailer@9.0.5", "", {}, "sha512-wvjiKvjczmsN7U/8006JOdXubgBk2XFAbioDMbT+sM7cPs0QrhJTa6KBRX7P5REGGkDcLUz/EarWidb8G8C1jQ=="],
+    "nodemailer": ["nodemailer@10.1.6", "", {}, "sha512-8j/UEmA4AXr51URr3Ob0h+RCBtr0NKJ76Y2P9wJT6Eu3dRyruj2ULh2e6aiKrGg8nlUj1oX6N5h8dHA82EouaQ=="],
 
     "normalize-url": ["normalize-url@8.1.0", "", {}, "sha512-X06Mfd/5aKsRHc0O0J5CUedwnPmnDtLF2+nq+KN9KSDlJHkPuh0JUviWjEWMe0SW/9TDdSLVPuk7L5gGTIA1/w=="],
 

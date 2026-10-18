@@ -1,64 +1,42 @@
-import { type } from "arktype"
-import { ThrownError } from "surrealdb"
+import { fail } from "@sveltejs/kit"
 import { authorise } from "$lib/server/auth"
-import formError from "$lib/server/formError"
-import ratelimit from "$lib/server/ratelimit"
-import { db, Record } from "$lib/server/surreal"
-import {
-	arktype,
-	errMessage,
-	message,
-	superValidate,
-} from "$lib/server/validate"
-import { usernameTest } from "$lib/typeTests"
-import updatePasswordQuery from "./updatePassword.surql"
+import { issueResetCode } from "$lib/server/resetCode"
+import { db, Record, type RecordId } from "$lib/server/surreal"
 import usersQuery from "./users.surql"
-
-const schema = type({
-	username: usernameTest,
-	password: "1 <= string <= 6969",
-})
 
 export async function load({ locals }) {
 	await authorise(locals, 4)
 
-	const [users] = await db.query<BasicUser[][]>(usersQuery)
+	const [users] =
+		await db.query<(BasicUser & { hasPhrase: boolean })[][]>(usersQuery)
 
-	return {
-		form: await superValidate(arktype(schema)),
-		users,
-	}
+	return { users }
 }
 
 export const actions: import("./$types").Actions = {}
-actions.changePassword = async ({ locals, request, getClientAddress }) => {
+// Accounts sign in with recovery phrases, which administrators never see. If
+// someone loses theirs, give them a one-time code to make a new one with.
+actions.resetCode = async ({ locals, request }) => {
 	const { user } = await authorise(locals, 5)
-	const form = await superValidate(request, arktype(schema))
-	if (!form.valid) return formError(form)
+	const username = String((await request.formData()).get("username") || "")
+		.trim()
+		.slice(0, 50)
 
-	const limit = ratelimit(form, "changePassword", getClientAddress, 30)
-	if (limit) return limit
+	const [[target]] = await db.query<
+		{ id: RecordId<"user">; username: string }[][]
+	>(
+		"SELECT id, username FROM user WHERE string::lowercase(username) = string::lowercase($username) LIMIT 1",
+		{ username }
+	)
+	if (!target)
+		return fail(404, { username, error: "No user has that username" })
 
-	const { username, password } = form.data
-	form.data.password = ""
-
-	try {
-		const [, ok] = await db.query<boolean[]>(updatePasswordQuery, {
-			npassword: Bun.password.hashSync(password),
-			username: username,
-		})
-		if (!ok)
-			return errMessage(form, "No user found with given username")
-	} catch (e) {
-		console.error(e)
-		return errMessage(form, "An error occurred")
-	}
-
+	const code = await issueResetCode(target.id)
 	await db.run("fn::auditLog", [
 		"Account",
-		`Change account password for ${username}`,
+		`Issue a recovery phrase reset code for ${target.username}`,
 		Record("user", user.id),
 	])
 
-	return message(form, "Password changed successfully!")
+	return { username: target.username, code }
 }

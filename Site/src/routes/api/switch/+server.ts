@@ -5,6 +5,7 @@ import { cookieName, cookieOptions, createSession, invalidateSession } from "$li
 import { db, Record, type RecordId } from "$lib/server/surreal"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
+import { deviceCodeLifetime, pollDevice, startDevice } from "$lib/server/deviceCode"
 import { actions } from "../../(main)/place/[id=asset]/[name]/+page.server"
 import { GET as ayaJoin } from "../../(rbxclient)/game/join/aya/+server"
 import { GET as avatarImage } from "../avatar/[username]/+server"
@@ -16,7 +17,6 @@ import type { RequestHandler } from "./$types"
 
 // Native clients use the same expiring sessions, privacy checks and join
 // tickets as the website. Never ship an asset access key to the console.
-const attempts = new Map<string, { count: number; until: number }>()
 const thumbnails = new Map<number, { image: string; until: number }>()
 async function thumbnail(id: number) {
 	const cached = thumbnails.get(id)
@@ -30,13 +30,6 @@ async function thumbnail(id: number) {
 		thumbnails.set(id, { image, until: Date.now() + 60_000 })
 		return image
 	} catch { return "" }
-}
-function throttle(address: string) {
-	const now = Date.now()
-	for (const [key, value] of attempts) if (value.until < now) attempts.delete(key)
-	const entry = attempts.get(address) || { count: 0, until: now + 60_000 }
-	attempts.set(address, entry)
-	if (++entry.count > 8) error(429, "Too many login attempts. Try again shortly.")
 }
 function profile(user: { username: string; status?: string }) {
 	return { username: user.username, displayName: user.username,
@@ -106,7 +99,7 @@ export const GET: RequestHandler = async (event) => {
 }
 
 export const POST: RequestHandler = async (event) => {
-	const { request, locals, cookies, getClientAddress } = event
+	const { request, locals, cookies } = event
 	const origin = request.headers.get("origin")
 	if (origin && origin !== siteOrigin()) error(403, "Invalid origin")
 	if (!request.headers.get("content-type")?.startsWith("application/json"))
@@ -116,23 +109,28 @@ export const POST: RequestHandler = async (event) => {
 	let data: Record<string, any>
 	try { data = JSON.parse(raw) } catch { error(400, "Invalid JSON") }
 	if (!data || typeof data !== "object" || Array.isArray(data)) error(400, "Invalid request")
-	if (data.op === "login") {
-		throttle(getClientAddress())
-		const { username, password } = data
-		if (typeof username !== "string" || username.length > 100 ||
-			typeof password !== "string" || !password || password.length > 6969)
-			error(400, "Enter your username and password")
-		const [[user]] = await db.query<{ id: RecordId<"user">; hashedPassword: string; username: string }[][]>(
-			"SELECT id, username, hashedPassword FROM user WHERE string::lowercase(username) = string::lowercase($username) LIMIT 1", { username })
-		if (!user || !await Bun.password.verify(password, user.hashedPassword))
-			error(401, "Incorrect username or password")
+	// Accounts sign in with recovery phrases now, which are too long to type
+	// on a Switch: the app shows a code that the player approves on /device
+	if (data.op === "login")
+		error(410, "Update the Mercury app: you now sign in with a code you approve on the website.")
+	if (data.op === "deviceStart") {
+		const { code, token } = await startDevice()
+		return reply({ code, token, url: `${siteOrigin()}/device`, expiresIn: deviceCodeLifetime, interval: 5 })
+	}
+	if (data.op === "devicePoll") {
+		const polled = await pollDevice(String(data.token || ""))
+		// (state, as profiles have a status of their own)
+		if (polled.status !== "approved") return reply({ state: polled.status })
+		const [user] = await db.query<({ id: RecordId<"user">; username: string; status: string } | undefined)[]>(
+			"SELECT id, username, status FROM ONLY $user", { user: polled.user })
+		if (!user) return reply({ state: "expired" })
 		const [moderated] = await db.query<unknown[][]>(
 			"SELECT id FROM moderation WHERE out = $user AND active = true LIMIT 1", { user: user.id })
 		// The regular hook also enforces moderation on all subsequent requests.
 		if (moderated.length) error(403, "Your account is currently moderated")
 		if (locals.session) await invalidateSession(locals.session)
 		cookies.set(cookieName, await createSession(user.id), { ...cookieOptions, httpOnly: true, sameSite: "lax" })
-		return reply(profile(user))
+		return reply({ ...profile(user), state: "ok" })
 	}
 	loggedIn(locals)
 	if (data.op === "logout") {

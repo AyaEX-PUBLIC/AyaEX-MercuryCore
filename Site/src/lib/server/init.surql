@@ -220,6 +220,21 @@ DEFINE TABLE OVERWRITE recentlyWorn SCHEMAFULL TYPE RELATION FROM user TO asset 
 	DEFINE FIELD OVERWRITE id ON recentlyWorn TYPE string;
 	DEFINE FIELD OVERWRITE time ON recentlyWorn TYPE datetime DEFAULT ALWAYS time::now();
 
+# Device sign-in for the Switch app (routes/api/switch): the device shows the
+# code, a signed-in player approves it on /device, and the device, polling
+# with its secret token (only the hash is kept), gets a session.
+DEFINE TABLE OVERWRITE deviceCode SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON deviceCode TYPE string;
+	DEFINE FIELD OVERWRITE code ON deviceCode TYPE string;
+	DEFINE FIELD OVERWRITE created ON deviceCode TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE expires ON deviceCode TYPE datetime;
+	DEFINE FIELD OVERWRITE tokenHash ON deviceCode TYPE string;
+	DEFINE FIELD OVERWRITE user ON deviceCode TYPE option<record<user>>;
+	DEFINE INDEX OVERWRITE deviceCodeCode ON deviceCode FIELDS code UNIQUE;
+	DEFINE INDEX OVERWRITE deviceCodeToken ON deviceCode FIELDS tokenHash UNIQUE;
+
+# Codes for making a new recovery phrase (lib/server/resetCode.ts), from an
+# administrator or by email. code is the hash of the code.
 DEFINE TABLE OVERWRITE recoveryCode SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON recoveryCode TYPE string;
 	DEFINE FIELD OVERWRITE code ON recoveryCode TYPE string DEFAULT rand::string(6);
@@ -227,6 +242,7 @@ DEFINE TABLE OVERWRITE recoveryCode SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE expires ON recoveryCode TYPE datetime DEFAULT ALWAYS time::now() + 1d;
 	DEFINE FIELD OVERWRITE used ON recoveryCode TYPE bool DEFAULT false;
 	DEFINE FIELD OVERWRITE user ON recoveryCode TYPE record<user>;
+	DEFINE INDEX OVERWRITE recoveryCodeCode ON recoveryCode FIELDS code;
 
 DEFINE TABLE OVERWRITE regKey SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON regKey TYPE string;
@@ -318,7 +334,12 @@ DEFINE TABLE OVERWRITE user SCHEMAFULL TYPE NORMAL;
 		DEFINE FIELD OVERWRITE description.*.updated ON user TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE email ON user TYPE string
 		ASSERT string::is_email($value) OR $value == "";
-	DEFINE FIELD OVERWRITE hashedPassword ON user TYPE string;
+	# Accounts sign in with a recovery phrase (lib/phrase.ts); this is its
+	# public key. Passwords are only kept until an account has a phrase, or
+	# until an administrator ends password sign-in (lib/server/phrase.ts).
+	DEFINE FIELD OVERWRITE authKey ON user TYPE option<string>;
+	DEFINE FIELD OVERWRITE phraseSet ON user TYPE option<datetime>;
+	DEFINE FIELD OVERWRITE hashedPassword ON user TYPE option<string>;
 	DEFINE FIELD OVERWRITE lastOnline ON user TYPE datetime DEFAULT ALWAYS time::now();
 	# playtime rewards (lib/server/playtime.ts): when the user was last seen in a
 	# game, and when their next reward is due
@@ -336,6 +357,7 @@ DEFINE TABLE OVERWRITE user SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE theme ON user TYPE int DEFAULT 0;
 	DEFINE FIELD OVERWRITE username ON user TYPE string;
 DEFINE INDEX IF NOT EXISTS usernameI ON user COLUMNS username UNIQUE;
+DEFINE INDEX OVERWRITE userAuthKey ON user FIELDS authKey UNIQUE;
 # DEFINE INDEX IF NOT EXISTS emailI ON user COLUMNS email UNIQUE; # doesn't work with empty strings
 
 DEFINE TABLE OVERWRITE used SCHEMAFULL TYPE RELATION FROM user TO regKey ENFORCED;

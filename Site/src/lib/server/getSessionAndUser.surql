@@ -11,6 +11,7 @@ LET $u = (SELECT
 	} AS email,
     lastOnline,
     permissionLevel,
+	!!authKey AS hasPhrase,
     css,
     clientChannel,
     theme,

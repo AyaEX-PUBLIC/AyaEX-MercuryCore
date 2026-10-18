@@ -5,9 +5,9 @@ import config from "$lib/server/config"
 import { sendEmail } from "$lib/server/email"
 import formError from "$lib/server/formError"
 import ratelimit from "$lib/server/ratelimit"
-import { db } from "$lib/server/surreal"
+import { issueResetCode } from "$lib/server/resetCode"
+import { db, type RecordId } from "$lib/server/surreal"
 import { arktype, superValidate } from "$lib/server/validate"
-import recoveryQuery from "./recovery.surql"
 
 const schema = type({
 	// TODO: work when emails are turned off
@@ -27,7 +27,7 @@ const sendRecoveryEmail = (email: string, code: string) =>
 	sendEmail(
 		email,
 		`${config.Name} - Account recovery`,
-		`We received a request to recover your ${config.Name} account. Enter the recovery code below on https://${config.Domain}/recover/code to reset your password. This code is valid for 24 hours, or until you recover your account, whichever is sooner.
+		`We received a request to recover your ${config.Name} account. Enter the reset code below on https://${config.Domain}/recover/code to make a new recovery phrase. This code is valid for 24 hours, or until you use it, whichever is sooner.
 
 ${code}
 
@@ -50,8 +50,12 @@ actions.default = async ({ cookies, request, getClientAddress }) => {
 	const { email } = form.data
 	cookies.set("recoverEmail", email, cookieOptions)
 
-	const [, id, code] = await db.query<string[]>(recoveryQuery, { email })
-	if (id && code) await sendRecoveryEmail(email, code)
+	// remember, email addresses ARE case-sensitive
+	const [[user]] = await db.query<RecordId<"user">[][]>(
+		"SELECT VALUE id FROM user WHERE email = $email LIMIT 1",
+		{ email }
+	)
+	if (user) await sendRecoveryEmail(email, await issueResetCode(user))
 
 	redirect(302, "/recover/code")
 }

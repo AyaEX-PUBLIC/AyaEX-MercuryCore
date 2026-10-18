@@ -11,7 +11,6 @@ import config from "$lib/server/config"
 import formError from "$lib/server/formError"
 import { db, Record } from "$lib/server/surreal"
 import { arktype, message, superValidate } from "$lib/server/validate"
-import passwordQuery from "./password.surql"
 import updateProfileQuery from "./updateProfile.surql"
 
 const themeNames = config.Themes.map(t => t.Name)
@@ -24,14 +23,6 @@ const profileSchema = type({
 		return index
 	}),
 })
-const passwordSchema = type({
-	cpassword: "string >= 1",
-	npassword: "string >= 1",
-	cnpassword: "string >= 1",
-})
-const sessionSchema = type({
-	password: "string >= 1",
-})
 const stylingSchema = type({
 	css: "(string <= 10000) | undefined",
 })
@@ -41,8 +32,6 @@ const clientSchema = type({
 
 export const load = async () => ({
 	profileForm: await superValidate(arktype(profileSchema)),
-	passwordForm: await superValidate(arktype(passwordSchema)),
-	sessionForm: await superValidate(arktype(sessionSchema)),
 	stylingForm: await superValidate(arktype(stylingSchema)),
 	clientForm: await superValidate(arktype(clientSchema)),
 	themes: themeNames,
@@ -66,50 +55,9 @@ actions.profile = async ({ locals, request }) => {
 
 	return message(form, "Profile updated successfully!")
 }
-actions.password = async ({ locals, request }) => {
+// Recovery phrases are replaced through /api/auth (Security.svelte)
+actions.sessions = async ({ cookies, locals }) => {
 	const { user } = await authorise(locals)
-	const form = await superValidate(request, arktype(passwordSchema))
-	if (!form.valid) return formError(form)
-
-	const { cpassword, npassword, cnpassword } = form.data
-	// Don't send the password back to the client
-	form.data.cpassword = form.data.npassword = form.data.cnpassword = ""
-
-	if (npassword !== cnpassword)
-		return formError(form, ["cnpassword"], ["Passwords do not match"])
-	if (npassword === cpassword)
-		return formError(
-			form,
-			["npassword", "cnpassword"],
-			["New password cannot be the same as the current password", ""]
-		)
-
-	const userR = Record("user", user.id)
-	const [[{ hashedPassword }]] = await db.query<
-		{ hashedPassword: string }[][]
-	>(passwordQuery, { user: userR })
-	if (!Bun.password.verifySync(cpassword, hashedPassword))
-		return formError(form, ["cpassword"], ["Incorrect password"])
-
-	await db
-		.update(userR)
-		.merge({ hashedPassword: Bun.password.hashSync(npassword) })
-
-	return message(form, "Password updated successfully!")
-}
-actions.sessions = async ({ cookies, locals, request }) => {
-	const { user } = await authorise(locals)
-	const form = await superValidate(request, arktype(sessionSchema))
-	if (!form.valid) return formError(form)
-
-	const { password } = form.data
-	form.data.password = "" // will only send back in the event of failure I think
-
-	const [[{ hashedPassword }]] = await db.query<
-		{ hashedPassword: string }[][]
-	>(passwordQuery, { user: Record("user", user.id) })
-	if (!Bun.password.verifySync(password, hashedPassword))
-		return formError(form, ["password"], ["Incorrect password"])
 
 	await invalidateAllSessions(user.id)
 	cookies.delete(cookieName, { path: "/" })

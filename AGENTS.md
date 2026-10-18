@@ -51,6 +51,13 @@ Before committing, check the diff for tokens, keys, webhook URLs and cookies.
 - The database runs in strict mode: define new tables and fields
   (`DEFINE ... OVERWRITE`) before using them. In a `SELECT`, the `ORDER BY`
   field must also be selected.
+- Accounts sign in with a 12-word BIP39 recovery phrase: the browser derives
+  an Ed25519 key and signs challenges from `/api/auth`; the Site only stores
+  the public key (`Site/src/lib/phrase.ts`, `lib/server/phrase.ts`). Accounts
+  without one are forced to `/migrate`. Admin > Sign-in ends password sign-in
+  for good (it deletes every password), so never use it to test. The test
+  accounts' phrases are in `data/test-account.txt`. The Switch app signs in
+  with a code approved on `/device`.
 - Asset routes need a session or the `accesskey` header (`ASSET_KEY`).
   Aya.Server sends it via `--httpAccessKey`.
 - Test with temporary places and accounts, and delete them afterwards. Don't

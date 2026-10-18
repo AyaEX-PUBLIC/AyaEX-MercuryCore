@@ -1,68 +1,97 @@
 <script lang="ts">
-	import Form from "$components/forms/Form.svelte"
-	import Input from "$components/forms/Input.svelte"
+	import { onMount } from "svelte"
+	import { goto } from "$app/navigation"
 	import Head from "$components/Head.svelte"
-	import { superForm } from "$lib/validate"
+	import PhraseMaker from "$components/PhraseMaker.svelte"
+	import { answer, authApi } from "$lib/authClient"
 	import LoginShell from "../../LoginShell.svelte"
 
 	const { data } = $props()
 
-	let formData = $derived(superForm(data.form))
-	export const snapshot = formData
+	// the forms below need JavaScript, so wait for it before allowing submits
+	let ready = $state(false)
+	onMount(() => (ready = true))
+
+	let code = $state("")
+	let username = $state("")
+	let busy = $state(false)
+	let error = $state("")
 
 	const descriptions: [string, string][] = [
 		[
-			"Recovery code",
-			"If this email address is associated with an account, you should have received a recovery code. Enter it to access your account."
+			"Reset code",
+			"An administrator can give you a one-time code if you've lost your recovery phrase. It works for 24 hours."
 		],
 		[
-			"Password reset",
-			"You'll also need to enter a new password so you can securely access your account again."
-		],
-		[
-			"Didn't receive an email?",
-			"Check your spam folder or try resubmitting your email address to receive a new recovery code."
+			"New phrase",
+			"You'll make a new recovery phrase. Your old one stops working, and every device you were logged in on is logged out."
 		]
 	]
+
+	async function check(e: SubmitEvent) {
+		e.preventDefault()
+		busy = true
+		error = ""
+		try {
+			;({ username } = await authApi<{ username: string }>("checkReset", {
+				code
+			}))
+		} catch (e) {
+			error = (e as Error).message
+		}
+		busy = false
+	}
+
+	async function reset(phrase: string) {
+		busy = true
+		error = ""
+		try {
+			await authApi("reset", { code, ...(await answer(phrase, "reset")) })
+			await goto("/home", { invalidateAll: true })
+		} catch (e) {
+			error = (e as Error).message
+		}
+		busy = false
+	}
 </script>
 
 <Head
 	name={data.siteName}
-	title="Account recovery"
-	description="Recover your {data.siteName} account." />
-
+	title="Make a new recovery phrase"
+	description="Get back into your {data.siteName} account with a reset code." />
 
 <LoginShell name={data.siteName} tagline={data.tagline} {descriptions}>
-	<h2>Enter recovery code</h2>
-	<p>
-		Didn't receive an email?
-		<a href="/recover">Try again</a>
-	</p>
-
-	<Form {formData} class="pt-6" submit="Log in">
-		<Input
-			{formData}
-			column
-			autocomplete="one-time-code"
-			name="code"
-			label="Recovery code"
-			placeholder="R3c0v4" />
-		<Input
-			{formData}
-			column
-			name="npassword"
-			label="New password"
-			type="password"
-			autocomplete="new-password"
-			placeholder={"•".repeat(23)}
-			help="Make sure your new password is unique." />
-		<Input
-			{formData}
-			column
-			name="cnpassword"
-			label="Confirm new password"
-			type="password"
-			placeholder={"•".repeat(23)}
-			autocomplete="new-password" />
-	</Form>
+	{#if !username}
+		<h2>Enter your reset code</h2>
+		<p>
+			Remembered your phrase?
+			<a href="/login">Log in</a>
+		</p>
+		<form class="pt-6" onsubmit={check}>
+			<label class="block pb-5">
+				<span class="block pb-2">Reset code</span>
+				<input
+					bind:value={code}
+					class="mono"
+					autocomplete="one-time-code"
+					autocapitalize="characters"
+					spellcheck="false"
+					placeholder="XXXX-XXXX-XXXX"
+					required />
+			</label>
+			{#if error}
+				<p class="text-sm text-red-400 pb-3">{error}</p>
+			{/if}
+			<button class="btn btn-primary w-full" disabled={!ready || busy}>
+				{busy ? "Checking..." : "Continue"}
+			</button>
+		</form>
+	{:else}
+		<h2>Make a new recovery phrase</h2>
+		<p class="pb-4">
+			For <b class="light-text">{username}</b>. Your old phrase stops
+			working once this one is saved.
+		</p>
+		<PhraseMaker action="Save and log in" {busy} {error} oncomplete={reset} />
+	{/if}
 </LoginShell>

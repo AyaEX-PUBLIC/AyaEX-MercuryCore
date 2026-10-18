@@ -1,8 +1,9 @@
 LET $u = CREATE ONLY user CONTENT {
+	authKey: $authKey,
 	bodyColours: $bodyColours,
 	email: $email,
-	hashedPassword: $hashedPassword,
 	permissionLevel: $permissionLevel,
+	phraseSet: time::now(),
 	username: $username,
 } RETURN VALUE id;
 # Return some user data

@@ -136,6 +136,24 @@ export async function handle(e) {
 	)
 		redirect(302, "/moderation")
 
+	// Accounts without a recovery phrase must make one (/migrate) before
+	// anything else, including playing. Signing out (/api) and the phrase
+	// API still work; APIs, remote functions and the Switch get an error.
+	if (
+		!user.hasPhrase &&
+		!pathname.startsWith("/migrate") &&
+		!["/api", "/api/auth", "/moderation"].includes(pathname) &&
+		!pathname.startsWith("/api/avatar") &&
+		!pathname.startsWith("/assets/") // the site's logo and icon
+	) {
+		if (pathname.startsWith("/api") || pathname.startsWith("/_app"))
+			return Response.json(
+				{ message: "Make your recovery phrase first, at /migrate" },
+				{ status: 403 }
+			)
+		redirect(302, "/migrate")
+	}
+
 	await stipend(e.event.fetch, user.id)
 
 	return await finish(e)

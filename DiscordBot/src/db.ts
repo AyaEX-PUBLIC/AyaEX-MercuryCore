@@ -37,7 +37,7 @@ export async function connect(config: DbConfig) {
 }
 
 // The account recorded as creator of the bot's keys (Mercury requires one, and
-// logs key creation against it). Its password is random and never stored, so
+// logs key creation against it). It has no recovery phrase or password, so
 // nobody can log into it.
 let creatorId: unknown
 async function creator() {
@@ -52,14 +52,12 @@ async function creator() {
 			bodyColours: $bodyColours,
 			description: [{ text: "Hands out registration keys from Discord." }],
 			email: "",
-			hashedPassword: $hash,
 			permissionLevel: 1,
 			username: $name,
 		} RETURN VALUE id);
 		RETURN $id;`,
 		{
 			bodyColours,
-			hash: Bun.password.hashSync(crypto.randomUUID() + crypto.randomUUID()),
 			name: CREATOR,
 		}
 	)

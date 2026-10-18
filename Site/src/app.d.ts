@@ -35,6 +35,8 @@ declare global {
 		email: string
 		lastOnline: Date
 		permissionLevel: number
+		/** Whether the account has a recovery phrase yet (lib/phrase.ts) */
+		hasPhrase: boolean
 		css: string
 		clientChannel?: import("$lib/clientChannels").ClientChannel
 		theme: number

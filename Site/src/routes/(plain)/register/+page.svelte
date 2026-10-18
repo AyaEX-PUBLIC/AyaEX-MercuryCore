@@ -1,14 +1,24 @@
 <script lang="ts">
-	import Form from "$components/forms/Form.svelte"
-	import Input from "$components/forms/Input.svelte"
+	import { onMount } from "svelte"
+	import { goto } from "$app/navigation"
 	import Head from "$components/Head.svelte"
-	import { superForm } from "$lib/validate"
+	import PhraseMaker from "$components/PhraseMaker.svelte"
+	import { answer, authApi } from "$lib/authClient"
 	import LoginShell from "../LoginShell.svelte"
 
 	const { data } = $props()
 
-	let formData = $derived(superForm(data.form))
-	export const snapshot = formData
+	type Errors = { username?: string; email?: string; regkey?: string }
+
+	// the forms below need JavaScript, so wait for it before allowing submits
+	let ready = $state(false)
+	onMount(() => (ready = true))
+
+	let details = $state({ username: "", email: "", regkey: "" })
+	let errors: Errors = $state({})
+	let step: "details" | "phrase" = $state("details")
+	let busy = $state(false)
+	let error = $state("")
 
 	const descriptions: [string, string][] = [
 		[
@@ -16,8 +26,8 @@
 			"Make sure it is appropriate and between 3-21 characters. Letters A-Z, numbers 0-9, and underscores are allowed."
 		],
 		[
-			"Secure password",
-			"Make sure your password is at least 16 characters long and may need a mix of letters, numbers, and symbols to defend against hackers."
+			"Recovery phrase",
+			"Instead of a password, you get 12 words to sign in with, like a crypto wallet. Write them down: they're the only way into your account."
 		]
 	]
 	if (data.emailsEnabled)
@@ -25,6 +35,42 @@
 			"Valid email",
 			`${data.siteName} requires a valid email so you can be contacted by administrators for critical account issues.`
 		])
+
+	async function check(e: SubmitEvent) {
+		e.preventDefault()
+		busy = true
+		error = ""
+		try {
+			const result = await authApi<{ errors?: Errors }>(
+				"checkRegistration",
+				details
+			)
+			errors = result.errors || {}
+			if (!result.errors) step = "phrase"
+		} catch (e) {
+			error = (e as Error).message
+		}
+		busy = false
+	}
+
+	async function create(phrase: string) {
+		busy = true
+		error = ""
+		try {
+			const result = await authApi<{ errors?: Errors }>("register", {
+				...details,
+				...(await answer(phrase, "register"))
+			})
+			if (result.errors) {
+				// e.g. someone took the username meanwhile
+				errors = result.errors
+				step = "details"
+			} else await goto("/home", { invalidateAll: true })
+		} catch (e) {
+			error = (e as Error).message
+		}
+		busy = false
+	}
 </script>
 
 <Head
@@ -32,104 +78,73 @@
 	title="Register"
 	description="Create a {data.siteName} account." />
 
+{#snippet field(
+	name: keyof Errors,
+	label: string,
+	placeholder: string,
+	autocomplete: import("svelte/elements").FullAutoFill = "off"
+)}
+	<label class="block pb-5">
+		<span class="block pb-2">{label}</span>
+		<input
+			bind:value={details[name]}
+			{placeholder}
+			{autocomplete}
+			class={{ "is-invalid": errors[name] }}
+			required />
+		{#if errors[name]}
+			<small class="block text-red-400 pt-1">{errors[name]}</small>
+		{/if}
+	</label>
+{/snippet}
 
 <LoginShell name={data.siteName} tagline={data.tagline} {descriptions}>
-	{#if data.users}
-		<h2>Create a free account</h2>
-		<p>
-			Already have an account?
-			<a href="/login">Log in</a>
-		</p>
+	{#if step === "details"}
+		{#if data.users}
+			<h2>Create a free account</h2>
+			<p>
+				Already have an account?
+				<a href="/login">Log in</a>
+			</p>
+		{:else}
+			<h2>Create the initial account</h2>
+			<p class="pt-2">
+				This will be the first user account on this Mercury Core
+				instance! It will automatically have the highest permission
+				level. After logging in, create registration keys in the Admin
+				panel to let more people join.
+			</p>
+		{/if}
 
-		<Form {formData} action="?/register" class="pt-6" submit="Register">
-			<Input
-				{formData}
-				column
-				autocomplete="username"
-				name="username"
-				label="Username"
-				placeholder="3-21 characters" />
-			{#if data.emailsEnabled}
-				<Input
-					{formData}
-					column
-					autocomplete="email"
-					name="email"
-					label="Email address"
-					type="email"
-					placeholder="{data.siteName}@{data.domain}" />
+		<form class="pt-6" onsubmit={check}>
+			{@render field("username", "Username", "3-21 characters", "username")}
+			{#if data.users && data.emailsEnabled}
+				{@render field("email", "Email address", `${data.siteName}@${data.domain}`, "email")}
 			{/if}
-			<Input
-				{formData}
-				column
-				autocomplete="new-password"
-				name="password"
-				label="Password"
-				type="password"
-				placeholder={"•".repeat(18)} />
-			<Input
-				{formData}
-				column
-				autocomplete="new-password"
-				name="cpassword"
-				label="Confirm password"
-				type="password"
-				placeholder={"•".repeat(18)} />
-			{#if data.regKeysEnabled}
-				<Input
-					{formData}
-					column
-					name="regkey"
-					label="Registration key"
-					placeholder="{data.prefix}r3g157r4ti0nk3yh3re1" />
+			{#if data.users && data.regKeysEnabled}
+				{@render field("regkey", "Registration key", `${data.prefix}r3g157r4ti0nk3yh3re1`)}
 			{/if}
-		</Form>
+			{#if error}
+				<p class="text-sm text-red-400 pb-3">{error}</p>
+			{/if}
+			<button class="btn btn-primary w-full" disabled={!ready || busy}>
+				{busy ? "Checking..." : "Continue"}
+			</button>
+		</form>
 	{:else}
-		<h2>Create the initial account</h2>
-
-		<p class="pt-2">
-			This will be the first user account on this Mercury Core instance!
+		<h2>Your recovery phrase</h2>
+		<p class="pb-4">
+			You'll sign in as <b class="light-text">{details.username}</b> with
+			these words instead of a password.
 		</p>
-		<p>
-			It will automatically have the highest permission level. It will not
-			have any other special properties like infinite currency or
-			whatever.
-		</p>
-		<p>
-			Pick the username and password carefully, and good luck on your
-			journey with Mercury Core!
-		</p>
-
-		<Form
-			{formData}
-			action="?/initialAccount"
-			class="pt-6"
-			submit="Let's begin!">
-			<Input
-				{formData}
-				column
-				name="username"
-				label="Username"
-				placeholder="3-21 characters" />
-			<Input
-				{formData}
-				column
-				name="password"
-				label="Password"
-				type="password"
-				placeholder={"•".repeat(18)} />
-			<Input
-				{formData}
-				column
-				name="cpassword"
-				label="Confirm Password"
-				type="password"
-				placeholder={"•".repeat(18)} />
-		</Form>
-		<p>
-			If you want to create more users, head to the Admin panel after
-			logging in to create some registration keys, then come back to this
-			page.
-		</p>
+		<PhraseMaker action="Create account" {busy} {error} oncomplete={create} />
+		<button
+			type="button"
+			class="btn btn-sm btn-tertiary mt-4"
+			disabled={busy}
+			onclick={() => (step = "details")}>
+			<fa fa-arrow-left></fa>
+			Change details
+		</button>
 	{/if}
 </LoginShell>
