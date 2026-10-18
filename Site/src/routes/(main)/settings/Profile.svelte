@@ -23,8 +23,6 @@
 		name="theme"
 		label="Theme" />
 
-	<hr class="grey-text pb-6" />
-
 	<Textarea
 		{formData}
 		name="description"

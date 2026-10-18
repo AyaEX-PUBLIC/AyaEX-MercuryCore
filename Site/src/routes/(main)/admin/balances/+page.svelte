@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
 	import User from "$components/User.svelte"
 	import permissionLevels from "$lib/permissionLevels"
@@ -27,33 +28,34 @@
 
 <Head name={data.siteName} title="User balances - Admin" />
 
-<div class="ctnr max-w-260 pb-12">
-	<h1>User balances &ndash; Admin</h1>
-	<a href="/admin" class="no-underline">
-		<fa fa-caret-left></fa>
-		Back to panel
-	</a>
-
-	<div class="grid sm:grid-cols-3 gap-4 py-6">
-		<div class="card bg-darker p-4">
-			<span class="grey-text text-sm">Users</span>
-			<b class="text-2xl">{data.users.length}</b>
-		</div>
-		<div class="card bg-darker p-4">
-			<span class="grey-text text-sm">Currency held by users</span>
-			<b class="text-2xl text-emerald-500">{data.currencySymbol}{money(total)}</b>
-		</div>
-		<div class="card bg-darker p-4">
-			<span class="grey-text text-sm">Average balance</span>
-			<b class="text-2xl">{data.currencySymbol}{money(Math.round(total / (data.users.length || 1)))}</b>
+<div class="ctnr pb-12">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Admin", "/admin"]]} final="User balances" />
+			<h1>User balances</h1>
 		</div>
 	</div>
 
+	<dl class="tiles grid sm:grid-cols-3 mb-6">
+		<div class="stat">
+			<dt class="eyebrow">Users</dt>
+			<dd>{data.users.length}</dd>
+		</div>
+		<div class="stat">
+			<dt class="eyebrow">Currency held by users</dt>
+			<dd class="text-emerald-400">{data.currencySymbol}{money(total)}</dd>
+		</div>
+		<div class="stat">
+			<dt class="eyebrow">Average balance</dt>
+			<dd>{data.currencySymbol}{money(Math.round(total / (data.users.length || 1)))}</dd>
+		</div>
+	</dl>
+
 	<div class="flex flex-wrap gap-2 pb-4 items-center">
-		<input bind:value={search} placeholder="Search users" class="grow min-w-0" />
+		<input bind:value={search} placeholder="Search users" class="grow min-w-0 w-auto!" />
 		<label class="flex items-center gap-2">
 			<span class="grey-text text-sm">Sort by</span>
-			<select bind:value={sort}>
+			<select bind:value={sort} class="w-auto">
 				<option value="balance">Balance</option>
 				<option value="username">Username</option>
 				<option value="created">Newest</option>
@@ -61,7 +63,8 @@
 		</label>
 	</div>
 
-	<table class="w-full">
+	<div class="panel overflow-x-auto">
+	<table class="w-full m-0">
 		<thead>
 			<tr class="text-left">
 				<th>User</th>
@@ -75,10 +78,10 @@
 				{@const [colour, , rank] = permissionLevels(user.permissionLevel)}
 				<tr>
 					<td class="py-1">
-						<User user={user} full thin size="2.5rem" bg="accent" />
+						<User user={user} full thin size="2rem" bg="accent" />
 					</td>
 					<td style="color: {colour}">{rank}</td>
-					<td class="text-right font-bold text-emerald-500 tnum">
+					<td class="text-right mono text-emerald-400">
 						{data.currencySymbol}{money(user.balance)}
 					</td>
 					<td class="text-right pl-4">
@@ -92,17 +95,21 @@
 			{/each}
 		</tbody>
 	</table>
+	</div>
 </div>
 
 <style>
-	tbody tr:nth-child(2n-1) {
-		background: var(--darker);
+	.stat {
+		padding: 1rem 1.25rem;
+		& dd {
+			margin: 0;
+			padding-top: 0.5rem;
+			font-family: var(--font-mono);
+			font-size: 1.5rem;
+			font-weight: 500;
+		}
 	}
-	.card {
-		display: flex;
-		flex-direction: column;
-	}
-	.tnum {
-		font-feature-settings: "tnum";
+	td {
+		vertical-align: middle;
 	}
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import Textarea from "$components/forms/Textarea.svelte"
@@ -17,12 +18,16 @@
 
 <Head name={data.siteName} title="Create a place" />
 
-<h1 class="text-center">Create a place</h1>
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Create", "/develop"]]} final="New place" />
+			<h1>Create a place</h1>
+			<p>Give it a name now. You can upload the place file and pictures in its settings afterwards.</p>
+		</div>
+	</div>
 
-<!-- submit={data.price > 0
-	? `Create (${data.currencySymbol}${c1}${c2 ? "." : ""}${c2})`
-	: "Create"} -->
-<Form {formData} nopad class="ctnr pt-12 max-w-200 light-text" submit="Create">
+<Form {formData} nopad submit="Create">
 	<Input
 		{formData}
 		name="name"
@@ -60,3 +65,4 @@
 		name="privateServer"
 		label="Private server" />
 </Form>
+</div>

@@ -1,10 +1,6 @@
 <script lang="ts">
-	import { untrack } from "svelte"
 	import AdminLink from "$components/AdminLink.svelte"
 	import Head from "$components/Head.svelte"
-	import SidebarShell from "$components/SidebarShell.svelte"
-	import Tab from "$components/Tab.svelte"
-	import TabData from "$components/TabData"
 	import permissionLevels from "$lib/permissionLevels"
 
 	const { data } = $props()
@@ -20,48 +16,39 @@
 		"fa-scale-balanced"
 	]
 
-	let panel: { [_: string]: [string, string, string][] } = $state({})
-	let tabNames: string[] = $state([])
-
-	function updPanel() {
-		panel = {
-			Moderation: [
-				["User moderation", "moderation", "fa-user-slash"],
-				["Abuse reports", "reports", "fa-flag"],
-				["Asset approval", "asset", "fa-file-circle-check"],
-				["Render queue", "renderqueue", "fa-file-image"]
+	let sections = $derived(
+		[
+			[
+				"Administration",
+				[
+					["Banners", "banners", "fa-bullhorn"],
+					["Accounts", "accounts", "fa-user"],
+					["Audit logs", "audit", "fa-book"],
+					["Registration keys", "regkeys", "fa-key"],
+					["Gameservers", "gameservers", "fa-server"],
+					["FFlags", "fflags", "fa-flag"]
+				]
 			],
-			Catalog: [["Asset creation", "create", "fa-file-circle-plus"]],
-			Economy: [
-				["Transactions", "transactions", "fa-money-bill-transfer"],
-				["User balances", "balances", "fa-coins"]
+			[
+				"Moderation",
+				[
+					["User moderation", "moderation", "fa-user-slash"],
+					["Abuse reports", "reports", "fa-flag"],
+					["Asset approval", "asset", "fa-file-circle-check"],
+					["Render queue", "renderqueue", "fa-file-image"]
+				]
+			],
+			["Catalog", [["Asset creation", "create", "fa-file-circle-plus"]]],
+			[
+				"Economy",
+				[
+					["Transactions", "transactions", "fa-money-bill-transfer"],
+					["User balances", "balances", "fa-coins"]
+				]
 			]
-		}
-		tabNames = ["Moderation", "Catalog", "Economy", "Statistics"]
-		if (user.permissionLevel !== 5) return
-		untrack(() => {
-			panel.Administration = [
-				["Banners", "banners", "fa-bullhorn"],
-				["Accounts", "accounts", "fa-user"],
-				["Audit logs", "audit", "fa-book"],
-				["Registration keys", "regkeys", "fa-key"],
-				["Gameservers", "gameservers", "fa-server"],
-				["FFlags", "fflags", "fa-flag"],
-			]
-			tabNames.unshift("Administration")
-		})
-	}
-	updPanel()
-	$effect(updPanel)
-
-	let tabData = $state(
-		TabData(data.url, tabNames, [
-			"fa-diamond-half-stroke",
-			"fa-stamp",
-			"fa-basket-shopping",
-			"fa-coins",
-			"fa-chart-mixed"
-		])
+		].filter(
+			([name]) => name !== "Administration" || user.permissionLevel === 5
+		) as [string, [string, string, string][]][]
 	)
 
 	let mbUsed = $derived((totalmem - freemem) / 1e3 ** 2)
@@ -72,105 +59,66 @@
 
 <Head name={data.siteName} title="Admin" />
 
-<div class="ctnr 2xl:p-0 max-w-340">
-	<h1>Admin Panel</h1>
-	<h2 class="text-xl pb-4">
-		Your permission level is <span style="color: {perms[0]}">
-			<fa class="{perms[1]} px-1"></fa>
-			{perms[2]}
-		</span>
-	</h2>
-	<hr />
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Staff</div>
+			<h1>Admin panel</h1>
+			<p>
+				Your permission level is
+				<span class="badge" style="color: {perms[0]}">
+					<fa class={perms[1]}></fa>
+					{perms[2]}
+				</span>
+			</p>
+		</div>
+		<div class="panel memory">
+			<div class="flex justify-between gap-6 text-sm">
+				<span class="eyebrow">Server memory</span>
+				<span class="mono">{gbUsed.toFixed(2)} / {gbTotal.toFixed(2)} GB</span>
+			</div>
+			<div class="bar">
+				<div
+					role="progressbar"
+					aria-label="Memory used"
+					aria-valuenow={totalmem - freemem}
+					aria-valuemin={0}
+					aria-valuemax={totalmem}
+					style="width: {((totalmem - freemem) / totalmem) * 100}%">
+				</div>
+			</div>
+			<span class="grey-text text-xs">{Math.round(mbUsed)} MB in use</span>
+		</div>
+	</div>
+
+	{#each sections as [name, links]}
+		<h2 class="text-base pb-3">{name}</h2>
+		<div class="tiles grid sm:grid-cols-2 lg:grid-cols-4 mb-10">
+			{#each links as [title, href, icon], num}
+				<AdminLink
+					href="/admin/{href}"
+					iconClass={icon}
+					{num}
+					total={links.length}
+					name={title} />
+			{/each}
+		</div>
+	{/each}
 </div>
 
-<SidebarShell bind:tabData space class="max-w-340">
-	{#each tabNames.slice(0, -1) as key}
-		<Tab bind:tabData class="grid lg:grid-cols-4 gap-4">
-			{#each panel[key] as i, num}
-				<AdminLink
-					href="/admin/{i[1]}"
-					iconClass={i[2]}
-					{num}
-					total={panel[key].length}
-					name={i[0]} />
-			{/each}
-		</Tab>
-	{/each}
-
-	<Tab bind:tabData>
-		<div class="grid lg:grid-cols-[7fr_5fr] gap-4">
-			<div class="flex flex-col gap-4">
-				<div class="card bg-a p-4">
-					<h3>
-						<fa fa-memory></fa>
-						{gbUsed.toFixed(2)} / {gbTotal.toFixed(2)} GB
-					</h3>
-					<span class="pb-2">
-						{Math.round(mbUsed)} MB is being used
-					</span>
-					<div class="flex rounded-2 bg-darker h-4">
-						<div
-							class="bg-emerald-600 rounded-2"
-							role="progressbar"
-							aria-valuenow={totalmem - freemem}
-							aria-valuemin={0}
-							aria-valuemax={totalmem}
-							style="width: {((totalmem - freemem) / totalmem) *
-								100}%;">
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="flex flex-col gap-4">
-				<div class="card bg-a p-4">
-					<h3>
-						<fa fa-user class="pr-2"></fa>
-						Users
-					</h3>
-					<span>
-						<b class="accent-text">0 users</b>
-						are currently online
-					</span>
-				</div>
-				<div class="card bg-a p-4">
-					<h3>
-						<fa fa-file class="pr-2"></fa>
-						Assets
-					</h3>
-					<div>
-						<fa fa-file-circle-minus class="text-yellow-500 pr-2">
-						</fa>
-						<b>0 assets</b>
-						are currently pending
-					</div>
-					<div>
-						<fa fa-file-circle-check class="text-emerald-600 pr-2">
-						</fa>
-						<b>0 assets</b>
-						have been approved
-					</div>
-					<div>
-						<fa fa-file-circle-xmark class="text-red-500 pr-2"></fa>
-						<b>0 assets</b>
-						have been denied
-					</div>
-					<div>
-						<fa fa-folder-closed class="text-cyan-500 pr-2"></fa>
-						<b>0 assets</b>
-						in total
-					</div>
-				</div>
-			</div>
-		</div>
-	</Tab>
-</SidebarShell>
-
 <style>
-	h2 {
-		border-color: var(--accent3) !important;
+	.memory {
+		gap: 0.5rem;
+		width: min(100%, 20rem);
+		padding: 0.875rem 1rem;
 	}
 
-	.card {
-		border: 1px solid var(--accent2);
+	.bar {
+		height: 4px;
+		background: var(--accent2);
+		& div {
+			height: 100%;
+			background: var(--success);
+		}
 	}
 </style>

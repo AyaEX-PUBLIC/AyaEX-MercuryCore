@@ -1,63 +1,60 @@
 <script lang="ts">
 	import AdminLink from "$components/AdminLink.svelte"
 	import Head from "$components/Head.svelte"
-	import SidebarShell from "$components/SidebarShell.svelte"
-	import Tab from "$components/Tab.svelte"
-	import TabData from "$components/TabData"
 
 	const { data } = $props()
 
 	const assetTypes = Object.freeze([
-		["Shirts", "🧥", "Shirt"],
-		["T-Shirts", "👕", "T-Shirt"],
-		["Pants", "👖", "Pants"],
-		["Decals", "🖼️", "Decal"],
-		["Faces", "😏", "Face"]
+		["Shirts", "🧥", "Shirt", "Upload a shirt template to wear on the torso and arms."],
+		["T-Shirts", "👕", "T-Shirt", "Turn any picture into a T-shirt."],
+		["Pants", "👖", "Pants", "Upload a pants template for the legs."],
+		["Decals", "🖼️", "Decal", "Images to put on parts in your places."],
+		["Faces", "😏", "Face", "Draw a new face for your character."]
 	])
-
-	let tabData = $state(TabData(data.url, ["Create" /*, "Creations" */]))
-	// let tabData2 = $state(
-	// 	TabData(data.url, ["Shirts", "T-Shirts", "Pants", "Decals"])
-	// )
 </script>
 
 <Head name={data.siteName} title="Create" />
 
-<h1 class="text-center pb-4">Create</h1>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Create</div>
+			<h1>Create</h1>
+			<p>Build places for everyone to play, and make items to sell in the catalog.</p>
+		</div>
+	</div>
 
-<SidebarShell bind:tabData space>
-	<Tab bind:tabData class="grid lg:grid-cols-4 gap-4">
-		{#each assetTypes as asset, num}
+	<h2 class="text-base pb-3">Places</h2>
+	<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3 mb-12">
+		<AdminLink
+			href="/games/create"
+			iconClass="fa-mountain-sun"
+			num={0}
+			total={2}
+			name="New place">
+			Start a new place, then upload a place file in its settings.
+		</AdminLink>
+		<AdminLink
+			href="/user/{data.user.username}"
+			iconClass="fa-folder-closed"
+			num={1}
+			total={2}
+			name="Your places">
+			Your games are listed on your profile.
+		</AdminLink>
+	</div>
+
+	<h2 class="text-base pb-3">Catalog items</h2>
+	<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+		{#each assetTypes as [name, emoji, type, description], num}
 			<AdminLink
-				href="/develop/create?asset={asset[2]}"
-				emoji={asset[1]}
+				href="/develop/create?asset={type}"
+				{emoji}
 				{num}
 				total={assetTypes.length}
-				name={asset[0]} />
+				{name}>
+				{description}
+			</AdminLink>
 		{/each}
-	</Tab>
-
-	<!-- <Tab bind:tabData>
-		<TabNav bind:tabData={tabData2} justify />
-		<form
-			onsubmit={e => e.preventDefault()}
-			action="/character?tab={tabData.currentTab}"
-			class="pb-4">
-			<input type="hidden" name="tab" value={tabData.currentTab} />
-			<div class="input-group">
-				<input
-					type="text"
-					name="q"
-					placeholder="Search for an item"
-					aria-label="Search for an item"
-					aria-describedby="button-addon2" />
-				<button
-					class="btn btn-secondary"
-					aria-label="Search"
-					id="button-addon2">
-					<fa fa-search></fa>
-				</button>
-			</div>
-		</form>
-	</Tab> -->
-</SidebarShell>
+	</div>
+</div>

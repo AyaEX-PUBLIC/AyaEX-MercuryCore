@@ -2,6 +2,7 @@
 	import { enhance } from "$app/forms"
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import Tab from "$components/Tab.svelte"
@@ -29,15 +30,16 @@
 
 <Head name={data.siteName} title="Registration keys - Admin" />
 
-<div class="ctnr max-w-280 pb-6">
-	<h1>Registration keys &ndash; Admin</h1>
-	<a href="/admin" class="no-underline">
-		<fa fa-caret-left></fa>
-		Back to panel
-	</a>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Admin", "/admin"]]} final="Registration keys" />
+			<h1>Registration keys</h1>
+		</div>
+	</div>
 </div>
 
-<SidebarShell bind:tabData class="max-w-280">
+<SidebarShell bind:tabData>
 	<Tab bind:tabData>
 		<Form {formData} action="?/create" submit="Create">
 			<Input

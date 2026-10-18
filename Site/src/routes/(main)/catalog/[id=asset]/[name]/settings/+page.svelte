@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { get } from "svelte/store"
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import Textarea from "$components/forms/Textarea.svelte"
@@ -19,12 +20,20 @@
 
 <Head name={data.siteName} title="{data.name} Settings" />
 
-<div class="ctnr max-w-180 light-text">
-	<div class="pb-4">
-		<h1>Configure {data.name}</h1>
-		<a href="/catalog/{data.id}/{data.slug}" class="no-underline">
-			<fa fa-caret-left></fa>
-			Back to asset
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs
+				path={[
+					["Catalog", "/catalog"],
+					[data.name, `/catalog/${data.id}/${data.slug}`]
+				]}
+				final="Settings" />
+			<h1>Configure {data.name}</h1>
+		</div>
+		<a href="/catalog/{data.id}/{data.slug}" class="btn btn-tertiary">
+			<fa fa-arrow-left></fa>
+			Back to item
 		</a>
 	</div>
 

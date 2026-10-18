@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from "$app/forms"
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
 	import Transaction from "$components/Transaction.svelte"
 	import User from "$components/User.svelte"
@@ -84,15 +85,21 @@
 
 <Head name={data.siteName} title="{me}'s currency - Admin" />
 
-<div class="ctnr max-w-300 pb-12">
-	<h1>Currency &ndash; Admin</h1>
-	<a href="/admin/balances" class="no-underline">
-		<fa fa-caret-left></fa>
-		All balances
-	</a>
+<div class="ctnr pb-12">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs
+				path={[
+					["Admin", "/admin"],
+					["User balances", "/admin/balances"]
+				]}
+				final={me} />
+			<h1>{me}'s currency</h1>
+		</div>
+	</div>
 
-	<div class="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-4 pt-6">
-		<div class="card bg-darker p-4 flex flex-col gap-3">
+	<div class="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-6">
+		<div class="panel p-4 flex flex-col gap-3">
 			<div class="flex items-center gap-3">
 				<User user={data.target} full thin size="3rem" bg="accent" />
 				<span style="color: {rankColour}">{rank}</span>
@@ -130,7 +137,7 @@
 		<form
 			method="post"
 			action="?/adjust"
-			class="card bg-darker p-4 flex flex-col gap-3"
+			class="panel p-4 flex flex-col gap-3"
 			use:enhance={() => {
 				busy = true
 				return async ({ update, result }) => {
@@ -276,9 +283,6 @@
 </div>
 
 <style>
-	tbody tr:nth-child(2n-1) {
-		background: var(--darker);
-	}
 	td {
 		padding-right: 0.75rem;
 	}

@@ -9,22 +9,25 @@
 	const icon = (id: number, name: string) => `/catalog/${id}/${encode(name) || "item"}/icon`
 
 	type Kind = "pass" | "product" | "badge"
-	const sections: { kind: Kind; title: string; help: string; action: string }[] = [
+	const sections: { kind: Kind; title: string; one: string; help: string; action: string }[] = [
 		{
 			kind: "pass",
 			title: "Game passes",
+			one: "game pass",
 			help: "Bought once, kept forever. In scripts: MarketplaceService:PromptGamePassPurchase(player, id) and GamePassService:PlayerHasPass(player, id). Players can also buy them on the place page.",
 			action: "createpass",
 		},
 		{
 			kind: "product",
 			title: "Developer products",
+			one: "developer product",
 			help: "Bought any number of times in game, e.g. currency or boosts. In scripts: MarketplaceService:PromptProductPurchase(player, id), and grant the purchase in MarketplaceService.ProcessReceipt.",
 			action: "createproduct",
 		},
 		{
 			kind: "badge",
 			title: "Badges",
+			one: "badge",
 			help: "Awarded by your game's server: BadgeService:AwardBadge(player.userId, id). Check with BadgeService:UserHasBadge(player.userId, id). Badges show on the place page and players' profiles.",
 			action: "createbadge",
 		},
@@ -35,12 +38,12 @@
 </script>
 
 {#if message}
-	<p class="pb-4 text-yellow-500">{message}</p>
+	<p class="alert mb-4">{message}</p>
 {/if}
 
 {#each sections as section}
-	<h3 class="text-lg pt-4">{section.title}</h3>
-	<p class="grey-text pb-4 text-sm">{section.help}</p>
+	<h3 class="text-base pt-6 mt-2 line-t first:border-0 first:mt-0 first:pt-2">{section.title}</h3>
+	<p class="grey-text pt-1 pb-4 text-sm">{section.help}</p>
 
 	{#if items(section.kind).length}
 		<table class="w-full mb-4 text-sm">
@@ -60,7 +63,7 @@
 					<tr>
 						{#if section.kind !== "product"}
 							<td class="py-1 pr-2">
-								<img src={icon(item.id, item.name)} alt="" class="size-10 rounded-2" />
+								<img src={icon(item.id, item.name)} alt="" class="size-10 bg-darker" />
 							</td>
 						{/if}
 						<td class="pr-2">{item.name}</td>
@@ -109,8 +112,8 @@
 		action="?/{section.action}&tab=Store"
 		enctype="multipart/form-data"
 		use:enhance
-		class="card bg-darker p-4 mb-8 flex flex-col gap-2">
-		<b>New {section.title.toLowerCase().replace(/s$/, "")}</b>
+		class="panel bg-darker p-4 mb-6 flex flex-col gap-3">
+		<b>New {section.one}</b>
 		<input name="name" placeholder="Name" minlength="3" maxlength="50" required />
 		<textarea name="description" placeholder="Description (optional)" maxlength="1000" rows="2"></textarea>
 		{#if section.kind !== "badge"}

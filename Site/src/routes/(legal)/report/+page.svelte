@@ -14,12 +14,14 @@
 
 <Head name={data.siteName} title="Report {data.reportee}" />
 
-<h1 class="text-center">Report</h1>
-
-<div class="ctnr pt-12 max-w-180 light-text">
-	<h2 class="text-xl pb-6">
-		Tell us how you think {data.reportee} is breaking the rules.
-	</h2>
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">Report</div>
+			<h1>Report {data.reportee}</h1>
+			<p>Tell us how you think {data.reportee} is breaking the rules.</p>
+		</div>
+	</div>
 
 	<Form {formData}>
 		<Select

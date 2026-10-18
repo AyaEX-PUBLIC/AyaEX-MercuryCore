@@ -4,21 +4,16 @@
 	let { user } = $derived(data)
 </script>
 
-<div class="form-group flex flex-wrap">
-	<label for="name" class="w-full md:w-1/3">Username</label>
-	<div class="w-full md:w-2/3">
-		<input type="text" readonly id="name" disabled value={user?.username} />
-		<small class="formhelp">You cannot change your username.</small>
-	</div>
+<div class="pb-6">
+	<label for="name" class="block pb-2">Username</label>
+	<input type="text" readonly id="name" disabled value={user?.username} />
+	<small class="formhelp">You cannot change your username.</small>
 </div>
 
 {#if user.email}
-	<hr class="grey-text" />
-	<div class="form-group flex flex-wrap pb-6">
-		<label for="name" class="w-full md:w-1/3">Email Address</label>
-		<div class="w-full md:w-2/3">
-			<input type="text" readonly id="email" value={user.email} />
-		</div>
+	<div class="pb-2">
+		<label for="email" class="block pb-2">Email address</label>
+		<input type="text" readonly id="email" value={user.email} />
 	</div>
 {/if}
 

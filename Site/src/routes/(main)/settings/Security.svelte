@@ -9,7 +9,7 @@
 	let formDataSession = $derived(superForm(data.sessionForm))
 </script>
 
-<h3 class="text-base pb-4 pt-2">Change password</h3>
+<h3 class="text-base pb-4">Change password</h3>
 
 <Form
 	formData={formDataPassword}
@@ -48,10 +48,10 @@
 		autocomplete="new-password" />
 </Form>
 
-<h3 class="text-base pt-6">Sessions</h3>
+<h3 class="text-base pt-6 mt-6 line-t">Sessions</h3>
 
-<p class="grey-text pb-6">
-	Invalidate all of your account sessions. <span class="text-red-500">
+<p class="grey-text text-sm pt-2 pb-5">
+	Invalidate all of your account sessions. <span class="text-red-400">
 		This logs you out of {data.siteName} on all browsers and devices.
 	</span>
 	Use in the event of a security breach.

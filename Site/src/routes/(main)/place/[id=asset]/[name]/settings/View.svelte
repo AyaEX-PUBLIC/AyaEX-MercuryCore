@@ -36,8 +36,6 @@
 		accept="image/*"
 		help="Shown on the place page, cropped to 16:9 (1280×720)." />
 
-	<hr class="grey-text pb-6" />
-
 	<Textarea
 		{formData}
 		name="description"

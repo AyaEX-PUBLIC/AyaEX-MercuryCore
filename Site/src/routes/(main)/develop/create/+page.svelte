@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Form from "$components/forms/Form.svelte"
 	import Input from "$components/forms/Input.svelte"
 	import Select from "$components/forms/Select.svelte"
@@ -24,43 +25,44 @@
 
 <Head name={data.siteName} title="Develop - Create" />
 
-<div class="text-center">
-	<h1>Develop &ndash; Create</h1>
-	<a href="/develop" class="no-underline accent-text">
-		<fa fa-caret-left></fa>
-		Back to Develop
-	</a>
-</div>
+<div class="ctnr max-w-180">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Create", "/develop"]]} final="New item" />
+			<h1>Create an item</h1>
+			<p>Upload your design. Items are reviewed before they appear in the catalog.</p>
+		</div>
+	</div>
 
-<Form
-	{formData}
-	nopad
-	enctype="multipart/form-data"
-	submit="Create{user.permissionLevel < 3 ? currency : ''}"
-	class="ctnr pt-8 max-w-200 light-text">
-	<Select
+	<Form
 		{formData}
-		options={assetTypes}
-		selected={data.assetType}
-		name="type"
-		label="Asset type" />
-	<Input
-		{formData}
-		name="name"
-		label="Asset name"
-		placeholder="Make sure to make it accurate" />
-	<Textarea
-		{formData}
-		name="description"
-		label="Asset description"
-		placeholder="Up to 1000 characters" />
-	<Input {formData} name="price" label="Asset price" type="number" />
-	{#if data.assetType !== "Hat"}
+		nopad
+		enctype="multipart/form-data"
+		submit="Create{user.permissionLevel < 3 ? currency : ''}">
+		<Select
+			{formData}
+			options={assetTypes}
+			selected={data.assetType}
+			name="type"
+			label="Asset type" />
 		<Input
 			{formData}
-			type="file"
-			name="asset"
-			label="Asset"
-			help="Max image size: 20MB. Supports most popular image formats." />
-	{/if}
-</Form>
+			name="name"
+			label="Asset name"
+			placeholder="Make sure to make it accurate" />
+		<Textarea
+			{formData}
+			name="description"
+			label="Asset description"
+			placeholder="Up to 1000 characters" />
+		<Input {formData} name="price" label="Asset price" type="number" />
+		{#if data.assetType !== "Hat"}
+			<Input
+				{formData}
+				type="file"
+				name="asset"
+				label="Asset"
+				help="Max image size: 20MB. Supports most popular image formats." />
+		{/if}
+	</Form>
+</div>

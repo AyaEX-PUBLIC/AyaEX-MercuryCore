@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import TabData from "$components/TabData"
@@ -13,25 +14,26 @@
 
 <Head name={data.siteName} title="Asset approval - Admin" />
 
-<div class="flex px-4 pb-6">
-	<div class="<lg:hidden w-75"></div>
-	<div class="flex w-full justify-center">
-		<div class="w-full max-w-240 <md:px-4">
-			<h1>Asset approval &ndash; Admin</h1>
-			<a href="/admin" class="no-underline">
-				<fa fa-caret-left></fa>
-				Back to panel
-			</a>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Admin", "/admin"]]} final="Asset approval" />
+			<h1>Asset approval</h1>
 		</div>
-		<div class="<lg:hidden shrink-9999 w-75"></div>
 	</div>
 </div>
 
-	<SidebarShell
-		bind:tabData
-		space
-		class="grid gap-4 grid-cols-2 xl:grid-cols-6 lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-4">
-		{#each data.assets || [] as asset, num}
-			<AssetApprove {asset} {num} total={(data.assets || []).length} />
-		{/each}
-	</SidebarShell>
+<SidebarShell bind:tabData>
+	{#if data.assets?.length}
+		<div class="tiles grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+			{#each data.assets || [] as asset, num}
+				<AssetApprove {asset} {num} total={(data.assets || []).length} />
+			{/each}
+		</div>
+	{:else}
+		<div class="empty">
+			<b>Nothing to review</b>
+			<p>New assets waiting for approval show up here.</p>
+		</div>
+	{/if}
+</SidebarShell>

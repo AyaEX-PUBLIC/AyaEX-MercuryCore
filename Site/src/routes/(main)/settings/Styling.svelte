@@ -24,7 +24,8 @@
 
 	<span class="pr-2">
 		<button
-			class="btn btn-secondary"
+			type="button"
+			class="btn btn-tertiary"
 			onclick={e => {
 				e.preventDefault()
 				if (!$form.css) return

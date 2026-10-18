@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import Tab from "$components/Tab.svelte"
@@ -20,22 +21,27 @@
 
 <Head name={data.siteName} title="Render queue - Admin" />
 
-<div class="ctnr max-w-280 pb-6">
-	<h1>Render queue &ndash; Admin</h1>
-	<a href="/admin" class="no-underline">
-		<fa fa-caret-left></fa>
-		Back to panel
-	</a>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Admin", "/admin"]]} final="Render queue" />
+			<h1>Render queue</h1>
+		</div>
+	</div>
 </div>
 
-<SidebarShell bind:tabData class="max-w-280">
+<SidebarShell bind:tabData>
 	<Tab bind:tabData>
-		<div class="<lg:flex flex-col lg:grid grid-cols-2 gap-4">
-			<div class="card light-text p-4">
-				<h2 class="text-xl mb-0">Render Server</h2>
-				<small class="pb-3">
-					is <b class="text-emerald-600">active</b>
-				</small>
+		<div class="grid lg:grid-cols-2 gap-6 items-start">
+			<div class="panel">
+				<div class="panel-head">
+					<span>Render server</span>
+					<span class="badge badge-success">
+						<span class="dot on"></span>
+						Active
+					</span>
+				</div>
+				<div class="p-4 flex flex-col gap-1.5 text-sm">
 
 				<div>
 					<fa fa-image class="text-emerald-600 pr-1"></fa>
@@ -52,11 +58,13 @@
 					<b>0 renders</b>
 					Failed
 				</div>
+				</div>
 			</div>
-			<div class="card light-text p-4">
-				<h2 class="text-xl">Currently Rendering</h2>
+			<div class="panel">
+				<div class="panel-head">Currently rendering</div>
 				{#if current}
-					<table class="p-5 w-full bg-background rounded-2">
+					<div class="overflow-x-auto">
+					<table class="w-full m-0">
 						<thead>
 							<tr>
 								<th scope="col">Task ID</th>
@@ -80,14 +88,16 @@
 							</tr>
 						</tbody>
 					</table>
+					</div>
 				{:else}
-					<p>No renders currently in progress.</p>
+					<p class="grey-text text-sm p-4">No renders currently in progress.</p>
 				{/if}
 			</div>
 		</div>
 	</Tab>
 	<Tab bind:tabData>
-		<table id="rendertable" class="w-full light-text">
+		<div class="panel overflow-x-auto">
+		<table id="rendertable" class="w-full m-0">
 			<thead>
 				<tr>
 					<th scope="col">Task id</th>
@@ -125,21 +135,13 @@
 				{/each}
 			</tbody>
 		</table>
+		</div>
 	</Tab>
 </SidebarShell>
 
 <style>
-	/* Change colour of every second row */
-	#rendertable {
-		& tbody tr:nth-child(2n-1) {
-			background: var(--darker);
-		}
-		& td {
-			height: 3rem;
-		}
-	}
-
-	.card {
-		border: 1px solid var(--accent2);
+	#rendertable td {
+		height: 3rem;
+		vertical-align: middle;
 	}
 </style>

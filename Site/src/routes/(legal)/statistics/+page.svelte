@@ -16,64 +16,47 @@
 
 <Head name={data.siteName} title="Statistics" />
 
-<h1 class="text-center">Statistics</h1>
+<div class="ctnr max-w-240">
+	<div class="page-head">
+		<div>
+			<div class="eyebrow">{data.siteName}</div>
+			<h1>Statistics</h1>
+			<p>How big {data.siteName} has grown so far.</p>
+		</div>
+	</div>
 
-<div class="ctnr pt-8 max-w-200 text-xl text-white">
-	<h2 class="pb-2">Total number of:</h2>
-	<table>
-		<tbody>
-			<tr>
-				<td>Users</td>
-				<td>{users}</td>
-			</tr>
-			<tr>
-				<td>Places</td>
-				<td>{places}</td>
-			</tr>
-			<tr>
-				<td>Groups</td>
-				<td>{groups}</td>
-			</tr>
-			<tr>
-				<td>Assets</td>
-				<td>{assets}</td>
-			</tr>
-			<tr>
-				<td>Friendships</td>
-				<td>{friendships}</td>
-			</tr>
-			<tr>
-				<td>Followerships</td>
-				<td>{followerships}</td>
-			</tr>
-			<tr>
-				<td>Comments</td>
-				<td>{comments}</td>
-			</tr>
-		</tbody>
-	</table>
-	<br />
-	<h2 class="pb-2">Average number of:</h2>
-	<table>
-		<tbody>
-			<tr>
-				<td>Friends per user</td>
-				<td>{(friendships / users).toFixed(2)}</td>
-			</tr>
-			<tr>
-				<td>Followers per user</td>
-				<td>{(followerships / users).toFixed(2)}</td>
-			</tr>
-		</tbody>
-	</table>
+	<h2 class="text-base pb-3">Totals</h2>
+	<dl class="tiles grid grid-cols-2 md:grid-cols-4 mb-10">
+		{#each [["Users", users], ["Places", places], ["Groups", groups], ["Assets", assets], ["Friendships", friendships], ["Followerships", followerships], ["Comments", comments]] as [name, value]}
+			<div class="stat">
+				<dt class="eyebrow">{name}</dt>
+				<dd>{value}</dd>
+			</div>
+		{/each}
+	</dl>
+
+	<h2 class="text-base pb-3">Averages</h2>
+	<dl class="tiles grid grid-cols-2 md:grid-cols-4">
+		<div class="stat">
+			<dt class="eyebrow">Friends per user</dt>
+			<dd>{(friendships / users).toFixed(2)}</dd>
+		</div>
+		<div class="stat">
+			<dt class="eyebrow">Followers per user</dt>
+			<dd>{(followerships / users).toFixed(2)}</dd>
+		</div>
+	</dl>
 </div>
 
 <style>
-	td {
-		padding: 0;
-		&:nth-child(2) {
-			text-align: right;
-			padding-left: 2rem;
+	.stat {
+		padding: 1rem 1.25rem;
+		& dd {
+			margin: 0;
+			padding-top: 0.5rem;
+			font-family: var(--font-mono);
+			font-size: 1.75rem;
+			font-weight: 500;
 		}
 	}
 </style>

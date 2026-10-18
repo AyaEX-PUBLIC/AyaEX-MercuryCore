@@ -14,28 +14,28 @@
 	} = $props()
 </script>
 
-<div in:fade|global={{ num, total }} class="card">
-	<div id="open" class="light-text p-3">
+<div in:fade|global={{ num, total }} class="flex flex-col">
+	<div class="p-3 flex flex-col gap-2">
 		<button
-			class="text-center bg-transparent duration-300 border-0 cursor-pointer pb-2 rounded-1"
-			popovertarget="modal{asset.id}">
+			class="preview"
+			popovertarget="modal{asset.id}"
+			aria-label="Inspect {asset.name}">
 			<img
 				src="/catalog/{asset.id}/{asset.name}/icon"
-				alt={asset.name}
-				class="w-85%" />
+				alt={asset.name} />
 		</button>
-		{asset.name}
-		<span class="flex">
-			<strong class="pr-2">by</strong>
+		<span class="text-sm font-500">{asset.name}</span>
+		<span class="flex items-center gap-2 text-xs grey-text">
+			by
 			<User
 				user={asset.creator}
-				size="1.5rem"
+				size="1.25rem"
 				thin
 				full
-				bg="background" />
+				bg="accent" />
 		</span>
 	</div>
-	<div class="flex flex-col gap-1 p-3">
+	<div class="flex flex-col gap-1.5 p-3 pt-0 mt-auto">
 		<form
 			use:enhance
 			method="post"
@@ -53,7 +53,7 @@
 
 <div
 	id="modal{asset.id}"
-	class="light-text p-4 text-center w-100"
+	class="text-center w-100"
 	popover="auto">
 	<h2 class="text-base">Asset {asset.name}</h2>
 	{#if asset.imageAsset}
@@ -85,7 +85,7 @@
 	{/if}
 </div>
 
-<div id="purge{asset.id}" class="light-text p-4 max-w-120" popover="auto">
+<div id="purge{asset.id}" class="max-w-120" popover="auto">
 	<h2 class="text-base">Purge {asset.name}</h2>
 
 	<p>Are you sure you want to purge this asset?</p>
@@ -102,12 +102,12 @@
 			use:enhance
 			method="post"
 			action="/admin/asset?/purge&id={asset.id}">
-			<button class="btn btn-danger bg-red-900 border-red-900">
+			<button class="btn btn-danger">
 				Yes, do as I say!
 			</button>
 		</form>
 		<button
-			class="btn btn-dark"
+			class="btn btn-tertiary"
 			popovertarget="purge{asset.id}"
 			popovertargetaction="hide">
 			Misinput MISINPUT
@@ -116,10 +116,18 @@
 </div>
 
 <style>
-	.card {
-		border: 1px solid var(--accent2);
-		button:hover {
-			background: var(--darker);
+	.preview {
+		display: grid;
+		place-items: center;
+		aspect-ratio: 1;
+		padding: 10%;
+		background: var(--darker);
+		border: 0;
+		cursor: zoom-in;
+		& img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
 		}
 	}
 

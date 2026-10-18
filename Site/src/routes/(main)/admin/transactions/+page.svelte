@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import TabData from "$components/TabData"
@@ -14,15 +15,16 @@
 
 <Head name={data.siteName} title="Transactions - Admin" />
 
-<div class="ctnr pb-6">
-	<h1>Transactions &ndash; Admin</h1>
-	<a href="/admin" class="no-underline">
-		<fa fa-caret-left></fa>
-		Back to panel
-	</a>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs path={[["Admin", "/admin"]]} final="Transactions" />
+			<h1>Transactions</h1>
+		</div>
+	</div>
 </div>
 
-<SidebarShell bind:tabData class="max-w-300">
+<SidebarShell bind:tabData>
 	<table class="w-full">
 		<thead>
 			<tr>
@@ -55,7 +57,4 @@
 
 <style>
 	/* Change colour of every second row */
-	tbody tr:nth-child(2n-1) {
-		background: var(--darker);
-	}
 </style>

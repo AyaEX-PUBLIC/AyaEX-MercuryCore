@@ -1,9 +1,9 @@
 <script lang="ts">
-	import "./settings.css"
+	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
+	import SidebarShell from "$components/SidebarShell.svelte"
 	import Tab from "$components/Tab.svelte"
 	import TabData from "$components/TabData"
-	import TabNav from "$components/TabNav.svelte"
 	import DataForm from "./Data.svelte"
 	import NetworkForm from "./Network.svelte"
 	import PrivacyForm from "./Privacy.svelte"
@@ -28,61 +28,92 @@
 <!--
 	Pretty chuffed with this way of organising forms, makes it way easier to have multiple forms on a page without them messing each other up.
  -->
-<div class="ctnr max-w-220 light-text">
-	<div class="pb-4">
-		<h1>Configure {data.name}</h1>
-		<a href="/place/{data.id}/{data.slug}" class="no-underline">
-			<fa fa-caret-left></fa>
+<div class="ctnr">
+	<div class="page-head">
+		<div>
+			<Breadcrumbs
+				path={[
+					["Games", "/games"],
+					[data.name, `/place/${data.id}/${data.slug}`]
+				]}
+				final="Settings" />
+			<h1>Configure {data.name}</h1>
+		</div>
+		<a href="/place/{data.id}/{data.slug}" class="btn btn-tertiary">
+			<fa fa-arrow-left></fa>
 			Back to place
 		</a>
 	</div>
-
-	<TabNav bind:tabData />
-	<Tab bind:tabData>
-		<h2 class="text-xl">Server view</h2>
-		<p class="grey-text pb-6">
-			Change the title and description of your server.
-		</p>
-		<ViewForm {data} />
-	</Tab>
-
-	<Tab bind:tabData>
-		<h2 class="text-xl">Network</h2>
-		<p class="grey-text pb-6">
-			Change the network configurations of your server.
-		</p>
-		<TicketForm {data} />
-		{#key data.serverTicket}
-			<NetworkForm {data} />
-		{/key}
-	</Tab>
-
-	<Tab bind:tabData>
-		<h2 class="text-xl">Privacy</h2>
-		<p class="grey-text pb-6">
-			Enable private server to make your game only accessible to those
-			with the link.
-		</p>
-		<PrivatelinkForm {data} />
-		{#key data.privateTicket}
-			<PrivacyForm {data} />
-		{/key}
-	</Tab>
-
-	<Tab bind:tabData>
-		<h2 class="text-xl">Data</h2>
-		<p class="grey-text pb-6">
-			Configure place data saved to {data.siteName}.
-		</p>
-		<DataForm {data} />
-	</Tab>
-
-	<Tab bind:tabData>
-		<h2 class="text-xl">Store</h2>
-		<p class="grey-text pb-6">
-			Sell game passes and developer products, and create badges for your
-			game. Sales are paid to you in {data.siteName} currency.
-		</p>
-		<Store {data} />
-	</Tab>
 </div>
+
+<SidebarShell bind:tabData>
+	<div class="max-w-200">
+		<Tab bind:tabData>
+			<section class="panel">
+				<div class="panel-head">Server view</div>
+				<div class="p-5">
+					<p class="grey-text text-sm">
+						Change the title, pictures and description of your place.
+					</p>
+					<ViewForm {data} />
+				</div>
+			</section>
+		</Tab>
+
+		<Tab bind:tabData>
+			<section class="panel">
+				<div class="panel-head">Network</div>
+				<div class="p-5">
+					<p class="grey-text text-sm">
+						Change the network configurations of your server.
+					</p>
+					<TicketForm {data} />
+					{#key data.serverTicket}
+						<NetworkForm {data} />
+					{/key}
+				</div>
+			</section>
+		</Tab>
+
+		<Tab bind:tabData>
+			<section class="panel">
+				<div class="panel-head">Privacy</div>
+				<div class="p-5">
+					<p class="grey-text text-sm">
+						Enable private server to make your game only accessible to
+						those with the link.
+					</p>
+					<PrivatelinkForm {data} />
+					{#key data.privateTicket}
+						<PrivacyForm {data} />
+					{/key}
+				</div>
+			</section>
+		</Tab>
+
+		<Tab bind:tabData>
+			<section class="panel">
+				<div class="panel-head">Data</div>
+				<div class="p-5">
+					<p class="grey-text text-sm">
+						Configure place data saved to {data.siteName}.
+					</p>
+					<DataForm {data} />
+				</div>
+			</section>
+		</Tab>
+
+		<Tab bind:tabData>
+			<section class="panel">
+				<div class="panel-head">Store</div>
+				<div class="p-5">
+					<p class="grey-text text-sm">
+						Sell game passes and developer products, and create badges
+						for your game. Sales are paid to you in {data.siteName} currency.
+					</p>
+					<Store {data} />
+				</div>
+			</section>
+		</Tab>
+	</div>
+</SidebarShell>

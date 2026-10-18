@@ -29,9 +29,12 @@
 
 <Head name={data.siteName} title={actionType} />
 
-<div class="ctnr pt-8 max-w-200">
-	<div class="card">
-		<div class="light-text p-4">
+<div class="ctnr max-w-200">
+	<section class="panel notice">
+		<div class="panel-head">
+			<span>Account {actionType === "Termination" ? "terminated" : "notice"}</span>
+		</div>
+		<div class="p-6">
 			<h1 class="pb-6">
 				{actionType === "Ban"
 					? `${actionType}ned for ${formatDateDiff(
@@ -40,38 +43,41 @@
 					: actionType}
 			</h1>
 
-			<p>
+			<p class="grey-text">
 				Our moderators have determined that your behaviour has violated
 				the {data.siteName} Terms of Service.
 			</p>
 
-			<p>
-				Reviewed <b>{new Date(data.time)}</b>
-			</p>
-
-			<p>
-				Moderator note: <b>{data.note}</b>
-			</p>
+			<dl class="kv panel my-6">
+				<div>
+					<dt>Reviewed</dt>
+					<dd>{new Date(data.time).toLocaleString()}</dd>
+				</div>
+				<div>
+					<dt>Moderator note</dt>
+					<dd>{data.note}</dd>
+				</div>
+			</dl>
 
 			{#if actionType === "Warning"}
-				<p class="pb-10">
+				<p class="grey-text">
 					Please make sure to follow the {data.siteName} Terms of Service
 					to prevent further action being taken on your account.
 				</p>
-				<p>
+				<p class="grey-text">
 					You may reactivate your account if you agree to follow our
 					Terms of Service.
 				</p>
 				<form use:enhance method="post">
-					<button class={["btn btn-primary"]}>Reactivate</button>
+					<button class="btn btn-primary">Reactivate</button>
 				</form>
 			{:else if actionType === "Ban"}
 				{@const ended = new Date(data.timeEnds).getTime() < Date.now()}
-				<p class="pb-10">
+				<p class="grey-text">
 					Please make sure to follow the {data.siteName} Terms of Service
 					to prevent further action being taken on your account.
 				</p>
-				<p>
+				<p class="grey-text">
 					You may reactivate your account after your ban ends in {formatDateDiff(
 						new Date(data.timeEnds).getTime()
 					)} if you agree to follow our Terms of Service.
@@ -87,8 +93,14 @@
 					</button>
 				</form>
 			{:else}
-				<p>You may not reactivate your account.</p>
+				<p class="grey-text">You may not reactivate your account.</p>
 			{/if}
 		</div>
-	</div>
+	</section>
 </div>
+
+<style>
+	.notice {
+		border-top: 2px solid var(--danger);
+	}
+</style>

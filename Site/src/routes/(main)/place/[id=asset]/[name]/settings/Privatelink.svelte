@@ -21,11 +21,11 @@
 </script>
 
 <form use:enhance method="post" action="?/privatelink&tab=Privacy">
-	<fieldset class="flex flex-wrap pb-2">
-		<label for="privateLink" class="w-full md:w-1/4">
+	<fieldset class="pb-6">
+		<label for="privateLink" class="block pb-2">
 			Private server link
 		</label>
-		<div class="w-full md:w-3/4">
+		<div>
 			<div class="input-group">
 				<input id="privateLink" {value} disabled />
 				<button
@@ -34,7 +34,7 @@
 						copiedSuccess = true
 						setTimeout(() => (copiedSuccess = false), 4000)
 					}}
-					class="btn btn-tertiary border-[--accent2] border-l-0"
+					class="btn btn-tertiary"
 					aria-label="Copy link to clipboard">
 					<fa fa-copy></fa>
 				</button>
@@ -54,7 +54,7 @@
 				<small
 					id="copiedSuccess"
 					transition:fade
-					class="block text-yellow-500">
+					class="block text-amber-400 pt-1">
 					Successfully copied link to clipboard
 				</small>
 			{/if}
