@@ -263,6 +263,37 @@ DEFINE TABLE OVERWRITE session SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE created ON session TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE expires ON session TYPE datetime DEFAULT ALWAYS time::now() + 30d;
 
+# Shoutbox messages (lib/server/shoutbox). Ids are ULIDs. Edits keep the earlier
+# versions in history, and deleted messages are kept for moderators.
+DEFINE TABLE OVERWRITE shout SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON shout TYPE string;
+	DEFINE FIELD OVERWRITE author ON shout TYPE record<user>;
+	DEFINE FIELD OVERWRITE body ON shout TYPE string;
+	DEFINE FIELD OVERWRITE channel ON shout TYPE record<shoutChannel>;
+	DEFINE FIELD OVERWRITE created ON shout TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE deleted ON shout TYPE bool DEFAULT ALWAYS false;
+	DEFINE FIELD OVERWRITE deletedBy ON shout TYPE option<record<user>>;
+	DEFINE FIELD OVERWRITE edited ON shout TYPE option<datetime>;
+	DEFINE FIELD OVERWRITE history ON shout TYPE array<string> DEFAULT ALWAYS [];
+	DEFINE INDEX OVERWRITE shoutChannelCreated ON shout FIELDS channel, created;
+
+# Shoutbox channels, managed by administrators. readLevel and writeLevel are the
+# lowest permission levels (lib/permissionLevels.ts) that can see and post in
+# them, and slowmode the seconds between one person's messages.
+DEFINE TABLE OVERWRITE shoutChannel SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON shoutChannel TYPE string;
+	DEFINE FIELD OVERWRITE created ON shoutChannel TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE deleted ON shoutChannel TYPE bool DEFAULT ALWAYS false;
+	DEFINE FIELD OVERWRITE description ON shoutChannel TYPE string DEFAULT ALWAYS "";
+	DEFINE FIELD OVERWRITE name ON shoutChannel TYPE string;
+	DEFINE FIELD OVERWRITE position ON shoutChannel TYPE int DEFAULT ALWAYS 0;
+	DEFINE FIELD OVERWRITE readLevel ON shoutChannel TYPE int DEFAULT ALWAYS 1
+		ASSERT $value >= 1 AND $value <= 5;
+	DEFINE FIELD OVERWRITE slowmode ON shoutChannel TYPE int DEFAULT ALWAYS 0
+		ASSERT $value >= 0 AND $value <= 3600;
+	DEFINE FIELD OVERWRITE writeLevel ON shoutChannel TYPE int DEFAULT ALWAYS 1
+		ASSERT $value >= 1 AND $value <= 5;
+
 # the awesomest table in Mercury Core
 # What's in it? Nobody knooooowssssssss
 DEFINE TABLE OVERWRITE stuff SCHEMALESS;
@@ -418,4 +449,31 @@ DEFINE FUNCTION OVERWRITE fn::filterGames($thing: object) {
 # remember to get ya parameters in the right order here
 DEFINE FUNCTION OVERWRITE fn::search($query: string, $match: string) {
 	RETURN string::similarity::fuzzy($query, $match) > 0;
+};
+
+# The status feed became the shoutbox (2026-10-18). The first time the site
+# starts with it, make the default channel and copy the status posts into it.
+IF !(SELECT VALUE id FROM shoutChannel LIMIT 1) {
+	CREATE shoutChannel:general CONTENT {
+		name: "general",
+		description: "Talk about anything",
+	};
+	FOR $status IN (
+		SELECT
+			created,
+			fn::currentContent(content) AS body,
+			(<-createdComment<-user)[0] AS author,
+			visibility
+		FROM comment WHERE type = ["status"]
+	) {
+		# (filtering on visibility in the WHERE above fails in SurrealDB 3.0.1)
+		IF $status.author AND $status.visibility == "Visible" {
+			CREATE type::record("shout", rand::ulid()) CONTENT {
+				author: $status.author,
+				body: $status.body,
+				channel: shoutChannel:general,
+				created: $status.created,
+			};
+		};
+	};
 };

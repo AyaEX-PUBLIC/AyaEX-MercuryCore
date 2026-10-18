@@ -22,6 +22,7 @@
 				"Administration",
 				[
 					["Banners", "banners", "fa-bullhorn"],
+					["Shoutbox", "shoutbox", "fa-messages"],
 					["Accounts", "accounts", "fa-user"],
 					["Audit logs", "audit", "fa-book"],
 					["Registration keys", "regkeys", "fa-key"],

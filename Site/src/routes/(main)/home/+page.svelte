@@ -1,18 +1,13 @@
 <script lang="ts">
-	import Form from "$components/forms/Form.svelte"
-	import Input from "$components/forms/Input.svelte"
 	import Head from "$components/Head.svelte"
+	import Shoutbox from "$components/Shoutbox.svelte"
 	import User from "$components/User.svelte"
 	import fade from "$lib/fade"
 	import { encode } from "$lib/urlName"
-	import { superForm } from "$lib/validate"
-	import Status from "./Status.svelte"
 
 	const { data } = $props()
 
 	let { user } = $derived(data)
-	let formData = $derived(superForm(data.form))
-	export const snapshot = formData
 
 	// people in game first, then online, then everyone else
 	const statusOrder = { Playing: 0, Online: 1, Offline: 2 }
@@ -79,44 +74,20 @@
 			</div>
 		</aside>
 
-		<!-- Feed -->
-		<section class="panel min-w-0">
-			<div class="panel-head">
-				<span>Status feed</span>
-				<span class="normal-case tracking-normal">
-					Your friends and followers can see what you post
-				</span>
-			</div>
-			<div class="p-4 line-b">
-				<Form
-					{formData}
-					inline
-					nopad
-					submit="<fa fa-paper-plane-top></fa> Post"
-					working="Posting...">
-					<Input
-						{formData}
-						inline
-						name="status"
-						placeholder="What's on your mind?"
-						aria-label="Post a status" />
-				</Form>
-			</div>
-			{#if data.feed.length > 0}
-				<div class="feed">
-					{#each data.feed as status, num (status.id)}
-						<div in:fade|global={{ num, total: data.feed.length }}>
-							<Status {status} />
-						</div>
-					{/each}
-				</div>
-			{:else}
+		<!-- Shoutbox -->
+		{#if data.shoutbox.channels.length > 0}
+			{#key data.shoutbox.channel}
+				<Shoutbox {user} initial={data.shoutbox} />
+			{/key}
+		{:else}
+			<section class="panel min-w-0">
+				<div class="panel-head"><span>Shoutbox</span></div>
 				<div class="empty m-4">
-					<b>No status posts yet</b>
-					<p>Be the first to post one!</p>
+					<b>No channels yet</b>
+					<p>An administrator can add some in the admin panel.</p>
 				</div>
-			{/if}
-		</section>
+			</section>
+		{/if}
 
 		<!-- Friends and games -->
 		<aside class="flex flex-col gap-6 lg:col-start-2 xl:col-start-auto">
@@ -236,10 +207,6 @@
 			opacity: 0;
 			transition: opacity 0.15s;
 		}
-	}
-
-	.feed > :global(* + *) {
-		border-top: 1px solid var(--accent2);
 	}
 
 	.game {

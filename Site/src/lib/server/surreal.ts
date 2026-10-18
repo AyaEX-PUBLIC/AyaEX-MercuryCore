@@ -130,6 +130,8 @@ type RecordIdTypes = {
 	report: string
 	request: string
 	session: string
+	shout: string
+	shoutChannel: string
 	stuff: string
 	thumbnailCache: number
 	used: string
@@ -166,6 +168,8 @@ export const Render = new Table("render")
 export const Report = new Table("report")
 export const Request = new Table("request")
 export const Session = new Table("session")
+export const Shout = new Table("shout")
+export const ShoutChannel = new Table("shoutChannel")
 export const Stuff = new Table("stuff")
 export const ThumbnailCache = new Table("thumbnailCache")
 export const Used = new Table("used")

@@ -1,16 +1,8 @@
-import { type } from "arktype"
 import { authorise } from "$lib/server/auth"
-import createCommentQuery from "$lib/server/createComment.surql"
-import filter from "$lib/server/filter"
-import formError from "$lib/server/formError"
-import ratelimit from "$lib/server/ratelimit"
+import { messages, pageSize, readableChannels } from "$lib/server/shoutbox"
+import { cursor } from "$lib/server/shoutbox/live"
 import { db, Record } from "$lib/server/surreal"
-import { arktype, superValidate } from "$lib/server/validate"
 import homeQuery from "./home.surql"
-
-const schema = type({
-	status: "1 <= string <= 1000",
-})
 
 type Place = {
 	id: number
@@ -21,55 +13,39 @@ type Place = {
 	dislikeCount: number
 }
 
-type Status = {
-	id: string
-	author: BasicUser
-	created: Date
-	pinned: boolean
-	replies: number
-	visibility: "Visible" | "Moderated" | "Deleted"
-	currentContent: string
-}
-
 // lazy eval 💞
 const greets: readonly ((u: string) => string)[] = Object.freeze([
 	u => `Hi, ${u}!`,
 	u => `Hello, ${u}!`,
 ])
 
-export async function load({ locals }) {
+export async function load({ locals, url }) {
 	const { user } = await authorise(locals)
 	// (main)/+layout.server.ts will handle most redirects for logged-out users, but sometimes errors for this page.
 
-	const [places, friends, feed] = await db.query<
-		[Place[], BasicUser[], Status[]]
-	>(homeQuery, { user: Record("user", user.id) })
+	// taken before loading messages, so the live stream can't miss any sent meanwhile
+	const live = cursor()
+	const channels = await readableChannels(user.permissionLevel)
+	const wanted = url.searchParams.get("channel")
+	const channel = channels.find(c => c.id === wanted) || channels[0]
+
+	const [[places, friends], shouts] = await Promise.all([
+		db.query<[Place[], BasicUser[]]>(homeQuery, {
+			user: Record("user", user.id),
+		}),
+		channel ? messages(channel.id, user) : [],
+	])
 
 	return {
 		greet: greets[Math.floor(Math.random() * greets.length)](user.username),
-		form: await superValidate(arktype(schema)),
 		places,
 		friends,
-		feed,
+		shoutbox: {
+			channels,
+			channel: channel?.id || "",
+			messages: shouts,
+			cursor: live,
+			pageSize,
+		},
 	}
-}
-
-export const actions: import("./$types").Actions = {}
-actions.default = async ({ locals, request, getClientAddress }) => {
-	const { user } = await authorise(locals)
-	const form = await superValidate(request, arktype(schema))
-	if (!form.valid) return formError(form)
-
-	const unfiltered = form.data.status.trim()
-	if (!unfiltered)
-		return formError(form, ["status"], ["Status must have content"])
-
-	const limit = ratelimit(form, "comment", getClientAddress, 5)
-	if (limit) return limit
-
-	await db.query(createCommentQuery, {
-		content: filter(unfiltered),
-		type: ["status"],
-		user: Record("user", user.id),
-	})
 }
