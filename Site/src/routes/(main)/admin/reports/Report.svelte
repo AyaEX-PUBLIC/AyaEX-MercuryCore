@@ -6,6 +6,10 @@
 	}: {
 		report: import("./$types").PageData["reports"][0]
 	} = $props()
+
+	// the reporter chooses the URL, so only link pages on this site
+	// (never javascript: or another site)
+	let localUrl = $derived(/^\/(?![/\\])/.test(report.url))
 </script>
 
 <div id={report.id} class="light-text p-4 max-w-180" popover="auto">
@@ -35,7 +39,13 @@
 			</tr>
 			<tr>
 				<td>URL</td>
-				<td><a href={report.url}>{report.url}</a></td>
+				<td>
+					{#if localUrl}
+						<a href={report.url}>{report.url}</a>
+					{:else}
+						{report.url}
+					{/if}
+				</td>
 			</tr>
 		</tbody>
 	</table>
