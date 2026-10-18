@@ -3,6 +3,15 @@
 # works over plain HTTP. For a public deployment, use an HTTPS site address and
 # set ORIGIN/Domain to match.
 
+# Only signed-in players can load the Aya runtime: the Site checks the
+# session (and moderation, and the recovery phrase) for every /runtime
+# request, and turns away or redirects anyone else
+(runtime_auth) {
+	forward_auth 127.0.0.1:4443 {
+		uri /runtime-access
+	}
+}
+
 :8010 {
 	# Unified Aya WebAssembly runtime. Multithreaded Wasm needs cross-origin
 	# isolation, so the launcher and its assets carry COOP/COEP.
@@ -24,15 +33,22 @@
 
 	@runtimeLauncher path /runtime /runtime/
 	handle @runtimeLauncher {
+		import runtime_auth
 		header Cache-Control "no-store"
 		root * {aya_runtime_root}
 		rewrite * /Aya.App.html
 		file_server
 	}
 	handle_path /runtime/* {
-		# versioned URLs are immutable; anything else revalidates
+		import runtime_auth
+		# versioned URLs are immutable; anything else revalidates. Private,
+		# so shared caches (Cloudflare) never hand them to signed-out visitors
+		# (only on files actually served, never on a refusal from runtime_auth)
 		@versioned query v=*
-		header @versioned Cache-Control "public, max-age=31536000, immutable, no-transform"
+		header @versioned {
+			Cache-Control "private, max-age=31536000, immutable, no-transform"
+			match status 200
+		}
 		@unversioned not query v=*
 		header @unversioned Cache-Control "no-cache"
 		root * {aya_runtime_root}

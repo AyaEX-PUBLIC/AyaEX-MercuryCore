@@ -54,7 +54,8 @@ Players choose a client channel in **Settings → Client**: `stable` (the
 default) or `dev`. Any user can switch; it's stored on the user
 (`clientChannel`) and mirrored by the Site into the `ayaClientChannel` cookie
 (`Site/src/hooks.server.ts`). Caddy serves `/runtime` from that channel's
-directory, so the URLs are the same for both:
+directory, so the URLs are the same for both. Only signed-in players get it:
+Caddy asks the Site (`/runtime-access`) before serving each file:
 
 | Channel | Served from | Updates |
 | --- | --- | --- |
