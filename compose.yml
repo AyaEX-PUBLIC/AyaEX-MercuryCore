@@ -10,6 +10,9 @@ services:
         # not :nightly because doing that once caused failures when graph linking
         # and also caused errors with query parameters (twice)
         build: ./Database
+        # Built images are named, so docker compose (v2) and docker-compose
+        # (v1, which would call them mercurycore_*) use the same ones
+        image: mercurycore-database
         # run as the owner of ./data so the bind-mounted files stay accessible
         user: ${AYA_DATA_UID:-1000}:${AYA_DATA_GID:-1000}
         ports:
@@ -25,6 +28,7 @@ services:
 
     economy:
         build: ./Economy
+        image: mercurycore-economy
         ports:
             - 127.0.0.1:2009:2009
         restart: unless-stopped
@@ -33,6 +37,7 @@ services:
 
     site:
         build: .
+        image: mercurycore-site
         network_mode: host
         user: ${AYA_DATA_UID:-1000}:${AYA_DATA_GID:-1000}
         restart: unless-stopped
@@ -70,6 +75,7 @@ services:
     # Fill in DiscordBot/.env, then: docker compose --profile discord up -d --build discordbot
     discordbot:
         build: ./DiscordBot
+        image: mercurycore-discordbot
         profiles: [discord]
         restart: unless-stopped
         env_file: DiscordBot/.env
