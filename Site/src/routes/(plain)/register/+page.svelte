@@ -4,7 +4,6 @@
 	import Head from "$components/Head.svelte"
 	import { superForm } from "$lib/validate"
 	import LoginShell from "../LoginShell.svelte"
-	import Waves from "../Waves.svelte"
 
 	const { data } = $props()
 
@@ -33,14 +32,13 @@
 	title="Register"
 	description="Create a {data.siteName} account." />
 
-<Waves />
 
 <LoginShell name={data.siteName} tagline={data.tagline} {descriptions}>
 	{#if data.users}
 		<h2>Create a free account</h2>
 		<p>
 			Already have an account?
-			<a href="/login" class="no-underline">Log in</a>
+			<a href="/login">Log in</a>
 		</p>
 
 		<Form {formData} action="?/register" class="pt-6" submit="Register">

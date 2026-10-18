@@ -1,76 +1,112 @@
 <script lang="ts">
 	import type { Snippet } from "svelte"
-	import { dev } from "$app/environment"
+	import PixelField from "$components/PixelField.svelte"
 
 	const {
 		name,
 		tagline,
 		descriptions,
-		pad = false,
 		children
 	}: {
 		name: string
 		tagline: string
 		descriptions: [string, string][]
+		/** No longer used; kept for compatibility */
 		pad?: boolean
 		children?: Snippet
 	} = $props()
 </script>
 
-<div class="light-text flex <lg:flex-col min-h-screen h-full overflow-auto">
-	<div
-		id="dark"
-		class="lg:w-1/2 p-8vw pt-5vh {pad ? 'lg:pt-20vh' : 'lg:pt-12vh'}">
-		{#if dev}
-			<a href="/" class="btn btn-lg border-0 px-0 text-base">
-				<fa fa-arrow-left class="pr-2"></fa>
-				Home
+<div class="shell">
+	<section class="art">
+		<PixelField density={1.15} fadeTop={0} fadeBottom={0.5} seed={7} />
+		<div class="relative flex flex-col h-full p-8 lg:p-12">
+			<a href="/" class="brand">
+				<img src="/assets/icon" alt="" class="size-6" />
+				{name}
 			</a>
-		{/if}
-		<h1 class="font-bold text-14">{name}</h1>
-		{#if tagline}
-			<h2 class="font-semibold pb-3 text-12 opacity-50">
-				&ndash; {tagline}
-			</h2>
-		{/if}
-		<hr class="pt-6" />
-
-		{#each descriptions as [title, description]}
-			<div class="w-full">
-				<h2 class="font-semibold">{title}</h2>
-				<p class="pl-4 opacity-75">{description}</p>
+			<div class="mt-auto pt-16 <lg:hidden">
+				{#if tagline}
+					<span class="badge mb-5">{tagline}</span>
+				{/if}
+				<dl class="grid gap-px max-w-110">
+					{#each descriptions as [title, description]}
+						<div class="item">
+							<dt class="font-600">{title}</dt>
+							<dd class="grey-text text-sm m-0 pt-1">{description}</dd>
+						</div>
+					{/each}
+				</dl>
 			</div>
-		{/each}
-	</div>
+		</div>
+	</section>
 
-	<div
-		id="light"
-		class="lg:w-1/2 py-8vh px-8vw pt-5vh {pad
-			? 'lg:pt-20vh'
-			: 'lg:pt-12vh'} z-1">
-		<div class="max-w-120 mx-auto">
+	<section class="form">
+		<div class="w-full max-w-100 mx-auto">
 			{@render children?.()}
 		</div>
-	</div>
+	</section>
 </div>
 
 <style>
-	#light {
-		/* I had no idea hsla() worked like this */
-		background: radial-gradient(#ffffff1f 1px, transparent 1px),
-			var(--background);
-		background-size: 2rem 2rem;
-		background-attachment: fixed;
-		& :global(form) :global(button) {
-			width: 100%;
+	.shell {
+		display: grid;
+		min-height: 100vh;
+		min-height: 100dvh;
+		@media (min-width: 1024px) {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		}
 	}
 
-	#dark {
-		background: linear-gradient(
-			-20deg,
-			hsl(calc(var(--hue) - 5) 74% 7%) 50%,
-			var(--mainaccent) 250%
-		);
+	.art {
+		position: relative;
+		overflow: hidden;
+		border-right: 1px solid var(--accent2);
+		@media (max-width: 1023.9px) {
+			height: 10rem;
+			border-right: 0;
+			border-bottom: 1px solid var(--accent2);
+		}
+	}
+
+	.brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.625rem;
+		align-self: flex-start;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		color: var(--light-text);
+	}
+
+	.item {
+		padding: 1rem 1.25rem;
+		background: color-mix(in srgb, var(--background) 85%, transparent);
+		border: 1px solid var(--accent2);
+		backdrop-filter: blur(6px);
+		& + .item {
+			border-top: 0;
+		}
+	}
+
+	.form {
+		display: flex;
+		align-items: flex-start;
+		padding: 2.5rem 1.5rem 4rem;
+		@media (min-width: 1024px) {
+			align-items: center;
+		}
+		& :global(form button.btn-primary) {
+			width: 100%;
+			margin-top: 0.5rem;
+		}
+		& :global(h2) {
+			font-size: 1.75rem;
+			letter-spacing: -0.03em;
+		}
+		& :global(h2 + p) {
+			padding-top: 0.5rem;
+			color: var(--grey-text);
+		}
 	}
 </style>

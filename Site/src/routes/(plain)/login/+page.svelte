@@ -4,7 +4,6 @@
 	import Head from "$components/Head.svelte"
 	import { superForm } from "$lib/validate"
 	import LoginShell from "../LoginShell.svelte"
-	import Waves from "../Waves.svelte"
 
 	const { data } = $props()
 
@@ -17,18 +16,16 @@
 	title="Log in"
 	description="Log into your {data.siteName} account." />
 
-<Waves reverse />
 
 <LoginShell
 	name={data.siteName}
 	tagline={data.tagline}
-	descriptions={data.descriptions}
-	pad>
+	descriptions={data.descriptions}>
 	{#if data.users}
 		<h2>Log into your account</h2>
 		<p>
 			Don't yet have an account?
-			<a href="/register" class="no-underline">Register</a>
+			<a href="/register">Register</a>
 		</p>
 
 		<Form {formData} class="pt-6" submit="Log in">
@@ -48,9 +45,9 @@
 				type="password"
 				placeholder={"•".repeat(18)} />
 
-			<p>
+			<p class="text-sm grey-text">
 				Forgotten your password?
-				<a href="/recover" class="no-underline">Recover</a>
+				<a href="/recover">Recover it</a>
 			</p>
 		</Form>
 	{:else}
@@ -62,7 +59,7 @@
 		</p>
 		<p class="pt-2">
 			If it's the former, head to the
-			<a href="/register" class="no-underline">Register</a>
+			<a href="/register">Register</a>
 			page to create the first user!
 		</p>
 	{/if}

@@ -4,7 +4,6 @@
 	import Head from "$components/Head.svelte"
 	import { superForm } from "$lib/validate"
 	import LoginShell from "../LoginShell.svelte"
-	import Waves from "../Waves.svelte"
 
 	const { data } = $props()
 
@@ -24,13 +23,12 @@
 	title="Account recovery"
 	description="Recover your {data.siteName} account." />
 
-<Waves reverse />
 
-<LoginShell name={data.siteName} tagline={data.tagline} {descriptions} pad>
+<LoginShell name={data.siteName} tagline={data.tagline} {descriptions}>
 	<h2>Recover your account</h2>
 	<p>
 		Don't yet have an account?
-		<a href="/register" class="no-underline">Register</a>
+		<a href="/register">Register</a>
 	</p>
 
 	<Form {formData} class="pt-6" submit="Send recovery email">
