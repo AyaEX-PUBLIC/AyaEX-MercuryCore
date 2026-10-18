@@ -70,6 +70,12 @@
 						<b class="light-text mono">{data.followingCount}</b>
 						following
 					</a>
+					{#if data.invitedBy}
+						<span class="grey-text">
+							invited by
+							<a href="/user/{data.invitedBy}" class="light-text">{data.invitedBy}</a>
+						</span>
+					{/if}
 				</div>
 			</div>
 			<div class="flex items-center gap-2 flex-wrap">

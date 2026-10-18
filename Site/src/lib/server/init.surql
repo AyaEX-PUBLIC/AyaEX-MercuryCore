@@ -254,6 +254,28 @@ DEFINE TABLE OVERWRITE regKey SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE discordId ON regKey TYPE option<string>;
 	DEFINE FIELD OVERWRITE discordName ON regKey TYPE option<string>;
 	DEFINE INDEX OVERWRITE regKeyDiscordId ON regKey FIELDS discordId;
+	# how it was made: "purchase" (a member bought it) or "application" (an
+	# approved application); NONE = by an administrator or the Discord bot
+	DEFINE FIELD OVERWRITE kind ON regKey TYPE option<string>;
+	DEFINE INDEX OVERWRITE regKeyCreator ON regKey FIELDS creator;
+
+# Applications to join from people without an invite (lib/server/invites.ts).
+# The applicant checks it with a secret code; only its hash is kept.
+DEFINE TABLE OVERWRITE application SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON application TYPE string;
+	DEFINE FIELD OVERWRITE about ON application TYPE string;
+	DEFINE FIELD OVERWRITE contact ON application TYPE string DEFAULT ALWAYS "";
+	DEFINE FIELD OVERWRITE created ON application TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE key ON application TYPE option<record<regKey>>;
+	DEFINE FIELD OVERWRITE note ON application TYPE string DEFAULT ALWAYS "";
+	DEFINE FIELD OVERWRITE reviewed ON application TYPE option<datetime>;
+	DEFINE FIELD OVERWRITE reviewer ON application TYPE option<record<user>>;
+	DEFINE FIELD OVERWRITE status ON application TYPE string DEFAULT ALWAYS "pending"
+		ASSERT $value IN ["pending", "approved", "rejected"];
+	DEFINE FIELD OVERWRITE tokenHash ON application TYPE string;
+	DEFINE FIELD OVERWRITE username ON application TYPE string;
+	DEFINE INDEX OVERWRITE applicationToken ON application FIELDS tokenHash UNIQUE;
+	DEFINE INDEX OVERWRITE applicationStatus ON application FIELDS status;
 
 DEFINE TABLE OVERWRITE render SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON render TYPE string;
@@ -340,6 +362,8 @@ DEFINE TABLE OVERWRITE user SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE authKey ON user TYPE option<string>;
 	DEFINE FIELD OVERWRITE phraseSet ON user TYPE option<datetime>;
 	DEFINE FIELD OVERWRITE hashedPassword ON user TYPE option<string>;
+	# set by staff to stop an account buying or handing out invites
+	DEFINE FIELD OVERWRITE invitesRevoked ON user TYPE option<bool>;
 	DEFINE FIELD OVERWRITE lastOnline ON user TYPE datetime DEFAULT ALWAYS time::now();
 	# playtime rewards (lib/server/playtime.ts): when the user was last seen in a
 	# game, and when their next reward is due

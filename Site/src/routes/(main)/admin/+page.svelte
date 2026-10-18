@@ -36,6 +36,7 @@
 				[
 					["User moderation", "moderation", "fa-user-slash"],
 					["Abuse reports", "reports", "fa-flag"],
+					["Invites", "invites", "fa-envelopes-bulk"],
 					["Asset approval", "asset", "fa-file-circle-check"],
 					["Render queue", "renderqueue", "fa-file-image"]
 				]

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte"
 	import { goto } from "$app/navigation"
+	import { page } from "$app/state"
 	import Head from "$components/Head.svelte"
 	import PhraseMaker from "$components/PhraseMaker.svelte"
 	import { answer, authApi } from "$lib/authClient"
@@ -14,7 +15,13 @@
 	let ready = $state(false)
 	onMount(() => (ready = true))
 
-	let details = $state({ username: "", email: "", regkey: "" })
+	// an invite link (or an accepted application) fills these in
+	const params = page.url.searchParams
+	let details = $state({
+		username: params.get("username") || "",
+		email: "",
+		regkey: params.get("invite") || ""
+	})
 	let errors: Errors = $state({})
 	let step: "details" | "phrase" = $state("details")
 	let busy = $state(false)
@@ -82,7 +89,8 @@
 	name: keyof Errors,
 	label: string,
 	placeholder: string,
-	autocomplete: import("svelte/elements").FullAutoFill = "off"
+	autocomplete: import("svelte/elements").FullAutoFill = "off",
+	required = true
 )}
 	<label class="block pb-5">
 		<span class="block pb-2">{label}</span>
@@ -91,7 +99,7 @@
 			{placeholder}
 			{autocomplete}
 			class={{ "is-invalid": errors[name] }}
-			required />
+			{required} />
 		{#if errors[name]}
 			<small class="block text-red-400 pt-1">{errors[name]}</small>
 		{/if}
@@ -116,13 +124,20 @@
 			</p>
 		{/if}
 
+		{#if data.users && data.mode === "closed"}
+			<p class="pt-4">
+				Registration is closed right now. Check back later.
+			</p>
+		{:else}
 		<form class="pt-6" onsubmit={check}>
 			{@render field("username", "Username", "3-21 characters", "username")}
 			{#if data.users && data.emailsEnabled}
 				{@render field("email", "Email address", `${data.siteName}@${data.domain}`, "email")}
 			{/if}
-			{#if data.users && data.regKeysEnabled}
-				{@render field("regkey", "Registration key", `${data.prefix}r3g157r4ti0nk3yh3re1`)}
+			{#if data.users && data.mode === "invite"}
+				{@render field("regkey", "Invite code", `${data.prefix}1nv1t3c0d3`)}
+			{:else if data.users}
+				{@render field("regkey", "Invite code (optional)", `${data.prefix}1nv1t3c0d3`, "off", false)}
 			{/if}
 			{#if error}
 				<p class="text-sm text-red-400 pb-3">{error}</p>
@@ -130,7 +145,13 @@
 			<button class="btn btn-primary w-full" disabled={!ready || busy}>
 				{busy ? "Checking..." : "Continue"}
 			</button>
+			{#if data.users && data.mode === "invite" && data.applications}
+				<p class="text-sm grey-text pt-4">
+					No invite? <a href="/apply">Apply to join</a>
+				</p>
+			{/if}
 		</form>
+		{/if}
 	{:else}
 		<h2>Your recovery phrase</h2>
 		<p class="pb-4">

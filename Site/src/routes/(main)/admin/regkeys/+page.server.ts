@@ -1,4 +1,3 @@
-import { error } from "@sveltejs/kit"
 import { type } from "arktype"
 import { AlreadyExistsError } from "surrealdb"
 import { authorise } from "$lib/server/auth"
@@ -37,7 +36,6 @@ type RegKey = {
 }
 
 export async function load({ locals }) {
-	if (!config.Registration.Keys.Enabled) error(404, "Not Found")
 	await authorise(locals, 5)
 
 	const [regKeys] = await db.query<RegKey[][]>(regkeysQuery)

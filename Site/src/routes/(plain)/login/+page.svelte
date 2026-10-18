@@ -53,6 +53,9 @@
 		<p>
 			Don't yet have an account?
 			<a href="/register">Register</a>
+			{#if data.apply}
+				or <a href="/apply">apply to join</a>
+			{/if}
 		</p>
 
 		<form class="pt-6" onsubmit={signIn}>

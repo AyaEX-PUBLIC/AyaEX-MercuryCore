@@ -3,6 +3,7 @@ import { type } from "arktype"
 import { cookieName, cookieOptions, createSession } from "$lib/server/auth"
 import config from "$lib/server/config"
 import formError from "$lib/server/formError"
+import { inviteSettings } from "$lib/server/invites"
 import { passwordSignIn } from "$lib/server/phrase"
 import { accountRegistered } from "$lib/server/register"
 import { db, type RecordId } from "$lib/server/surreal"
@@ -23,6 +24,9 @@ export const load = async () => ({
 	users: await accountRegistered(),
 	passwordSignIn: await passwordSignIn(),
 	descriptions: Object.entries(config.Branding.Descriptions),
+	apply: await inviteSettings().then(
+		s => s.applications && s.registration === "invite"
+	),
 })
 
 // Wrong passwords lock an account's password sign-in for a while. This is

@@ -51,6 +51,7 @@
 							f => `/user/${user.username}/${f}`
 						)
 					},
+					{ name: "Invites", href: "/invites", icon: "fa-envelopes-bulk" },
 					{ name: "Inventory", href: "/inventory", icon: "fa-box-open-full" },
 					{ name: "Economy", href: "/economy", icon: "fa-money-bill-transfer" },
 					{ name: "Notifications", href: "/notifications", icon: "fa-bell" },

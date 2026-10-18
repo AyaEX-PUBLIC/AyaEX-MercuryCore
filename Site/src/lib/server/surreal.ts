@@ -101,6 +101,7 @@ if (!building) {
 }
 
 type RecordIdTypes = {
+	application: string
 	asset: number
 	auditLog: string
 	banner: string

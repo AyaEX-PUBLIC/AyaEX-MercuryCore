@@ -1,7 +1,9 @@
 import { error, fail } from "@sveltejs/kit"
 import { authorise } from "$lib/server/auth"
 import formData from "$lib/server/formData"
+import { invitedBy, inviteSettings } from "$lib/server/invites"
 import requestRender from "$lib/server/requestRender"
+import { userBadges } from "$lib/server/store"
 import { db, Record, type RecordId } from "$lib/server/surreal"
 import type { Group } from "../../groups/+page.server"
 import type { RequestEvent } from "./$types.d"
@@ -16,7 +18,6 @@ import requestQuery from "./request.surql"
 import unfollowQuery from "./unfollow.surql"
 import unfriendQuery from "./unfriend.surql"
 import userQuery from "./user.surql"
-import { userBadges } from "$lib/server/store"
 
 interface User extends BasicUser {
 	description: string
@@ -54,7 +55,15 @@ export async function load({ locals, params }) {
 	})
 	if (!userExists) error(404, "Not Found")
 
-	return { ...userExists, badges: await userBadges(userExists.id) }
+	// staff always see who invited an account; everyone does if the tree is public
+	const showInviter =
+		user.permissionLevel >= 4 || (await inviteSettings()).treePublic
+
+	return {
+		...userExists,
+		badges: await userBadges(userExists.id),
+		invitedBy: showInviter ? await invitedBy(userExists.id) : undefined,
+	}
 }
 
 async function getData({ params }: RequestEvent) {

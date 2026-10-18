@@ -2,12 +2,14 @@
 // details first, so problems show before the player writes their phrase
 // down, then creating the account with the phrase's public key.
 
-import { sendRegistrationDiscordWebhook } from "$lib/server/discordModerationWebhook"
+import { error } from "@sveltejs/kit"
+import { type } from "arktype"
 import config from "$lib/server/config"
+import { sendRegistrationDiscordWebhook } from "$lib/server/discordModerationWebhook"
+import { inviteSettings } from "$lib/server/invites"
 import requestRender from "$lib/server/requestRender"
 import { db, findWhere, Record, type RecordId } from "$lib/server/surreal"
 import { usernameTest } from "$lib/typeTests"
-import { type } from "arktype"
 import createUserQuery from "./createUser.surql"
 import regkeyCheckQuery from "./regkeyCheck.surql"
 
@@ -56,6 +58,11 @@ export async function checkDetails({
 	const initial = !(await accountRegistered())
 	if (initial) return { initial, discord: {} }
 
+	// Admin > Invites decides who can register
+	const { registration } = await inviteSettings()
+	if (registration === "closed")
+		return fail("username", "Registration is closed right now")
+
 	if (config.Registration.Emails) {
 		if (!email || email.length > 320 || !emailTest.test(email))
 			return fail("email", "Enter a valid email address")
@@ -63,11 +70,12 @@ export async function checkDetails({
 			return fail("email", "This email is already in use")
 	}
 
-	if (!config.Registration.Keys.Enabled) return { initial, discord: {} }
+	// open registration needs no invite, but one still puts you in the invite tree
+	if (registration === "open" && !regkey) return { initial, discord: {} }
 
 	const matched = regkey?.match(prefixRegex)
 	if (!matched || regkey.length > 200)
-		return fail("regkey", "Registration key is invalid")
+		return fail("regkey", "That invite code isn't right")
 	const key = Record("regKey", matched[1])
 	const [[check]] = await db.query<
 		{
@@ -77,11 +85,11 @@ export async function checkDetails({
 			discordName?: string
 		}[][]
 	>(regkeyCheckQuery, { key })
-	if (!check) return fail("regkey", "Registration key is invalid")
+	if (!check) return fail("regkey", "That invite code isn't right")
 	if (check.usesLeft < 1)
-		return fail("regkey", "This registration key has ran out of uses")
+		return fail("regkey", "This invite has already been used")
 	if (check.expiry && new Date(check.expiry).getTime() < Date.now())
-		return fail("regkey", "This registration key has expired")
+		return fail("regkey", "This invite has expired")
 
 	return { initial, key, discord: check }
 }
@@ -94,14 +102,22 @@ export async function createAccount(
 	publicKey: string
 ) {
 	const { username, email } = details
-	const [, user] = await db.query<RecordId<"user">[]>(createUserQuery, {
-		username,
-		email: (config.Registration.Emails && email) || "",
-		authKey: publicKey,
-		permissionLevel: checked.initial ? 5 : 1,
-		bodyColours: config.DefaultBodyColors,
-		key: checked.key,
-	})
+	let user: RecordId<"user">
+	try {
+		// BEGIN, IF, LET, then the user
+		;[, , , user] = await db.query<RecordId<"user">[]>(createUserQuery, {
+			username,
+			email: (config.Registration.Emails && email) || "",
+			authKey: publicKey,
+			permissionLevel: checked.initial ? 5 : 1,
+			bodyColours: config.DefaultBodyColors,
+			key: checked.key,
+		})
+	} catch (e) {
+		if (String(e).includes("invite has already been used"))
+			error(409, "Someone just used that invite. Ask for another one.")
+		throw e
+	}
 
 	try {
 		await requestRender(f, "Avatar", user.id.toString(), username)
