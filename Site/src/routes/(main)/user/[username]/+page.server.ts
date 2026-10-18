@@ -2,6 +2,7 @@ import { error, fail } from "@sveltejs/kit"
 import { authorise } from "$lib/server/auth"
 import formData from "$lib/server/formData"
 import { invitedBy, inviteSettings } from "$lib/server/invites"
+import oneAtATime from "$lib/server/oneAtATime"
 import requestRender from "$lib/server/requestRender"
 import { userBadges } from "$lib/server/store"
 import { db, Record, type RecordId } from "$lib/server/surreal"
@@ -130,11 +131,13 @@ async function rerender(e: RequestEvent) {
 export const actions: import("./$types").Actions = { rerender }
 actions.follow = async e => {
 	const { user, params } = await getInteractData(e)
-	await db.query(followQuery, {
-		...params,
-		relativeId: user.id,
-		note: `${user.username} is now following you!`,
-	})
+	await oneAtATime("follows", () =>
+		db.query(followQuery, {
+			...params,
+			relativeId: user.id,
+			note: `${user.username} is now following you!`,
+		})
+	)
 }
 actions.unfollow = async e => {
 	const { params } = await getInteractData(e)
@@ -144,26 +147,27 @@ actions.unfriend = async e => {
 	const { params } = await getInteractData(e)
 	await db.query(unfriendQuery, params)
 }
+// Friendships change one at a time (lib/server/oneAtATime.ts), so a double
+// click or both users accepting at once can't make two
 actions.request = async e => {
 	const { user, params } = await getInteractData(e)
 
-	// Make sure users are not already friends
-	const [alreadyFriends] = await db.query<boolean[]>(
-		alreadyFriendsQuery,
-		params
-	)
-	if (alreadyFriends) error(400, "Already friends")
+	await oneAtATime("friends", async () => {
+		// Make sure users are not already friends
+		const [alreadyFriends] = await db.query<boolean[]>(
+			alreadyFriendsQuery,
+			params
+		)
+		if (alreadyFriends) error(400, "Already friends")
 
-	const [incoming] = await db.query<boolean[]>(incomingQuery, params)
-	if (incoming) {
-		await acceptExisting(params, user)
-		return
-	}
+		const [incoming] = await db.query<boolean[]>(incomingQuery, params)
+		if (incoming) return await acceptExisting(params, user)
 
-	await db.query(requestQuery, {
-		...params,
-		relativeId: user.id,
-		note: `${user.username} has sent you a friend request.`,
+		await db.query(requestQuery, {
+			...params,
+			relativeId: user.id,
+			note: `${user.username} has sent you a friend request.`,
+		})
 	})
 }
 actions.cancel = async e => {
@@ -176,9 +180,11 @@ actions.decline = async e => {
 }
 actions.accept = async e => {
 	const { user, params } = await getInteractData(e)
-	// Make sure an incoming request exists before accepting
-	const [incoming] = await db.query<boolean[]>(incomingQuery, params)
-	if (!incoming) error(400, "No friend request to accept")
+	await oneAtATime("friends", async () => {
+		// Make sure an incoming request exists before accepting
+		const [incoming] = await db.query<boolean[]>(incomingQuery, params)
+		if (!incoming) error(400, "No friend request to accept")
 
-	await acceptExisting(params, user)
+		await acceptExisting(params, user)
+	})
 }

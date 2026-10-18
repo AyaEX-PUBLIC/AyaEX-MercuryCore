@@ -8,6 +8,7 @@ import { error } from "@sveltejs/kit"
 import { type } from "arktype"
 import config from "$lib/server/config"
 import { burn, mint } from "$lib/server/economy"
+import oneAtATime from "$lib/server/oneAtATime"
 import { randomCode } from "$lib/server/resetCode"
 import { db, Record, type RecordId } from "$lib/server/surreal"
 import { usernameTest } from "$lib/typeTests"
@@ -134,20 +135,13 @@ export async function purchaseStatus(user: User): Promise<PurchaseStatus> {
 	}
 }
 
-// purchases are checked and made one at a time, so weekly limits hold
-let queue: Promise<unknown> = Promise.resolve()
-const oneAtATime = <T>(task: () => Promise<T>) => {
-	const run = queue.then(task, task)
-	queue = run.catch(() => {})
-	return run
-}
-
 /**
  * Buys an invite: takes the price, then makes a one-use key.
  * @returns The invite code.
  */
 export const buyInvite = (f: typeof fetch, user: User) =>
-	oneAtATime(async () => {
+	// one at a time, so weekly limits hold
+	oneAtATime("invites", async () => {
 		const status = await purchaseStatus(user)
 		if (status.reason) error(403, status.reason)
 		const settings = await inviteSettings()

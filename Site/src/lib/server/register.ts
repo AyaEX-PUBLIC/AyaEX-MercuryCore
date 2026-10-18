@@ -7,6 +7,7 @@ import { type } from "arktype"
 import config from "$lib/server/config"
 import { sendRegistrationDiscordWebhook } from "$lib/server/discordModerationWebhook"
 import { inviteSettings } from "$lib/server/invites"
+import oneAtATime from "$lib/server/oneAtATime"
 import requestRender from "$lib/server/requestRender"
 import { db, findWhere, Record, type RecordId } from "$lib/server/surreal"
 import { usernameTest } from "$lib/typeTests"
@@ -104,15 +105,18 @@ export async function createAccount(
 	const { username, email } = details
 	let user: RecordId<"user">
 	try {
-		// BEGIN, IF, LET, then the user
-		;[, , , user] = await db.query<RecordId<"user">[]>(createUserQuery, {
-			username,
-			email: (config.Registration.Emails && email) || "",
-			authKey: publicKey,
-			permissionLevel: checked.initial ? 5 : 1,
-			bodyColours: config.DefaultBodyColors,
-			key: checked.key,
-		})
+		// one at a time, as SurrealDB can let two racing transactions both
+		// take an invite's last use. BEGIN, IF, LET, then the user
+		;[, , , user] = await oneAtATime("registration", () =>
+			db.query<RecordId<"user">[]>(createUserQuery, {
+				username,
+				email: (config.Registration.Emails && email) || "",
+				authKey: publicKey,
+				permissionLevel: checked.initial ? 5 : 1,
+				bodyColours: config.DefaultBodyColors,
+				key: checked.key,
+			})
+		)
 	} catch (e) {
 		if (String(e).includes("invite has already been used"))
 			error(409, "Someone just used that invite. Ask for another one.")

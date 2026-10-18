@@ -1,3 +1,4 @@
+import oneAtATime from "$lib/server/oneAtATime"
 import { db, Record } from "$lib/server/surreal"
 
 // Friends and follows for the engine (routes/(rbxclient)/game/social): the
@@ -40,12 +41,14 @@ export async function isFollowing(follower: string, followed: string) {
 }
 
 export async function follow(user: User, other: User) {
-	await db.query(
-		`IF $user2 NOT IN $user->follows->user {
-			RELATE $user->follows->$user2;
-			fn::notify($user, $user2, "Follower", $note, $relativeId);
-		};`,
-		{ ...pair(user, other), note: `${user.username} is now following you!`, relativeId: user.id }
+	await oneAtATime("follows", () =>
+		db.query(
+			`IF $user2 NOT IN $user->follows->user {
+				RELATE $user->follows->$user2;
+				fn::notify($user, $user2, "Follower", $note, $relativeId);
+			};`,
+			{ ...pair(user, other), note: `${user.username} is now following you!`, relativeId: user.id }
+		)
 	)
 }
 
@@ -61,37 +64,41 @@ export async function unfollow(user: User, other: User) {
  * Sends a friend request, or accepts the other user's pending request (which
  * is how the engine reports an accept).
  */
-export async function requestFriendship(user: User, other: User) {
-	if (user.id === other.id || (await areFriends(user, other))) return
-	await db.query(
-		`IF $user IN $user2->request->user {
-			DELETE $user2->request WHERE out = $user;
-			RELATE $user2->friends->$user;
-			fn::notify($user, $user2, "NewFriend", $accepted, $relativeId);
-		} ELSE IF $user2 NOT IN $user->request->user {
-			RELATE $user->request->$user2;
-			fn::notify($user, $user2, "FriendRequest", $requested, $relativeId);
-		};`,
-		{
-			...pair(user, other),
-			relativeId: user.id,
-			accepted: `${user.username} is now friends with you!`,
-			requested: `${user.username} has sent you a friend request.`,
-		}
-	)
-}
+export const requestFriendship = (user: User, other: User) =>
+	// one at a time, like the profile page, so two can't make two friendships
+	oneAtATime("friends", async () => {
+		if (user.id === other.id || (await areFriends(user, other))) return
+		await db.query(
+			`IF $user IN $user2->request->user {
+				DELETE $user2->request WHERE out = $user;
+				DELETE $user->request WHERE out = $user2;
+				RELATE $user2->friends->$user;
+				fn::notify($user, $user2, "NewFriend", $accepted, $relativeId);
+			} ELSE IF $user2 NOT IN $user->request->user {
+				RELATE $user->request->$user2;
+				fn::notify($user, $user2, "FriendRequest", $requested, $relativeId);
+			};`,
+			{
+				...pair(user, other),
+				relativeId: user.id,
+				accepted: `${user.username} is now friends with you!`,
+				requested: `${user.username} has sent you a friend request.`,
+			}
+		)
+	})
 
 /** Makes two users friends (both sides asked in game) */
-export async function makeFriends(user: User, other: User) {
-	if (user.id === other.id || (await areFriends(user, other))) return
-	await db.query(
-		`DELETE $user->request WHERE out = $user2;
-		DELETE $user2->request WHERE out = $user;
-		RELATE $user->friends->$user2;
-		fn::notify($user, $user2, "NewFriend", $note, $relativeId);`,
-		{ ...pair(user, other), relativeId: user.id, note: `${user.username} is now friends with you!` }
-	)
-}
+export const makeFriends = (user: User, other: User) =>
+	oneAtATime("friends", async () => {
+		if (user.id === other.id || (await areFriends(user, other))) return
+		await db.query(
+			`DELETE $user->request WHERE out = $user2;
+			DELETE $user2->request WHERE out = $user;
+			RELATE $user->friends->$user2;
+			fn::notify($user, $user2, "NewFriend", $note, $relativeId);`,
+			{ ...pair(user, other), relativeId: user.id, note: `${user.username} is now friends with you!` }
+		)
+	})
 
 export async function breakFriendship(user: User, other: User) {
 	await db.query(
