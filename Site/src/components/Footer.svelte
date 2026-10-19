@@ -10,7 +10,14 @@
 	type Column = [string, [string, string][]]
 
 	let columns = $derived.by(() => {
-		const about: Column = [data.siteName, [["About", "/about"]]]
+		const about: Column = [
+			data.siteName,
+			[
+				["About", "/about"],
+				["Rules", "/rules"],
+				["Download", "/download"]
+			]
+		]
 		if (!data.user)
 			return [
 				[

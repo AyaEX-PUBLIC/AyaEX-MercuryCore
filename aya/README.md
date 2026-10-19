@@ -66,7 +66,9 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   `mercury.core.ts` and the `.env` files are this machine's, switched to the
   VPS's domain by `aya/set-domain.sh --no-restart`. From aya-dev it sends
   only `Aya.Server` and its files, `client/resources`, the WebAssembly build
-  (the dev channel) and `assets`.
+  (the dev channel) and `assets`, plus the Switch client
+  (`build/switch-engine-clang/Aya.Switch.nro`) for `/download`, which serves
+  console clients from `data/downloads/`.
 - On the VPS (`/opt/mercury`, run by the `mercury` user), `deploy/provision.sh`:
   - installs Docker and the libraries Aya.Server needs, all from Debian
   - sets up a firewall that lets in only SSH, HTTP and HTTPS

@@ -34,7 +34,9 @@
 			: []),
 		...(data.pages.includes("Forum")
 			? [{ name: "Forum", href: "/forum", icon: "fa-messages", also: ["/comment"] }]
-			: [])
+			: []),
+		{ name: "Rules", href: "/rules", icon: "fa-gavel" },
+		{ name: "Download", href: "/download", icon: "fa-arrow-down" }
 	])
 
 	// ...and your own stuff
@@ -166,11 +168,11 @@
 			</div>
 		{:else}
 			<nav aria-label="Main" class="links guest-links">
-				<a
-					href="/about"
-					aria-current={page.url.pathname === "/about" ? "page" : undefined}>
-					About
-				</a>
+				{#each [["About", "/about"], ["Rules", "/rules"], ["Download", "/download"]] as [name, href]}
+					<a {href} aria-current={page.url.pathname === href ? "page" : undefined}>
+						{name}
+					</a>
+				{/each}
 			</nav>
 			<div class="ml-auto flex items-center gap-2">
 				<a href="/login" class="btn btn-sm btn-quatenary">Log in</a>
