@@ -1,7 +1,39 @@
+import { randomBytes } from "node:crypto"
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { db, Record } from "$lib/server/surreal"
 import usersQuery from "$lib/server/users.surql"
 
 const economyUrl = "localhost:2009"
+
+// The Economy only takes requests carrying this key, so nothing else that can
+// reach its port can move currency. It's made on first use in the Economy's data
+// folder, readable only by the user the Site runs as (the Economy runs as root
+// in docker, or as the same user). To change it, delete the file and restart
+// both.
+const keyPath = "../data/economy/key"
+let economyKey: string | undefined
+
+function readKey() {
+	try {
+		return readFileSync(keyPath, "utf8").trim() || undefined
+	} catch {}
+}
+
+function auth() {
+	economyKey ??= readKey()
+	if (!economyKey) {
+		mkdirSync("../data/economy", { recursive: true })
+		try {
+			writeFileSync(keyPath, `${randomBytes(32).toString("hex")}\n`, {
+				mode: 0o600,
+				flag: "wx",
+			})
+		} catch {} // another request made it first
+		economyKey = readKey()
+		if (!economyKey) throw new Error("Can't create the Economy key")
+	}
+	return { Authorization: `Bearer ${economyKey}` }
+}
 
 export const economyConnFailed = "Cannot connect to Economy service"
 
@@ -18,7 +50,7 @@ const tryFetch =
 		url: string
 	): Promise<ReturnValue<T>> => {
 		try {
-			const res = await f(url)
+			const res = await f(url, { headers: auth() })
 			if (!res.ok) return { ok: false }
 			return { ok: true, value: await transform(res) }
 		} catch {
@@ -76,7 +108,10 @@ export const getAdminTransactions = (f: typeof globalThis.fetch) =>
 // doin nothing with returns rn
 export async function stipend(f: typeof globalThis.fetch, To: string) {
 	try {
-		await f(`${economyUrl}/stipend/${To}`, { method: "post" })
+		await f(`${economyUrl}/stipend/${To}`, {
+			method: "post",
+			headers: auth(),
+		})
 	} catch {}
 }
 
@@ -92,6 +127,7 @@ export async function transact(
 	try {
 		const res = await f(`${economyUrl}/transact`, {
 			method: "post",
+			headers: auth(),
 			body: JSON.stringify({ From, To, Amount, Note, Link, Returns }),
 		})
 		if (res.status === 200) return { ok: true }
@@ -118,6 +154,7 @@ export async function burn(
 		// Uh, ₿urn ₿aby ₿urn
 		const res = await f(`${economyUrl}/burn`, {
 			method: "post",
+			headers: auth(),
 			body: JSON.stringify({ From, Amount, Note, Link, Returns }),
 		})
 		if (res.status === 200) return { ok: true }
@@ -234,6 +271,7 @@ export async function mint(
 	try {
 		const res = await f(`${economyUrl}/mint`, {
 			method: "post",
+			headers: auth(),
 			body: JSON.stringify({ To, Amount, Note }),
 		})
 		if (res.status === 200) return { ok: true }

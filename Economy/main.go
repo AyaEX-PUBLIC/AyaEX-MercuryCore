@@ -4,12 +4,14 @@
 package main
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,6 +23,9 @@ import (
 const (
 	folderpath = "../data/economy" // kinda jsonl file
 	filepath   = folderpath + "/ledger"
+	// The Site makes this key on first use (Site/src/lib/server/economy.ts),
+	// readable only by the user it runs as, and sends it with every request
+	keypath = folderpath + "/key"
 
 	stipendTime = 12 * 60 * 60 * 1000
 )
@@ -33,16 +38,42 @@ func toReadable(c Currency) string {
 
 type EconomyServer struct {
 	*Economy
-	mu sync.Mutex // handlers run concurrently, and the ledger's maps aren't safe for that
+	mu  sync.Mutex // handlers run concurrently, and the ledger's maps aren't safe for that
+	key string
 }
 
-// locked runs a handler with the economy to itself
+// locked runs a handler with the economy to itself, for the Site only: anything
+// else that can reach the port (it's on the host's loopback) is refused
 func (e *EconomyServer) locked(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		e.mu.Lock()
 		defer e.mu.Unlock()
+		if !e.authorised(r) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 		h(w, r)
 	}
+}
+
+// authorised checks the request carries the Site's key ("Authorization: Bearer
+// <key>"). The key is read when first needed, and again if it doesn't match, as
+// the Site may only have just made it.
+func (e *EconomyServer) authorised(r *http.Request) bool {
+	given, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if !ok || given == "" {
+		return false
+	}
+	matches := func() bool {
+		return e.key != "" && subtle.ConstantTimeCompare([]byte(given), []byte(e.key)) == 1
+	}
+	if matches() {
+		return true
+	}
+	if b, err := os.ReadFile(keypath); err == nil {
+		e.key = strings.TrimSpace(string(b))
+	}
+	return matches()
 }
 
 // limit reads ?limit= (how many transactions to list): 100 by default, at most 5000

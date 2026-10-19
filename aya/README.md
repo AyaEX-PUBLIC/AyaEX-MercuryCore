@@ -18,7 +18,7 @@ context, so the multithreaded Player works over plain HTTP.
 | 8010 | Caddy (`Caddyfile.aya`): Site, `/runtime`, `/gameserver/{placeId}` (WebSocket), `/orbiter/{placeId}` (SSE), `/streaming/ws` (WebSocket) |
 | 4443 | Site (docker, host network) |
 | 4444 | StreamingFrame signaling relay, in the Site process (127.0.0.1 only) |
-| 8000, 2009 | SurrealDB, Economy (docker, bound to 127.0.0.1) |
+| 8000, 2009 | SurrealDB, Economy (docker, bound to 127.0.0.1; the Economy only takes the Site's key) |
 | 64990 | RCC proxy (native, `../MercuryRCC/Proxy`) |
 | 64991, 64992 | Orbiter private and public APIs (native, `../MercuryRCC/Orbiter`) |
 | 64989+ | Aya.Server SOAP ports, one process per hosted game plus a render process |
@@ -237,6 +237,11 @@ balance. **Manage** opens a user's page, where an administrator can:
 The Economy service serves `GET /balances` and accepts `?limit=` (up to 5000)
 on `/transactions`. A user's history is now the last N of *their*
 transactions; before, it was their share of the last 100 site-wide.
+
+The Economy refuses any request without `Authorization: Bearer <key>`, so
+nothing else that can reach its port can move currency. The Site makes the key
+on first use in `data/economy/key` (mode 0600). To change it, delete the file
+and restart the Economy and the Site.
 
 ## Friends and follows in game
 
