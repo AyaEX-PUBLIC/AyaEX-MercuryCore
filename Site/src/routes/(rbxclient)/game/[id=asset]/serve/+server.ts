@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit"
-import { requireOrbiterKey } from "$lib/server/assetAuth"
+import { placeFileToken, requireOrbiterKey } from "$lib/server/assetAuth"
 import config from "$lib/server/config"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
@@ -41,7 +41,7 @@ export async function GET({ params, request }) {
 		// responses first, so an unchanged URL would load the previous upload
 		.replaceAll(
 			"_MAP_LOCATION",
-			`"http://${config.DomainInsecure}/asset/?id=${id}&v=${Bun.file(`../data/places/${id}`).lastModified}"`
+			`"http://${config.DomainInsecure}/asset/?id=${id}&v=${Bun.file(`../data/places/${id}`).lastModified}&token=${placeFileToken(id, place.serverTicket)}"`
 		)
 		.replaceAll("_SERVER_PORT", idToPort(id).toString())
 		.replaceAll("_SERVER_PRESENCE_URL", `"${serverPresenceUrl}"`)

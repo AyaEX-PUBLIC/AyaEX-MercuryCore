@@ -6,6 +6,7 @@ import { error } from "@sveltejs/kit"
 import { type } from "arktype"
 import config from "$lib/server/config"
 import { sendRegistrationDiscordWebhook } from "$lib/server/discordModerationWebhook"
+import { engineIdTaken } from "$lib/server/engineUser"
 import { inviteSettings } from "$lib/server/invites"
 import oneAtATime from "$lib/server/oneAtATime"
 import requestRender from "$lib/server/requestRender"
@@ -16,6 +17,21 @@ import regkeyCheckQuery from "./regkeyCheck.surql"
 
 export type Details = { username: string; email?: string; regkey?: string }
 type Field = keyof Details
+
+/**
+ * Whether a username is in use, ignoring case, or would get the same engine
+ * UserId as an existing account (which would let it pass as that account in
+ * games).
+ */
+async function usernameTaken(username: string) {
+	return (
+		(await findWhere(
+			"user",
+			"string::lowercase(username) = string::lowercase($username)",
+			{ username }
+		)) || (await engineIdTaken(username))
+	)
+}
 
 const prefix = config.Registration.Keys.Prefix
 const prefixRegex = new RegExp(`^${prefix}(.+)$`)
@@ -52,7 +68,7 @@ export async function checkDetails({
 
 	const name = usernameTest(username)
 	if (name instanceof type.errors) return fail("username", name.summary)
-	if (await findWhere("user", "username = $username", { username }))
+	if (await usernameTaken(username))
 		return fail("username", "This username is already in use")
 
 	// the very first account is the administrator, and needs no key
@@ -107,8 +123,11 @@ export async function createAccount(
 	try {
 		// one at a time, as SurrealDB can let two racing transactions both
 		// take an invite's last use. BEGIN, IF, LET, then the user
-		;[, , , user] = await oneAtATime("registration", () =>
-			db.query<RecordId<"user">[]>(createUserQuery, {
+		;[, , , user] = await oneAtATime("registration", async () => {
+			// checked again here, as two registrations may race
+			if (await usernameTaken(username))
+				error(409, "This username is already in use")
+			return db.query<RecordId<"user">[]>(createUserQuery, {
 				username,
 				email: (config.Registration.Emails && email) || "",
 				authKey: publicKey,
@@ -116,7 +135,7 @@ export async function createAccount(
 				bodyColours: config.DefaultBodyColors,
 				key: checked.key,
 			})
-		)
+		})
 	} catch (e) {
 		if (String(e).includes("invite has already been used"))
 			error(409, "Someone just used that invite. Ask for another one.")

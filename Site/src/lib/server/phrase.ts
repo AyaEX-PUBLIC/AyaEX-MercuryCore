@@ -116,7 +116,8 @@ export async function setKey(
 	try {
 		await db.query(
 			`UPDATE $user SET authKey = $publicKey, hashedPassword = NONE, phraseSet = time::now();
-			DELETE session WHERE $user IN <-hasSession<-user AND id != $keep;`,
+			DELETE session WHERE $user IN <-hasSession<-user AND id != $keep;
+			DELETE deviceCode WHERE user = $user;`,
 			{
 				user: Record("user", user),
 				publicKey,

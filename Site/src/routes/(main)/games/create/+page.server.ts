@@ -5,6 +5,7 @@ import { authorise } from "$lib/server/auth"
 import filter from "$lib/server/filter"
 import formError from "$lib/server/formError"
 import { randomAssetId } from "$lib/server/id"
+import oneAtATime from "$lib/server/oneAtATime"
 import { db, Record } from "$lib/server/surreal"
 import { arktype, superValidate } from "$lib/server/validate"
 import {
@@ -64,31 +65,41 @@ actions.default = async ({ locals, request }) => {
 			["description"],
 			["Place must have a description"]
 		)
-	// administrators can create any number of places
-	if (user.permissionLevel < 5 && (await placeCount(user.id)) >= 2)
-		return formError(
-			form,
-			["other"],
-			["You can't have more than two places"]
-		)
-
 	const slug = encode(name)
 	const id = randomAssetId() // listen, this still isn't great, but whatever atp
 
 	// const created = await createPlace(f, user.id, id, name, slug)
 	// if (!created.ok) return formError(form, ["other"], [created.msg])
 
-	await db.query(createQuery, {
-		id,
-		user: Record("user", user.id),
-		name: filter(name),
-		description: filter(description),
-		serverAddress,
-		serverPort,
-		privateServer,
-		maxPlayers,
-		clientVersion: lockedClientVersion,
-	})
+	const create = () =>
+		db.query(createQuery, {
+			id,
+			user: Record("user", user.id),
+			name: filter(name),
+			description: filter(description),
+			serverAddress,
+			serverPort,
+			privateServer,
+			maxPlayers,
+			clientVersion: lockedClientVersion,
+		})
+
+	// administrators can create any number of places; everyone else two, checked
+	// and created one request at a time so concurrent requests can't both pass
+	if (isAdmin) await create()
+	else {
+		const created = await oneAtATime(`placeCreate:${user.id}`, async () => {
+			if ((await placeCount(user.id)) >= 2) return false
+			await create()
+			return true
+		})
+		if (!created)
+			return formError(
+				form,
+				["other"],
+				["You can't have more than two places"]
+			)
+	}
 
 	redirect(302, `/place/${id}/${slug}`)
 }

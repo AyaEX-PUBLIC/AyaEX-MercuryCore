@@ -66,7 +66,7 @@ export async function load({ url }) {
 }
 
 export const actions: import("./$types").Actions = {}
-actions.default = async ({ fetch: f, locals, request, getClientAddress }) => {
+actions.default = async ({ fetch: f, locals, request }) => {
 	const { user } = await authorise(locals)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
@@ -84,7 +84,7 @@ actions.default = async ({ fetch: f, locals, request, getClientAddress }) => {
 		)
 
 	if (user.permissionLevel < 3) {
-		const limit = ratelimit(form, "assetCreation", getClientAddress, 30)
+		const limit = ratelimit(form, "assetCreation", user.id, 30)
 		if (limit) return limit
 	}
 

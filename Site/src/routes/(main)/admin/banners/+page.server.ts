@@ -73,7 +73,7 @@ actions.create = async e => {
 	if ((await bannerActiveCount()) >= 3)
 		return errMessage(form, "Too many active banners")
 
-	const limit = ratelimit(form, "createBanner", e.getClientAddress, 30)
+	const limit = ratelimit(form, "createBanner", user.id, 30)
 	if (limit) return limit
 
 	await db.insert(Banner, {

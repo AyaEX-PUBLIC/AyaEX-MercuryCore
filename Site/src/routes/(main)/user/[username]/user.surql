@@ -22,7 +22,9 @@ SELECT
 
 		count(<-likes) AS likeCount,
 		count(<-dislikes) AS dislikeCount
-	FROM $parent->ownsPlace->place) AS places,
+	FROM $parent->ownsPlace->place
+	# private places only for their owner, as on the place page and the games list
+	WHERE (!privateServer AND !deleted) OR $user IN <-ownsPlace<-user) AS places,
 
 	count(<->friends) AS friendCount,
 	count(<-follows) AS followerCount,

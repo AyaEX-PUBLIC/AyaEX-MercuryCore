@@ -5,6 +5,9 @@ const economyUrl = "localhost:2009"
 
 export const economyConnFailed = "Cannot connect to Economy service"
 
+/** One whole currency unit in the Economy's micro-units */
+export const UNIT = 1_000_000
+
 export type ReturnValue<T> = Promise<{ ok: true; value: T } | { ok: false }>
 export type ReturnErr = { ok: true } | { ok: false; msg: string }
 

@@ -77,7 +77,7 @@ actions.create = async e => {
 	if (enableRegKeyExpiry && (expiry?.getTime() || 0) < Date.now())
 		return formError(form, ["regKeyExpiry"], ["Invalid date"])
 
-	const limit = ratelimit(form, "createRegKey", e.getClientAddress, 30)
+	const limit = ratelimit(form, "createRegKey", user.id, 30)
 	if (limit) return limit
 
 	try {

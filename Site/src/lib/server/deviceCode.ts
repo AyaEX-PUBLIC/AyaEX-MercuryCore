@@ -60,7 +60,8 @@ export async function pollDevice(token: string) {
 		$found;`,
 		{ hash: sha256(token) }
 	)
-	if (!found || (!found.user && found.expires.getTime() < Date.now()))
+	// approved codes expire too: an unredeemed approval mustn't outlive its code
+	if (!found || found.expires.getTime() < Date.now())
 		return { status: "expired" } as const
 	if (!found.user) return { status: "pending" } as const
 	return { status: "approved", user: found.user } as const

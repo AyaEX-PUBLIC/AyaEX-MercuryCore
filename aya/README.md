@@ -105,9 +105,10 @@ on either channel joins the same servers.
   together.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
-- Place files are only served to gameservers (`ASSET_KEY`), the place's owner
-  and moderators. The host script from `/game/{id}/serve` carries the place's
-  server ticket, so only the Orbiter gets it (`GAMESERVER_KEY`, the same in
+- Place files are only served to the gameserver hosting the place (`ASSET_KEY`
+  plus the `token` in its map URL), the place's owner and moderators. The host
+  script from `/game/{id}/serve` carries the place's server ticket and that
+  token, so only the Orbiter gets it (`GAMESERVER_KEY`, the same in
   `Site/.env` and `../MercuryRCC/Orbiter/.env`).
 
 ## Place owners
@@ -283,8 +284,8 @@ scripts are packed into `Aya.App.data`, so changing them needs a wasm relink.
 
 Players earn 5 currency for every 5 minutes in game ("Playtime reward" in their
 economy history). The gameserver's presence ping (`/game/serverpresence`, about
-every 5 seconds, authorised by the place's server ticket) lists who is
-connected. Only players who joined through the website count. Each account has
+every 5 seconds; it needs the `accesskey` header, and the place's server ticket
+says which place) lists who is connected. Only players who joined through the website count. Each account has
 one timer (`user.playRewardAt`), so being in two servers doesn't double it. Out
 of game for more than a minute restarts the timer. The amount and interval are
 at the top of `Site/src/lib/server/playtime.ts`.

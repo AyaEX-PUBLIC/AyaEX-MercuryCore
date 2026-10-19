@@ -59,8 +59,9 @@ Before committing, check the diff for tokens, keys, webhook URLs and cookies.
   accounts' phrases are in `data/test-account.txt`. The Switch app signs in
   with a code approved on `/device`.
 - Asset routes need a session or the `accesskey` header (`ASSET_KEY`).
-  Place files (`/asset/?id=<place>`, `/game/<place>`) are only for that key,
-  the place's owner and moderators. `/game/<place>/serve` (the host script,
+  Place files (`/asset/?id=<place>`, `/game/<place>`) are only for that key
+  with the place's `token` (in the host script's map URL), the place's owner
+  and moderators. `/game/<place>/serve` (the host script,
   with the place's server ticket) needs the Orbiter's `GAMESERVER_KEY` as a
   bearer token.
   Aya.Server sends it via `--httpAccessKey`.

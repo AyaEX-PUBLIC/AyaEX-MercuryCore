@@ -85,10 +85,12 @@
 
 			try {
 				const res = await fetch(`${currentPath}?/start`, privateFetchParams())
+				const result = deserialize(await res.text())
 				// the action errors before contacting the Orbiter, e.g. with 404
-				// when no place file has been uploaded yet
-				if (!res.ok) {
-					current = res.status === 404 ? "noplacefile" : "fail"
+				// when no place file has been uploaded yet, or fails when this
+				// user has started servers too often
+				if (result.type === "error" || result.type === "failure") {
+					current = result.status === 404 ? "noplacefile" : "fail"
 					return
 				}
 			} catch {

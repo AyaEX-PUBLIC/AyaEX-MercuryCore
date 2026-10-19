@@ -5,9 +5,9 @@ import { authorise } from "$lib/server/auth"
 import createCommentQuery from "$lib/server/createComment.surql"
 import {
 	economyConnFailed,
-	fee,
 	getBalance,
 	transact,
+	UNIT,
 } from "$lib/server/economy"
 import filter from "$lib/server/filter"
 import formError from "$lib/server/formError"
@@ -60,6 +60,13 @@ export async function load({ fetch: f, locals, params }) {
 		user: Record("user", user.id),
 	})
 	if (!asset?.creator) error(404, "Not Found")
+	// items waiting for review, or denied, are only for their creator and staff
+	if (
+		asset.visibility !== "Visible" &&
+		!asset.isCreator &&
+		user.permissionLevel < 3
+	)
+		error(404, "Not Found")
 
 	// game passes and badges live on their place's page
 	if (asset.type === GAME_PASS || asset.type === BADGE) {
@@ -82,7 +89,6 @@ export async function load({ fetch: f, locals, params }) {
 		slug,
 		asset,
 		balance: balance.value,
-		currentFee: fee,
 	}
 }
 
@@ -125,7 +131,7 @@ async function rerender({ fetch: f, locals, params }: RequestEvent) {
 	error(400, "Can't rerender this type of asset")
 }
 export const actions: import("./$types").Actions = { rerender }
-actions.comment = async ({ locals, params, request, getClientAddress }) => {
+actions.comment = async ({ locals, params, request }) => {
 	const { user } = await authorise(locals)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
@@ -134,7 +140,7 @@ actions.comment = async ({ locals, params, request, getClientAddress }) => {
 	if (!unfiltered)
 		return formError(form, ["content"], ["Comment must have content"])
 
-	const limit = ratelimit(form, "comment", getClientAddress, 5)
+	const limit = ratelimit(form, "comment", user.id, 5)
 	if (limit) return limit
 
 	const id = +params.id
@@ -197,7 +203,8 @@ actions.buy = async e => {
 			e.fetch,
 			user.id,
 			asset.creator.id,
-			asset.price,
+			// prices are whole units; the economy counts in micro-units
+			asset.price * UNIT,
 			`Purchased asset ${asset.name}`,
 			`/catalog/${id}/${asset.name}`,
 			{}

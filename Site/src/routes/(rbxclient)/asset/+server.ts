@@ -71,13 +71,14 @@ async function loadUserAsset(id: number) {
 async function loadPlaceAsset(
 	id: number,
 	locals: App.Locals,
-	request: Request
+	request: Request,
+	token: string | null
 ) {
 	// places are stored separately (see the dedicated gameserver flow's placeFile
 	// check), and RCC hosting loads them via /asset/?id= (gameserver.txt convention)
 	const file = Bun.file(`../data/places/${id}`)
 	if (!(await file.exists())) return
-	await requirePlaceFileAccess(locals, request, id)
+	await requirePlaceFileAccess(locals, request, id, token)
 
 	const script = await substituteURLs(file)
 
@@ -176,17 +177,37 @@ async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 	}
 }
 
+// ids that neither upstream had, so asking for them again doesn't reach them
+// (with the operator's credentials) every time
+const missing = new Map<number, number>()
+const missingFor = 10 * 60 * 1000
+
+function rememberMissing(id: number) {
+	missing.delete(id) // re-adding keeps the map in expiry order
+	missing.set(id, Date.now() + missingFor)
+	for (const [old, expires] of missing) {
+		if (expires > Date.now() && missing.size <= 100_000) break
+		missing.delete(old)
+	}
+}
+
 export async function GET({ fetch: f, url, locals, request }) {
 	requireAssetAccess(locals, request)
 
 	const assetId = url.searchParams.get("id")
-	if (!assetId || !intRegex.test(assetId)) error(400, "Invalid Request")
+	if (!assetId || !intRegex.test(assetId) || assetId.length > 15)
+		error(400, "Invalid Request")
 
 	// all asset ids are now numbered
 	const id = +assetId
 	console.log("Requested asset", id)
 
-	const result2b = await loadPlaceAsset(id, locals, request)
+	const result2b = await loadPlaceAsset(
+		id,
+		locals,
+		request,
+		url.searchParams.get("token")
+	)
 	if (result2b) return result2b
 
 	const result1 = await loadPrivilegedAsset(id)
@@ -199,11 +220,19 @@ export async function GET({ fetch: f, url, locals, request }) {
 	const resultAya = await loadAyaAsset(id)
 	if (resultAya) return resultAya
 
+	if ((missing.get(id) || 0) > Date.now()) error(404, "Not Found")
+
 	const resultAyaApi = await loadAyaApiAsset(id)
 	if (resultAyaApi) return resultAyaApi
 
-	const result3 = await loadOpenCloudAsset(f, id)
-	if (result3) return result3
+	try {
+		const result3 = await loadOpenCloudAsset(f, id)
+		if (result3) return result3
+	} catch (e) {
+		rememberMissing(id)
+		throw e
+	}
 
+	rememberMissing(id)
 	error(404, "Not Found")
 }

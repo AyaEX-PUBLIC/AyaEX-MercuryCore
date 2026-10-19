@@ -20,9 +20,9 @@ export async function load({ locals }) {
 }
 
 export const actions: import("./$types").Actions = {}
-actions.default = async ({ locals, request, getClientAddress }) => {
+actions.default = async ({ locals, request }) => {
 	exclude("Forum")
-	await authorise(locals, 5)
+	const { user } = await authorise(locals, 5)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
 
@@ -31,7 +31,7 @@ actions.default = async ({ locals, request, getClientAddress }) => {
 	if (name.toLowerCase() === "create")
 		return formError(form, ["name"], ["Can't park there mate"])
 
-	const limit = ratelimit(form, "forumCategory", getClientAddress, 30)
+	const limit = ratelimit(form, "forumCategory", user.id, 30)
 	if (limit) return limit
 
 	await db.query(createQuery, { description, name })

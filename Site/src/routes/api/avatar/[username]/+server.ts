@@ -25,25 +25,26 @@ export async function GET({ params, url }) {
 	const path = `../data/avatars/${user.id.id}${shotType}.png`
 
 	try {
-		if (wait)
-			// If the file doesn't exist, wait for it to be created
-			// if it does exist, wait for it to be modified
-
-			await Promise.race([
-				new Promise<void>(resolve => {
+		if (wait) {
+			// If the file exists, wait for it to be modified, but don't wait
+			// forever, and always let go of the watcher and the timer
+			let watcher: fs.FSWatcher | undefined
+			let timer: Timer | undefined
+			try {
+				await new Promise<void>(resolve => {
+					timer = setTimeout(resolve, timeout * 1000)
 					try {
-						const watcher = fs.watch(path, () => {
-							watcher.close()
-							resolve()
-						})
+						watcher = fs.watch(path, () => resolve())
 					} catch {
 						resolve()
 					}
-				}),
-				// ...but don't wait forever
-				new Promise(resolve => setTimeout(resolve, timeout * 1000)),
-			])
-		else if (!(await Bun.file(path).exists()))
+				})
+			} finally {
+				watcher?.close()
+				clearTimeout(timer)
+			}
+		}
+		if (!(await Bun.file(path).exists()))
 			throw new Error("File does not exist")
 
 		return new Response(Bun.file(path))

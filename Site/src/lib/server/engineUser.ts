@@ -15,11 +15,30 @@ let byEngineId = new Map<number, EngineUser>()
 let refreshed = 0
 
 async function refresh() {
-	const [users] = await db.query<[EngineUser[]]>(
-		"SELECT record::id(id) AS id, username FROM user"
+	const [users] = await db.query<[(EngineUser & { created: string })[]]>(
+		"SELECT record::id(id) AS id, username, created FROM user ORDER BY created"
 	)
-	byEngineId = new Map(users.map(u => [engineUserId(u.username), u]))
+	// Different usernames can hash to the same UserId. Registration refuses
+	// those now (engineIdTaken), and for older accounts the first one keeps it.
+	const map = new Map<number, EngineUser>()
+	for (const { id, username } of users) {
+		const engineId = engineUserId(username)
+		const owner = map.get(engineId)
+		if (owner)
+			console.warn(
+				`Engine UserId ${engineId} belongs to ${owner.username}, not ${username}`
+			)
+		else map.set(engineId, { id, username })
+	}
+	byEngineId = map
 	refreshed = Date.now()
+}
+
+/** Whether another account already has the engine UserId this username would get */
+export async function engineIdTaken(username: string) {
+	await refresh()
+	const owner = byEngineId.get(engineUserId(username))
+	return !!owner && owner.username !== username
 }
 
 /**

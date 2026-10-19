@@ -209,8 +209,16 @@ actions.privacy = async e => {
 	if (!form.valid) return formError(form)
 
 	const { privateServer } = form.data
+	const place = Record("place", id)
 
-	await db.update(Record("place", id)).merge({ privateServer })
+	const [[wasPrivate]] = await db.query<boolean[][]>(
+		"SELECT VALUE privateServer FROM $place",
+		{ place }
+	)
+	await db.update(place).merge({ privateServer })
+	// anyone could see the old private link while the place was public, so
+	// making it private gives it a new one
+	if (privateServer && !wasPrivate) await db.query(privateTicketQuery, { place })
 	return message(form, "Privacy settings updated successfully!")
 }
 actions.privatelink = async e => {

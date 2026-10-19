@@ -53,7 +53,7 @@ export async function load({ locals, url }) {
 }
 
 export const actions: import("./$types").Actions = {}
-actions.default = async ({ locals, request, getClientAddress }) => {
+actions.default = async ({ locals, request }) => {
 	const { user } = await authorise(locals, 4)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
@@ -80,7 +80,7 @@ actions.default = async ({ locals, request, getClientAddress }) => {
 	if (getModeratee.id === user.id)
 		return formError(form, ["username"], ["You cannot moderate yourself"])
 
-	const limit = ratelimit(form, "moderateUser", getClientAddress, 30)
+	const limit = ratelimit(form, "moderateUser", user.id, 30)
 	if (limit) return limit
 
 	const qParams = Object.freeze({

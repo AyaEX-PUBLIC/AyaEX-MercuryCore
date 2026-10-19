@@ -23,8 +23,14 @@ export async function GET({ url }) {
 	let mapLocation = url.searchParams.get("autopilot")
 	if (mapLocation) {
 		mapLocation = Buffer.from(mapLocation, "base64").toString()
-		if (mapLocation.slice(-5) !== ".rbxl") mapLocation = null
-		else if (mapLocation) mapLocation = `rbxasset://maps/${mapLocation}`
+		// it goes into a Lua string in a signed script, so only plain map
+		// file names (no quotes, backslashes or newlines) are allowed
+		if (
+			!/^[\w\-. /]{1,100}\.rbxl$/.test(mapLocation) ||
+			mapLocation.includes("..")
+		)
+			mapLocation = null
+		else mapLocation = `rbxasset://maps/${mapLocation}`
 	}
 
 	const scriptFile = Bun.file("../data/server/loadscripts/host.lua")

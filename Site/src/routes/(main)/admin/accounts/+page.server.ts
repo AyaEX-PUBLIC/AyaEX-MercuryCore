@@ -25,7 +25,8 @@ actions.resetCode = async ({ locals, request }) => {
 	const [[target]] = await db.query<
 		{ id: RecordId<"user">; username: string }[][]
 	>(
-		"SELECT id, username FROM user WHERE string::lowercase(username) = string::lowercase($username) LIMIT 1",
+		// exactly the account named (case variants of a name used to be allowed)
+		"SELECT id, username FROM user WHERE username = $username LIMIT 1",
 		{ username }
 	)
 	if (!target)

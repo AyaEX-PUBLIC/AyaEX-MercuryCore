@@ -45,7 +45,7 @@ export async function load({ locals, url }) {
 }
 
 export const actions: import("./$types").Actions = {}
-actions.default = async ({ locals, request, url, getClientAddress }) => {
+actions.default = async ({ locals, request, url }) => {
 	const { user } = await authorise(locals)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
@@ -58,7 +58,7 @@ actions.default = async ({ locals, request, url, getClientAddress }) => {
 	const reportee = await getReportee(username)
 	if (!reportee) return errMessage(form, "Invalid user")
 
-	const limit = ratelimit(form, "report", getClientAddress, 120)
+	const limit = ratelimit(form, "report", user.id, 120)
 	if (limit) return limit
 
 	await db.query(reportQuery, {

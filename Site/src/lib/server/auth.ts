@@ -24,7 +24,7 @@ export async function validateSessionToken(
 		getSessionAndUserQuery,
 		{ sess: Record("session", token) }
 	)
-	if (!res.session || !res.user) return { session: null, user: null }
+	if (!res?.session || !res.user) return { session: null, user: null }
 	return res
 }
 

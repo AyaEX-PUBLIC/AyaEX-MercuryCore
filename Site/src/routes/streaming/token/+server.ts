@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit"
-import { engineUserId } from "$lib/server/engineUser"
+import { engineIdTaken, engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
 import {
 	relayRunning,
@@ -31,6 +31,9 @@ export async function POST({ locals, request }) {
 
 	if (!(await streamingAllowed(locals.user.id, +placeId)))
 		error(403, "Press Play on the place page to join")
+	// another account has this one's UserId (see engineUser.ts)
+	if (await engineIdTaken(locals.user.username))
+		error(403, "This account can't join games; ask an administrator")
 
 	const userId = engineUserId(locals.user.username)
 	if (!relayRunning())

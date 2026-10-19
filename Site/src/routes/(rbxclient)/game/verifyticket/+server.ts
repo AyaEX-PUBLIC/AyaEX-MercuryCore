@@ -1,5 +1,5 @@
 import { requireServerKey } from "$lib/server/assetAuth"
-import { engineUserId } from "$lib/server/engineUser"
+import { engineIdTaken, engineUserId } from "$lib/server/engineUser"
 import { db, Record } from "$lib/server/surreal"
 import verifyQuery from "./verify.surql"
 
@@ -19,7 +19,11 @@ export async function GET({ request, url }) {
 			ticket: Record("joinTicket", ticket),
 			place: Record("place", +placeId),
 		})
-		valid = !!found && engineUserId(found.username) === userId
+		// an older account with a colliding UserId keeps it (see engineUser.ts)
+		valid =
+			!!found &&
+			engineUserId(found.username) === userId &&
+			!(await engineIdTaken(found.username))
 	}
 
 	return new Response(valid ? "true" : "false", {

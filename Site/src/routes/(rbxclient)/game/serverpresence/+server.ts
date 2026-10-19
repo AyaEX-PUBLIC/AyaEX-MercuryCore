@@ -1,11 +1,15 @@
 import { error } from "@sveltejs/kit"
+import { requireServerKey } from "$lib/server/assetAuth"
 import { rewardPlaytime } from "$lib/server/playtime"
 import { db, findWhere } from "$lib/server/surreal"
 import pingQuery from "./ping.surql"
 
-// Aya.Server doesn't identify as Roblox/WinInet, so the place's secret server
-// ticket is what authorises the ping
-export async function GET({ fetch, url }) {
+// Only gameservers report presence (it marks players as playing and pays
+// playtime): Aya.Server sends the server key (accesskey) with its host
+// script's requests, and the place's server ticket says which place it hosts.
+// The owner can see the ticket, so it can't authorise the ping on its own.
+export async function GET({ fetch, request, url }) {
+	requireServerKey(request)
 	const ticket = url.searchParams.get("ticket") as string
 	if (!ticket) error(400, "Invalid Request")
 	if (!(await findWhere("place", "serverTicket = $ticket", { ticket })))

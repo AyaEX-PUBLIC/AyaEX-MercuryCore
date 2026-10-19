@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto"
 import { error } from "@sveltejs/kit"
-import { engineUserId } from "$lib/server/engineUser"
+import { engineIdTaken, engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
 import { playerTicket, playerTicketKey } from "$lib/server/playerTicket"
 import { SignData } from "$lib/server/sign"
@@ -54,6 +54,10 @@ export async function GET({ locals, url }) {
 	if (!gameSession) error(400, "Invalid Game Session")
 
 	const { place, user } = gameSession
+	// an older account has this one's UserId, so the gameserver would take
+	// this player for them (registration refuses such names now)
+	if (await engineIdTaken(user.username))
+		error(403, "This account can't join games; ask an administrator")
 	const origin = siteOrigin()
 	const server = gameserverAddress(place.id)
 

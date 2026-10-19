@@ -1,7 +1,7 @@
 // "'Hooks' are app-wide functions you declare that SvelteKit will call in response to specific events, giving you fine-grained control over the framework's behaviour."
 // See https://kit.svelte.dev/docs/hooks/ for more info.
 
-import { type Handle, redirect } from "@sveltejs/kit"
+import { type Handle, type RequestEvent, redirect } from "@sveltejs/kit"
 import { dev } from "$app/environment"
 import pc from "picocolors"
 import {
@@ -67,7 +67,25 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 		)
 	}
 
-	const res = await resolve(event)
+	let res = await resolve(event)
+
+	// a signed-in user's pages (or anything renewing the session cookie) are
+	// theirs alone, so a cache in front of the site must never keep them
+	if (user || res.headers.has("set-cookie")) {
+		const cc = res.headers.get("cache-control")
+		const add = ["private", "no-store"].filter(d => !cc?.includes(d))
+		if (add.length) {
+			const value = [cc, ...add].filter(Boolean).join(", ")
+			try {
+				res.headers.set("cache-control", value)
+			} catch {
+				// headers of a fetched response can't be changed
+				res = new Response(res.body, res)
+				res.headers.set("cache-control", value)
+			}
+		}
+	}
+
 	if (!res.headers.get("content-type")?.includes("text/html")) return res
 
 	// if it's html, add the user's theme and custom CSS before the </body> tag
@@ -97,6 +115,12 @@ export function init() {
 	startStreamingRelay()
 }
 
+// (main) pages need a signed-in user. Their layout load redirects, but
+// SvelteKit skips layout loads for __data.json requests that don't ask for
+// them, so data requests are refused here too (each page's load also checks).
+const signedOutData = (event: RequestEvent) =>
+	event.isDataRequest && !!event.route.id?.startsWith("/(main)")
+
 // Ran every time a dynamic request is made.
 // Requests for prerendered pages do not trigger this hook.
 export async function handle(e) {
@@ -107,12 +131,18 @@ export async function handle(e) {
 		event.locals.session = null
 		event.locals.user = null
 		event.cookies.delete(cookieName, { path: "/" })
+		if (signedOutData(event)) redirect(302, "/login")
 
 		return await finish(e)
 	}
 
 	const { session, user } = await validateSessionToken(token)
-	if (!session || !user) return await finish(e)
+	if (!session || !user) {
+		event.locals.session = null
+		event.locals.user = null
+		if (signedOutData(event)) redirect(302, "/login")
+		return await finish(e)
+	}
 
 	event.locals.session = session
 	event.locals.user = user

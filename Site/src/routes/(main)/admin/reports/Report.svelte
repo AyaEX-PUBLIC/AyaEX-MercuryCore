@@ -8,8 +8,11 @@
 	} = $props()
 
 	// the reporter chooses the URL, so only link pages on this site
-	// (never javascript: or another site)
-	let localUrl = $derived(/^\/(?![/\\])/.test(report.url))
+	// (never javascript: or another site). Browsers drop tabs and newlines
+	// from URLs, so "/\t/evil.example" would be "//evil.example": refuse those
+	let localUrl = $derived(
+		/^\/(?![/\\])/.test(report.url) && !/\p{Cc}/u.test(report.url)
+	)
 </script>
 
 <div id={report.id} class="light-text p-4 max-w-180" popover="auto">

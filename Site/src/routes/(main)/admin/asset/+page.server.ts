@@ -75,8 +75,8 @@ actions.deny = async e => {
 	})
 }
 actions.rerender = async e => {
-	const { id } = await getData(e)
-	const limit = ratelimit(null, "rerender", e.getClientAddress, 10)
+	const { user, id } = await getData(e)
+	const limit = ratelimit(null, "rerender", user.id, 10)
 	if (limit) return limit
 
 	try {

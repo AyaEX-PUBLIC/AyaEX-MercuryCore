@@ -40,11 +40,15 @@ https://${config.Domain}`
 export const load = async () => ({ form: await superValidate(arktype(schema)) })
 
 export const actions: import("./$types").Actions = {}
-actions.default = async ({ cookies, request, getClientAddress }) => {
+actions.default = async ({ cookies, request }) => {
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
 
-	const limit = ratelimit(form, "recover", getClientAddress, 30)
+	// nobody is signed in here, and behind Caddy every client address is the
+	// same, so limit codes per address being recovered, plus a site-wide cap
+	const limit =
+		ratelimit(form, "recover", form.data.email, 30) ||
+		ratelimit(form, "recoverAll", "", 60, 10)
 	if (limit) return limit
 
 	const { email } = form.data

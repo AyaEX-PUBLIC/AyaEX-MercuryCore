@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto"
+import { createHmac, timingSafeEqual } from "node:crypto"
 import { error } from "@sveltejs/kit"
 import { env } from "$env/dynamic/private"
 import { db, Record } from "$lib/server/surreal"
@@ -45,15 +45,38 @@ export function requireOrbiterKey(request: Request) {
 }
 
 /**
- * A place's file is its source, so it's only for gameservers (the server
- * key), the place's owner, and moderators.
+ * What a gameserver needs, besides the server key, to download the file of the
+ * place it hosts: /game/{id}/serve puts it in the host script's map URL. Every
+ * gameserver has the server key and runs its place owner's scripts, which can
+ * make it load other assets (InsertService), so the key alone opens no place.
+ * Derived from GAMESERVER_KEY and the place's server ticket.
+ */
+export function placeFileToken(place: number, serverTicket: string) {
+	if (!env.GAMESERVER_KEY) error(500, "GAMESERVER_KEY is not set")
+	return createHmac("sha256", env.GAMESERVER_KEY)
+		.update(`place-file\n${place}\n${serverTicket}`)
+		.digest("hex")
+}
+
+/**
+ * A place's file is its source, so it's only for the gameserver hosting it
+ * (the server key and the place's token), the place's owner, and moderators.
  */
 export async function requirePlaceFileAccess(
 	locals: App.Locals,
 	request: Request,
-	place: number
+	place: number,
+	token: string | null
 ) {
-	if (hasServerKey(request)) return
+	if (hasServerKey(request)) {
+		const [[serverTicket]] = await db.query<(string | undefined)[][]>(
+			"SELECT VALUE serverTicket FROM $place",
+			{ place: Record("place", place) }
+		)
+		if (serverTicket && sameKey(token, placeFileToken(place, serverTicket)))
+			return
+		error(403, "The server key only opens the place its gameserver hosts")
+	}
 	const { user } = locals
 	if (!user) error(401, "Unauthorized")
 	if (user.permissionLevel >= 4) return

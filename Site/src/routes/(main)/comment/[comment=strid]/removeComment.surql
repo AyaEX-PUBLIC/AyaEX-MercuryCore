@@ -3,9 +3,9 @@ LET $text = IF $moderate { "[removed]" } ELSE { "[deleted]" };
 IF $comment.visibility = "Visible" {
 	UPDATE $comment SET
 		visibility = $visibility,
-		content += {
-			text: $text,
-		}
+		# replace the text, don't add to it: comment readers return every
+		# version, and a removed comment's text must not stay readable
+		content = [{ text: $text }]
 	WHERE IF $moderate {
 		true 
 	} ELSE {

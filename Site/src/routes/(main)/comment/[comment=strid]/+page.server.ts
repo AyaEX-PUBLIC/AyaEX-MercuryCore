@@ -21,7 +21,7 @@ export const load = async ({ params }) => ({
 })
 
 export const actions: import("./$types").Actions = {}
-actions.comment = async ({ locals, params, request, getClientAddress }) => {
+actions.comment = async ({ locals, params, request }) => {
 	const { user } = await authorise(locals)
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
@@ -30,7 +30,7 @@ actions.comment = async ({ locals, params, request, getClientAddress }) => {
 	if (!unfiltered)
 		return formError(form, ["content"], ["Reply cannot be empty"])
 
-	const limit = ratelimit(form, "comment", getClientAddress, 5)
+	const limit = ratelimit(form, "comment", user.id, 5)
 	if (limit) return limit
 
 	const id = params.comment
@@ -68,10 +68,10 @@ actions.comment = async ({ locals, params, request, getClientAddress }) => {
 			}
 		)
 }
-actions.pin = async ({ locals, params, url, getClientAddress }) => {
-	await authorise(locals, 4)
+actions.pin = async ({ locals, params, url }) => {
+	const { user } = await authorise(locals, 4)
 
-	const limit = ratelimit(null, "pin", getClientAddress, 1)
+	const limit = ratelimit(null, "pin", user.id, 1)
 	if (limit) return limit
 
 	const [[ok]] = await db.query<1[][]>(
@@ -85,12 +85,12 @@ actions.pin = async ({ locals, params, url, getClientAddress }) => {
 	)
 	if (!ok) error(404, "Comment not found")
 }
-actions.delete = async ({ locals, params, url, getClientAddress }) => {
+actions.delete = async ({ locals, params, url }) => {
 	const moderate = url.searchParams.get("action") === "moderate"
 
 	const { user } = await authorise(locals, moderate ? 4 : 1)
 
-	const limit = ratelimit(null, "delete", getClientAddress, 5)
+	const limit = ratelimit(null, "delete", user.id, 5)
 	if (limit) return limit
 
 	const [, , ok] = await db.query<1[][]>(removeCommentQuery, {

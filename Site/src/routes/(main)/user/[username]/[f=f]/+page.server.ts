@@ -1,6 +1,7 @@
 // The friends, followers, and following pages for a user.
 
 import { error } from "@sveltejs/kit"
+import { authorise } from "$lib/server/auth"
 import { db, type RecordId } from "$lib/server/surreal"
 import followersQuery from "./followers.surql"
 import followingQuery from "./following.surql"
@@ -15,7 +16,10 @@ const queries = Object.freeze({
 	following: followingQuery,
 })
 
-export async function load({ params }) {
+export async function load({ locals, params }) {
+	// not only in the (main) layout: SvelteKit skips its load for __data.json
+	// requests that don't ask for it
+	await authorise(locals)
 	const type = params.f as keyof typeof queries
 	const [[user]] = await db.query<{ id: RecordId<"user"> }[][]>(
 		userQuery,

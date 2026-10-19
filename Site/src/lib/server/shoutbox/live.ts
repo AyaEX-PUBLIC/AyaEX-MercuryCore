@@ -22,6 +22,25 @@ const listeners = new Set<(entry: Entry) => void>()
 export const cursor = () => `${bootId}.${seq}`
 
 export function publish(event: ShoutEvent) {
+	// a stream catching up must never see a deleted message, or a message as it
+	// was before an edit (both are only for moderators), so rewrite the kept
+	// changes: earlier ones for a deleted message become the deletion, and
+	// earlier ones for an edited message carry the new text
+	if (event.type === "delete" || event.type === "edit") {
+		const id = event.type === "delete" ? event.id : event.shout.id
+		for (const r of recent) {
+			const e = r.entry.event
+			if ((e.type === "new" || e.type === "edit") && e.shout.id === id)
+				r.entry = {
+					cursor: r.entry.cursor,
+					event:
+						event.type === "delete"
+							? { type: "delete", channel: e.channel, id }
+							: { ...e, shout: event.shout },
+				}
+		}
+	}
+
 	seq++
 	const entry = { cursor: cursor(), event }
 	recent.push({ seq, entry })

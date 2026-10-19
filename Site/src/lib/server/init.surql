@@ -102,6 +102,11 @@ DEFINE TABLE OVERWRITE comment SCHEMAFULL TYPE NORMAL;
 		# ["asset", "{asset id}"] -> asset comment
 		# ["asset", "{asset id}", "{comment id}"] -> asset comment comment
 	DEFINE FIELD OVERWRITE visibility ON comment TYPE string DEFAULT "Visible";
+# Removing a comment used to add "[deleted]"/"[removed]" after its text, which
+# stayed readable. Now it replaces it; this clears the old ones (idempotent).
+UPDATE comment
+	SET content = [{ text: IF visibility = "Moderated" { "[removed]" } ELSE { "[deleted]" } }]
+	WHERE visibility != "Visible" AND array::len(content) > 1;
 
 DEFINE TABLE OVERWRITE commentLink SCHEMAFULL TYPE RELATION FROM comment TO comment ENFORCED;
 	DEFINE FIELD OVERWRITE id ON commentLink TYPE string;
@@ -208,6 +213,12 @@ DEFINE TABLE OVERWRITE playing SCHEMAFULL TYPE RELATION FROM user TO place ENFOR
 	DEFINE FIELD OVERWRITE id ON playing TYPE string;
 	DEFINE FIELD OVERWRITE ping ON playing TYPE datetime DEFAULT ALWAYS time::now();
 	DEFINE FIELD OVERWRITE valid ON playing TYPE bool DEFAULT true;
+	# the private link the session was opened with (?/join), if the place was
+	# private: join and streaming checks compare it with the current one
+	DEFINE FIELD OVERWRITE privateTicket ON playing TYPE option<string>;
+# Every Play click used to leave an edge behind forever; ?/join now removes
+# finished ones, and this clears the old ones (nothing accepts them after 5m)
+DELETE playing WHERE ping < time::now() - 5m;
 
 # One-time proof that the Site sent a player to a gameserver: issued with the
 # Aya join configuration, spent by the gameserver when the player arrives
@@ -504,14 +515,17 @@ IF !(SELECT VALUE id FROM shoutChannel LIMIT 1) {
 		name: "general",
 		description: "Talk about anything",
 	};
-	FOR $status IN (
+	# (a FOR straight over a SELECT with no rows fails in SurrealDB 3.0.1, so
+	# it goes through a variable, which a fresh database needs)
+	LET $statuses = (
 		SELECT
 			created,
 			fn::currentContent(content) AS body,
 			(<-createdComment<-user)[0] AS author,
 			visibility
 		FROM comment WHERE type = ["status"]
-	) {
+	);
+	FOR $status IN $statuses {
 		# (filtering on visibility in the WHERE above fails in SurrealDB 3.0.1)
 		IF $status.author AND $status.visibility == "Visible" {
 			CREATE type::record("shout", rand::ulid()) CONTENT {

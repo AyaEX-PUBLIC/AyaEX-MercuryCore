@@ -34,7 +34,7 @@ export async function load({ url }) {
 }
 
 export const actions: import("./$types").Actions = {}
-actions.default = async ({ locals, request, url, getClientAddress }) => {
+actions.default = async ({ locals, request, url }) => {
 	exclude("Forum")
 	const { user } = await authorise(locals)
 	const form = await superValidate(request, arktype(schema))
@@ -50,7 +50,7 @@ actions.default = async ({ locals, request, url, getClientAddress }) => {
 	const category = url.searchParams.get("category")
 	if (!category) error(400, "Missing category")
 
-	const limit = ratelimit(form, "comment", getClientAddress, 5)
+	const limit = ratelimit(form, "comment", user.id, 5)
 	if (limit) return limit
 
 	const [[getCategory]] = await db.query<{ id: string }[][]>(

@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit"
+import { authorise } from "$lib/server/auth"
 import { db } from "$lib/server/surreal"
 import searchAssetsQuery from "./searchAssets.surql"
 import searchGroupsQuery from "./searchGroups.surql"
@@ -26,7 +27,10 @@ type Group = {
 	memberCount: number
 }
 
-export async function load({ url }) {
+export async function load({ locals, url }) {
+	// not only in the (main) layout: SvelteKit skips its load for __data.json
+	// requests that don't ask for it
+	await authorise(locals)
 	const query = url.searchParams.get("q") || ""
 	const category = url.searchParams.get("c")?.toLowerCase() || ""
 	if (!query) error(400, "Missing search query")

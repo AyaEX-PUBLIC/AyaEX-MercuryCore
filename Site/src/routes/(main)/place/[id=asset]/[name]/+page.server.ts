@@ -63,6 +63,9 @@ export async function load({ locals, params, url }) {
 		error(404, "Place not found")
 
 	if (!isOwner || user.permissionLevel !== 5) place.serverTicket = ""
+	// the private link is the owner's to share: others only get back the one
+	// they came with, and nobody gets it while the place is public
+	if (!isOwner) place.privateTicket = place.privateServer ? privateTicket || "" : ""
 
 	// ahh, reminds me of early Mercury 2
 	const slug = encode(place.name)
@@ -127,31 +130,28 @@ async function checkUser(locals: App.Locals) {
 export const actions: import("./$types").Actions = {}
 actions.join = async ({ locals, params, request }) => {
 	const user = await checkUser(locals)
-	const [_, placeR] = await findPlace(request, +params.id, user)
+	const [place, placeR] = await findPlace(request, +params.id, user)
 
-	// Invalidate all game sessions and create valid playing
-	const [, [ticket]] = await db.query<string[][]>(invalidatePlayingQuery, {
+	// Replace the user's game sessions with a valid one, remembering the private
+	// link findPlace accepted (see game/join/aya/latestPlaying.surql)
+	const [, , [ticket]] = await db.query<string[][]>(invalidatePlayingQuery, {
 		user: Record("user", user.id),
 		place: placeR,
+		privateTicket: place.privateServer ? place.privateTicket : undefined,
 	})
 
 	return { ticket }
 }
 
-actions.start = async ({
-	fetch: f,
-	locals,
-	params,
-	request,
-	getClientAddress,
-}) => {
+actions.start = async ({ fetch: f, locals, params, request }) => {
 	const user = await checkUser(locals)
-
-	const limit = ratelimit(null, "serverstart", getClientAddress, 20)
-	if (limit) return limit
 
 	const id = +params.id
 	const [_place, _placeR] = await findPlace(request, id, user)
+
+	// per user, not per place: one account mustn't start a server for every place
+	const limit = ratelimit(null, "serverstart", user.id, 20)
+	if (limit) return limit
 
 	// check for existence of a place file
 	const placeFile = `../data/places/${id}`

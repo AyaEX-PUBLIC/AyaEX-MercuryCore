@@ -16,8 +16,9 @@
 	const { data, form } = $props()
 
 	let { user } = $derived(data)
-	let fee = $derived((data.currentFee * data.asset.price).toFixed(2))
-	let totalPrice = $derived((1 + data.currentFee) * data.asset.price)
+	// the price is in whole units, the balance in the economy's micro-units
+	let totalPrice = $derived(data.asset.price)
+	let balance = $derived(data.balance / 1e6)
 	let itsFree = $derived(data.asset.price === 0) // IT'S FREEEEEEEEEEEEEE
 
 	let regenerating = $state(false)
@@ -126,12 +127,6 @@
 							{data.currencySymbol}{data.asset.price}
 						</dd>
 					</div>
-					<div>
-						<dt>Fee</dt>
-						<dd class="mono text-amber-400">
-							{data.currencySymbol}{fee}
-						</dd>
-					</div>
 				{/if}
 			</dl>
 
@@ -184,7 +179,7 @@
 </div>
 
 <div id="buy" class="buy" popover="auto">
-	{#if data.balance >= totalPrice}
+	{#if balance >= totalPrice}
 		<div class="eyebrow pb-2">{itsFree ? "Get item" : "Purchase"}</div>
 		<h3 class="text-xl pb-2">{data.asset.name}</h3>
 		<p class="grey-text">
@@ -217,7 +212,9 @@
 		<h3 class="text-xl pb-2">Insufficient funds</h3>
 		<p class="grey-text">
 			You don't have enough {data.currencySymbol} to buy this item. You'll
-			need <strong class="light-text mono">{totalPrice - data.balance}</strong>
+			need <strong class="light-text mono"
+				>{+(totalPrice - balance).toFixed(2)}</strong
+			>
 			more.
 		</p>
 

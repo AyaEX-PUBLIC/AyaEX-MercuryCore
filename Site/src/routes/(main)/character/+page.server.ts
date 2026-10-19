@@ -57,7 +57,7 @@ async function getEquipData(e: RequestEvent) {
 	if (!assetRegex.test(assetId)) error(400, `Invalid asset ID: ${assetId}`)
 	const id = +assetId
 
-	const limit = ratelimit(null, "equip", e.getClientAddress, 2)
+	const limit = ratelimit(null, "equip", user.id, 2)
 	if (limit) return { error: limit }
 
 	const [[asset]] = await db.query<AssetData[][]>(equipDataQuery, {
@@ -107,10 +107,10 @@ async function paint({ fetch: f, locals, url }: RequestEvent) {
 
 	return await rerender(f, user)
 }
-async function regen({ fetch: f, locals, getClientAddress }: RequestEvent) {
+async function regen({ fetch: f, locals }: RequestEvent) {
 	const { user } = await authorise(locals)
 
-	const limit = ratelimit(null, "regen", getClientAddress, 2)
+	const limit = ratelimit(null, "regen", user.id, 2)
 	if (limit) return limit
 
 	return await rerender(f, user)

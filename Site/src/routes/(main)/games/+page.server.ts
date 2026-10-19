@@ -1,3 +1,4 @@
+import { authorise } from "$lib/server/auth"
 import pageQuery from "$lib/server/pageQuery"
 import { db } from "$lib/server/surreal"
 import gamesQuery from "./games.surql"
@@ -11,7 +12,10 @@ type Place = {
 	dislikeCount: number
 }
 
-export async function load({ url }) {
+export async function load({ locals, url }) {
+	// not only in the (main) layout: SvelteKit skips its load for __data.json
+	// requests that don't ask for it
+	await authorise(locals)
 	const { page, checkPages } = pageQuery(url)
 
 	const [places, pages] = await db.query<[Place[], number]>(gamesQuery, {
