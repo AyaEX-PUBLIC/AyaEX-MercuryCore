@@ -53,6 +53,9 @@ services:
             # the Aya API (aya-dev compose) fetches Roblox assets Mercury and the
             # local library don't have; set empty to disable
             AYA_ASSET_FALLBACK_URL: ${AYA_ASSET_FALLBACK_URL-http://localhost:8005}
+            # the StreamingFrame signaling relay (Site lib/server/streaming.ts),
+            # on 127.0.0.1; Caddyfile.aya proxies /streaming/ws to it
+            STREAMING_PORT: 4444
         depends_on:
             - database # will keep retrying until database is ready
             - economy

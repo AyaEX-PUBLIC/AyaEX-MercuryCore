@@ -15,8 +15,9 @@ context, so the multithreaded Player works over plain HTTP.
 
 | Port | Service |
 | --- | --- |
-| 8010 | Caddy (`Caddyfile.aya`): Site, `/runtime`, `/gameserver/{placeId}` (WebSocket), `/orbiter/{placeId}` (SSE) |
+| 8010 | Caddy (`Caddyfile.aya`): Site, `/runtime`, `/gameserver/{placeId}` (WebSocket), `/orbiter/{placeId}` (SSE), `/streaming/ws` (WebSocket) |
 | 4443 | Site (docker, host network) |
+| 4444 | StreamingFrame signaling relay, in the Site process (127.0.0.1 only) |
 | 8000, 2009 | SurrealDB, Economy (docker, bound to 127.0.0.1) |
 | 64990 | RCC proxy (native, `../MercuryRCC/Proxy`) |
 | 64991, 64992 | Orbiter private and public APIs (native, `../MercuryRCC/Orbiter`) |
@@ -226,3 +227,31 @@ connected. Only players who joined through the website count. Each account has
 one timer (`user.playRewardAt`), so being in two servers doesn't double it. Out
 of game for more than a minute restarts the timer. The amount and interval are
 at the top of `Site/src/lib/server/playtime.ts`.
+
+## StreamingFrames
+
+Remote StreamingFrames work. The player whose UserId is the frame's
+`ControlingUserID` shares a screen or tab from their browser, and everyone in
+the game sees it on the frame. The video goes peer to peer over WebRTC; the
+Site only passes on the signaling:
+
+- Before joining, the Player posts its join script URL to `/streaming/token`.
+  The Site answers with the relay's address, the ICE servers and the engine
+  UserId the player plays as. It refuses players who haven't pressed Play for
+  that place.
+- The relay (`Site/src/lib/server/streaming.ts`) is a Bun WebSocket server in
+  the Site process, on `STREAMING_PORT` (4444, set in `compose.yml`) on
+  127.0.0.1. Caddy proxies `/streaming/ws` to it. A socket needs the session
+  cookie, the Site's origin and a recent `playing` record for the place, which
+  is checked again every minute. The relay stamps each message with its sender,
+  and the Player only shows a frame's stream from its `ControlingUserID`.
+- `ControlingUserID` takes the engine UserId (`Player.UserId` in game), which
+  Mercury derives from the username (`Site/src/lib/server/engineUser.ts`), not
+  the Mercury user id.
+- Players in a game can see the streamer's IP address in the WebRTC
+  connection, and the streamer theirs. To hide it, run a TURN server and set
+  `STREAMING_ICE_SERVERS` (a JSON array of RTCIceServer) and
+  `STREAMING_ICE_POLICY=relay` in `Site/.env`. Without them, the Player uses
+  Google's public STUN server.
+- Server StreamingFrames (a browser run by the gameserver) stay off: the
+  gameservers are never started with `--allow-server-streamingframes`.

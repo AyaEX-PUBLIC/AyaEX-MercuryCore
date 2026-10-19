@@ -65,6 +65,12 @@
 		reverse_proxy 127.0.0.1:64992
 	}
 
+	# StreamingFrame signaling: a WebSocket relay in the Site process, on its
+	# own port (STREAMING_PORT in compose.yml, Site lib/server/streaming.ts)
+	handle /streaming/ws {
+		reverse_proxy 127.0.0.1:4444
+	}
+
 	# Orbiter public status (server-sent events while a gameserver starts)
 	handle_path /orbiter/* {
 		reverse_proxy 127.0.0.1:64992 {

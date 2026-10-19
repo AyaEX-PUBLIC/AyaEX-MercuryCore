@@ -33,7 +33,7 @@ Before committing, check the diff for tokens, keys, webhook URLs and cookies.
 | --- | --- |
 | `mercury.core.ts` | Site configuration (baked into the Site image) |
 | `Site/` | SvelteKit site; `Site/src/lib/server/init.surql` is the database schema, applied on startup |
-| `Caddyfile.aya` | reverse proxy on :8010 (`/runtime` = Aya player, `/gameserver/*` and `/orbiter/*` = Orbiter) |
+| `Caddyfile.aya` | reverse proxy on :8010 (`/runtime` = Aya player, `/gameserver/*` and `/orbiter/*` = Orbiter, `/streaming/ws` = the Site's StreamingFrame relay) |
 | `compose.yml` | database, economy, site, caddy, and `discordbot` (profile `discord`) |
 | `aya/` | `data/` templates (`setup-data.sh`), `set-domain.sh`, `import-aya-catalog.py`, README |
 | `DiscordBot/` | Bun + discord.js bot: `/invite`, `/getuser`, `/autoadd` |

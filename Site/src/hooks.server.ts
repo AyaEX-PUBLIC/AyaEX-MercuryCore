@@ -15,6 +15,7 @@ import {
 } from "$lib/clientChannels"
 import config from "$lib/server/config"
 import { stipend } from "$lib/server/economy"
+import { startStreamingRelay } from "$lib/server/streaming"
 import { db, Record } from "$lib/server/surreal"
 import moderatedQuery from "./moderated.surql"
 
@@ -89,6 +90,11 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 		statusText: res.statusText,
 		headers: res.headers,
 	})
+}
+
+// Ran once when the server starts
+export function init() {
+	startStreamingRelay()
 }
 
 // Ran every time a dynamic request is made.
