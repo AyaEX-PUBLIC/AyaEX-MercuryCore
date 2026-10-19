@@ -25,7 +25,7 @@ host="${BASH_REMATCH[2]}"
 sed -i -E "s#^(\tDomain: )\"[^\"]*\",#\1\"$host\",#; s#^(\tDomainInsecure: )\"[^\"]*\",#\1\"$host\",#" "$ROOT/mercury.core.ts"
 sed -i -E "s#^ORIGIN=.*#ORIGIN=$origin#" "$ROOT/Site/.env"
 
-grep -nE "^\t(Domain|DomainInsecure): " "$ROOT/mercury.core.ts"
+grep -nE "^[[:space:]](Domain|DomainInsecure): " "$ROOT/mercury.core.ts"
 grep -n "^ORIGIN=" "$ROOT/Site/.env"
 
 # Aya.Server may only reach allowlisted hosts: swap the public domain entry
