@@ -1,17 +1,19 @@
 import { timingSafeEqual } from "node:crypto"
 import { error } from "@sveltejs/kit"
 import { env } from "$env/dynamic/private"
+import { db, Record } from "$lib/server/surreal"
 
 const keyHeader = "accesskey"
 
-export function hasServerKey(request: Request) {
-	const key = env.ASSET_KEY
-	const given = request.headers.get(keyHeader)
+const sameKey = (given: string | null | undefined, key: string | undefined) => {
 	if (!key || !given) return false
 	const a = Buffer.from(given)
 	const b = Buffer.from(key)
 	return a.length === b.length && timingSafeEqual(a, b)
 }
+
+export const hasServerKey = (request: Request) =>
+	sameKey(request.headers.get(keyHeader), env.ASSET_KEY)
 
 /**
  * Asset routes serve place files, avatars and the Roblox asset fallback, so
@@ -27,4 +29,37 @@ export function requireAssetAccess(locals: App.Locals, request: Request) {
 /** Routes only gameservers may call (badges, developer product receipts). */
 export function requireServerKey(request: Request) {
 	if (!hasServerKey(request)) error(401, "Unauthorized")
+}
+
+/**
+ * Routes only the Orbiter may call, such as the host script that carries a
+ * place's server ticket: it sends GAMESERVER_KEY as a bearer token.
+ */
+export function requireOrbiterKey(request: Request) {
+	const auth = request.headers.get("Authorization")
+	if (
+		!auth?.startsWith("Bearer ") ||
+		!sameKey(auth.slice(7), env.GAMESERVER_KEY)
+	)
+		error(401, "Unauthorized")
+}
+
+/**
+ * A place's file is its source, so it's only for gameservers (the server
+ * key), the place's owner, and moderators.
+ */
+export async function requirePlaceFileAccess(
+	locals: App.Locals,
+	request: Request,
+	place: number
+) {
+	if (hasServerKey(request)) return
+	const { user } = locals
+	if (!user) error(401, "Unauthorized")
+	if (user.permissionLevel >= 4) return
+	const [[owner]] = await db.query<(string | undefined)[][]>(
+		"SELECT VALUE record::id(id) FROM $place<-ownsPlace<-user",
+		{ place: Record("place", place) }
+	)
+	if (owner !== user.id) error(403, "Only the place's owner can download it")
 }

@@ -8,7 +8,10 @@ import config from "$lib/server/config"
 import { db, Record } from "$lib/server/surreal"
 import { isXML } from "$lib/server/xml"
 import assetQuery from "./asset.surql"
-import { requireAssetAccess } from "$lib/server/assetAuth"
+import {
+	requireAssetAccess,
+	requirePlaceFileAccess,
+} from "$lib/server/assetAuth"
 
 const headers = (file: string | Uint8Array) => ({
 	"Content-Type": "binary/octet-stream",
@@ -65,11 +68,16 @@ async function loadUserAsset(id: number) {
 	return response(script)
 }
 
-async function loadPlaceAsset(id: number) {
+async function loadPlaceAsset(
+	id: number,
+	locals: App.Locals,
+	request: Request
+) {
 	// places are stored separately (see the dedicated gameserver flow's placeFile
 	// check), and RCC hosting loads them via /asset/?id= (gameserver.txt convention)
 	const file = Bun.file(`../data/places/${id}`)
 	if (!(await file.exists())) return
+	await requirePlaceFileAccess(locals, request, id)
 
 	const script = await substituteURLs(file)
 
@@ -178,7 +186,7 @@ export async function GET({ fetch: f, url, locals, request }) {
 	const id = +assetId
 	console.log("Requested asset", id)
 
-	const result2b = await loadPlaceAsset(id)
+	const result2b = await loadPlaceAsset(id, locals, request)
 	if (result2b) return result2b
 
 	const result1 = await loadPrivilegedAsset(id)

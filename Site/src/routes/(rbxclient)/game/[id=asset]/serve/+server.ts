@@ -1,4 +1,5 @@
 import { error } from "@sveltejs/kit"
+import { requireOrbiterKey } from "$lib/server/assetAuth"
 import config from "$lib/server/config"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
@@ -14,7 +15,10 @@ type Place = {
 	owner?: string
 }
 
-export async function GET({ params }) {
+// The host script carries the place's server ticket (the presence URL), so
+// only the Orbiter may fetch it
+export async function GET({ params, request }) {
+	requireOrbiterKey(request)
 	if (config.Gameservers.Hosting === "Selfhosted")
 		error(400, "Selfhosted servers are not supported")
 

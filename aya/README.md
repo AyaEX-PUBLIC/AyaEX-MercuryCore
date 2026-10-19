@@ -103,6 +103,10 @@ on either channel joins the same servers.
   set `ORIGIN`, `Domain` and the Caddy site address together.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
+- Place files are only served to gameservers (`ASSET_KEY`), the place's owner
+  and moderators. The host script from `/game/{id}/serve` carries the place's
+  server ticket, so only the Orbiter gets it (`GAMESERVER_KEY`, the same in
+  `Site/.env` and `../MercuryRCC/Orbiter/.env`).
 
 ## Place owners
 
