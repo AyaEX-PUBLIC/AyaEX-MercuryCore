@@ -15,7 +15,7 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export DEBIAN_FRONTEND=noninteractive
 packages=(
-	docker.io docker-compose docker-buildx rsync curl ca-certificates nftables
+	docker.io docker-cli docker-compose docker-buildx apparmor rsync curl ca-certificates nftables
 	xvfb libgl1-mesa-dri libglx-mesa0
 	libatomic1 libglu1-mesa libglx0 libice6 libopengl0 libpulse0 libsm6
 	libstdc++6 libuuid1 libx11-6 libxext6
