@@ -70,6 +70,10 @@
 						<b class="light-text mono">{data.followingCount}</b>
 						following
 					</a>
+					<span class="grey-text" title="Player.UserId in game">
+						User ID
+						<b class="light-text mono select-all">{data.userId}</b>
+					</span>
 					{#if data.invitedBy}
 						<span class="grey-text">
 							invited by

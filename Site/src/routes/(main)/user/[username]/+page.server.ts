@@ -1,5 +1,6 @@
 import { error, fail } from "@sveltejs/kit"
 import { authorise } from "$lib/server/auth"
+import { engineUserId } from "$lib/server/engineUser"
 import formData from "$lib/server/formData"
 import { invitedBy, inviteSettings } from "$lib/server/invites"
 import oneAtATime from "$lib/server/oneAtATime"
@@ -62,6 +63,8 @@ export async function load({ locals, params }) {
 
 	return {
 		...userExists,
+		// the UserId in game (Player.UserId), e.g. for a StreamingFrame's ControlingUserID
+		userId: engineUserId(userExists.username),
 		badges: await userBadges(userExists.id),
 		invitedBy: showInviter ? await invitedBy(userExists.id) : undefined,
 	}

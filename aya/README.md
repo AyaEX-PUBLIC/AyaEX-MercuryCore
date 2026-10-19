@@ -247,7 +247,7 @@ Site only passes on the signaling:
   and the Player only shows a frame's stream from its `ControlingUserID`.
 - `ControlingUserID` takes the engine UserId (`Player.UserId` in game), which
   Mercury derives from the username (`Site/src/lib/server/engineUser.ts`), not
-  the Mercury user id.
+  the Mercury user id. Every profile shows it as "User ID".
 - Players in a game can see the streamer's IP address in the WebRTC
   connection, and the streamer theirs. To hide it, run a TURN server and set
   `STREAMING_ICE_SERVERS` (a JSON array of RTCIceServer) and
