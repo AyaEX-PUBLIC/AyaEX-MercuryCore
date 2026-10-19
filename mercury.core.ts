@@ -43,17 +43,17 @@ export default {
 	},
 
 	Branding: {
-		Favicon: "Branding/Favicon.svg",
-		Icon: "Branding/Icon.svg",
-		Tagline: "yeah it's vibecoded",
-		LongTagline: "Endless possibilities. New features. Same nostalgia.",
+		Favicon: "Branding/Favicon.png",
+		Icon: "Branding/Icon.png",
+		Tagline: "Old clients, new tricks",
+		LongTagline: "Classic Roblox, right in your browser. Or on your console.",
 		Descriptions: {
-			"Endless possibilites":
-				"Create or play your favourite games and customise your character with items on our catalog.",
-			"New features":
-				"In addition to full client usability, additional features such as security fixes, QoL fixes and an easy to use website make your experience better.",
 			"Same nostalgia":
-				"All of our clients will remain as vanilla as possible, to make sure it's exactly as you remember it.",
+				"Virtual versions recreate the Roblox clients from 2010 to 2016, with a handful of modern features backported.",
+			"New features":
+				"Switch client versions mid-game, put live web pages on in-game screens with StreamingFrames, and try Freaky Mode if you dare.",
+			"Better security":
+				"Nothing to download or install: the client runs inside your browser's sandbox. You sign in with a 12-word recovery phrase instead of a password, and it never leaves your browser.",
 		},
 	},
 

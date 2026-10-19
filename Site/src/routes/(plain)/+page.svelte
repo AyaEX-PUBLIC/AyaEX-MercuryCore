@@ -15,7 +15,8 @@
 		(data.longTagline || data.siteName).split(/(?<=[.!?])\s+/)
 	)
 
-	const icons = ["fa-mountain-sun", "fa-sliders", "fa-heart"]
+	// in the order of Branding.Descriptions in mercury.core.ts (nostalgia, features, security)
+	const icons = ["fa-heart", "fa-sliders", "fa-shield-halved"]
 
 	const inside = [
 		{
