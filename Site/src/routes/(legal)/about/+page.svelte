@@ -74,67 +74,29 @@
 			<h2>Security and privacy</h2>
 		</div>
 		<div>
-			<h3>Data protection</h3>
+			<h3>No passwords</h3>
 			<p>
-				We take the security and privacy of our users very seriously. No
-				identifying information is stored on our servers, and no data is
-				shared with third parties.
+				{data.siteName} accounts sign in with a 12-word recovery phrase,
+				generated with the BIP39 standard, instead of a password. Your
+				browser turns the phrase into a signing key and proves it's you by
+				signing a one-time challenge, so the phrase never leaves your device
+				and our servers only keep the matching public key. There's no
+				password to leak, guess or reuse, and a copy of our database
+				wouldn't let anyone sign in as you.
 			</p>
-			<h3>Vulnerability management</h3>
 			<p>
-				Careful technology choices ensure that {data.siteName} isn't vulnerable
-				to the same attacks that plague similar platforms. We're constantly
-				monitoring and updating our systems to ensure that users are safe
-				&ndash; and a streamlined reporting system allows us to respond to
-				any security concerns quickly and effectively.
+				Keep your phrase private and somewhere safe: anyone who has it can
+				sign in to your account. The console app signs in with a short code
+				you approve on the website, so you never type your phrase there.
 			</p>
-		</div>
-	</section>
-
-	<section class="part">
-		<div>
-			<h2>Transparency and trust</h2>
-		</div>
-		<div class="tiles grid md:grid-cols-2">
-			<div class="p-6">
-				<h3 class="pt-0!">Professional developers</h3>
-				<p>
-					A group of experienced developers are behind {data.siteName},
-					and we're committed to improving user experience and
-					security. We aim to remain transparent and open about
-					our development process and decisions.
-				</p>
-			</div>
-			<div class="p-6">
-				<h3 class="pt-0!">Community outreach</h3>
-				<p>
-					Our team of testers contribute extensively to the
-					platform's development and direction, and we're always
-					open to feedback and suggestions from the community.
-				</p>
-			</div>
-		</div>
-	</section>
-
-	<section class="part">
-		<div>
-			<h2>Development experience</h2>
-		</div>
-		<div>
-			<h3>Library usage</h3>
+			<h3>A client that runs in your browser</h3>
 			<p>
-				We put a strong emphasis on library usage to improve development
-				speed and maintainability. {data.siteName} is the first revival platform
-				to utilise modern libraries and frameworks backported from contemporary
-				Lua, Luau, and JavaScript ecosystems.
-			</p>
-			<h3>Optimisation and stability</h3>
-			<p>
-				{data.siteName} makes use of techniques borrowed from modern game
-				development to boost performance and reduce latency. Our optimisations
-				have already been proven to improve user experience &ndash; for example,
-				place joining on {data.siteName} is 30-40% faster than competing
-				platforms.
+				The Aya client is built for WebAssembly and runs inside your
+				browser's sandbox, like any other web page. There's nothing to
+				download or install, and nothing that can reach your files or the
+				rest of your computer. Only signed-in players can load it, and game
+				servers only let in players who arrive with a one-time ticket from
+				the website.
 			</p>
 		</div>
 	</section>
