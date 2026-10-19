@@ -105,6 +105,13 @@ on either channel joins the same servers.
   together.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
+- Assets Mercury doesn't have come from Aya's local library, then the Aya API
+  (`AYA_ASSET_FALLBACK_URL`) or Open Cloud, which use the operator's Roblox
+  credentials. Those are cached in `data/assetcache`, up to `ASSET_CACHE_MAX_MB`
+  (2 GiB by default; the oldest files go first). Each user, and each gameserver
+  by the place it hosts, may fetch 1000 new assets at once and then 2 a second;
+  the whole site 5000 and then 10 a second. Ids no upstream has are remembered
+  for 10 minutes.
 - Place files are only served to the gameserver hosting the place (`ASSET_KEY`
   plus the `token` in its map URL), the place's owner and moderators. The host
   script from `/game/{id}/serve` carries the place's server ticket and that

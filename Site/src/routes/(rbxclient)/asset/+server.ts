@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import { readdirSync } from "node:fs"
+import { readdir, stat, unlink } from "node:fs/promises"
 import { env } from "$env/dynamic/private"
 import { error } from "@sveltejs/kit"
 import { OPEN_CLOUD_KEY } from "$env/static/private"
@@ -116,25 +117,97 @@ async function loadAyaAsset(id: number) {
 	return response(await substituteURLs(Bun.file(path)))
 }
 
+// Assets fetched from the Aya API or Open Cloud are cached here, up to
+// ASSET_CACHE_MAX_MB (2 GiB by default); past that the oldest files go
+const cacheDir = "../data/assetcache"
+const cacheMax = () => (Number(env.ASSET_CACHE_MAX_MB) || 2048) * 1024 ** 2
+let cacheSize: number | undefined
+let evicting = false
+
+async function cacheFiles() {
+	const names = await readdir(cacheDir).catch(() => [] as string[])
+	return Promise.all(
+		names.map(async name => {
+			const path = `${cacheDir}/${name}`
+			const s = await stat(path).catch(() => null)
+			return { path, size: s?.size ?? 0, mtime: s?.mtimeMs ?? 0 }
+		})
+	)
+}
+
+async function cacheAsset(id: number, asset: string | Uint8Array) {
+	const bytes = await Bun.write(`${cacheDir}/${id}`, asset)
+	if (cacheSize === undefined)
+		cacheSize = (await cacheFiles()).reduce((n, f) => n + f.size, 0)
+	else cacheSize += bytes
+	if (cacheSize <= cacheMax() || evicting) return
+
+	// drop the oldest files until the cache is 10% under the limit
+	evicting = true
+	try {
+		const files = (await cacheFiles()).sort((a, b) => a.mtime - b.mtime)
+		cacheSize = files.reduce((n, f) => n + f.size, 0)
+		for (const f of files) {
+			if (cacheSize <= cacheMax() * 0.9) break
+			await unlink(f.path).catch(() => {})
+			cacheSize -= f.size
+		}
+	} finally {
+		evicting = false
+	}
+}
+
+async function loadCachedAsset(id: number) {
+	const file = Bun.file(`${cacheDir}/${id}`)
+	if (!(await file.exists())) return
+
+	console.log("Serving cached", id)
+	return response(new Uint8Array(await file.arrayBuffer()))
+}
+
+// Each new asset from upstream spends the operator's Roblox credentials, so
+// every principal has a budget of them (a burst, refilled each second), and
+// so does the whole site
+type Budget = { tokens: number; at: number }
+const budgets = new Map<string, Budget>()
+const siteBudget: Budget = { tokens: 5000, at: Date.now() }
+
+function refill(b: Budget, burst: number, perSecond: number, now: number) {
+	b.tokens = Math.min(burst, b.tokens + ((now - b.at) / 1000) * perSecond)
+	b.at = now
+}
+
+function takeUpstreamFetch(principal: string) {
+	const now = Date.now()
+	const own = budgets.get(principal) ?? { tokens: 1000, at: now }
+	refill(own, 1000, 2, now)
+	refill(siteBudget, 5000, 10, now)
+	if (own.tokens < 1 || siteBudget.tokens < 1)
+		error(429, "Too many new assets requested, try again shortly")
+	own.tokens--
+	siteBudget.tokens--
+	budgets.set(principal, own)
+
+	// forget principals whose budget has filled up again
+	if (budgets.size > 10_000)
+		for (const [p, b] of budgets) {
+			refill(b, 1000, 2, now)
+			if (b.tokens >= 1000) budgets.delete(p)
+		}
+}
+
 // The Aya compatibility API (AYA_ASSET_FALLBACK_URL) serves Roblox assets
 // through its own credentials; results are cached like Open Cloud ones
 async function loadAyaApiAsset(id: number) {
 	const base = env.AYA_ASSET_FALLBACK_URL?.replace(/\/+$/, "")
 	if (!base) return
 
-	const cachepath = `../data/assetcache/${id}`
-	const cached = Bun.file(cachepath)
-	if (await cached.exists()) {
-		console.log("Serving cached Aya API", id)
-		return response(new Uint8Array(await cached.arrayBuffer()))
-	}
-
 	try {
 		const res = await fetch(`${base}/asset/?id=${id}`)
 		if (!res.ok) return
 
 		const asset = await substituteURLs(res)
-		await Bun.write(cachepath, asset)
+		await cacheAsset(id, asset)
 
 		console.log("Serving Aya API", id)
 		return response(asset)
@@ -144,13 +217,6 @@ async function loadAyaApiAsset(id: number) {
 }
 
 async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
-	const cachepath = `../data/assetcache/${id}`
-	const file = Bun.file(cachepath)
-	if (await file.exists()) {
-		console.log("Serving cached Open Cloud", id)
-		return response(new Uint8Array(await file.arrayBuffer()))
-	}
-
 	try {
 		const req = await f(
 			`https://apis.roblox.com/asset-delivery-api/v1/assetId/${id}`,
@@ -165,9 +231,8 @@ async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 		const res = await f(location)
 		if (!res.ok) return
 
-		// cache the asset
 		const script = await substituteURLs(res)
-		await Bun.write(cachepath, script)
+		await cacheAsset(id, script)
 
 		console.log("Serving Open Cloud", id)
 		return response(script)
@@ -220,7 +285,18 @@ export async function GET({ fetch: f, url, locals, request }) {
 	const resultAya = await loadAyaAsset(id)
 	if (resultAya) return resultAya
 
+	const cached = await loadCachedAsset(id)
+	if (cached) return cached
+
 	if ((missing.get(id) || 0) > Date.now()) error(404, "Not Found")
+
+	// past here the asset comes from upstream: a user's budget, or for
+	// gameservers the place they say they host (InsertService sends it)
+	takeUpstreamFetch(
+		locals.user
+			? `user:${locals.user.id}`
+			: `server:${url.searchParams.get("serverplaceid") ?? ""}`
+	)
 
 	const resultAyaApi = await loadAyaApiAsset(id)
 	if (resultAyaApi) return resultAyaApi
