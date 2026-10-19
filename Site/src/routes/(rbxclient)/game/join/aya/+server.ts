@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto"
 import { error } from "@sveltejs/kit"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
+import { playerTicket, playerTicketKey } from "$lib/server/playerTicket"
 import { SignData } from "$lib/server/sign"
 import { db, Record, type RecordId } from "$lib/server/surreal"
 import joinQuery from "../join.surql"
@@ -18,6 +19,7 @@ import latestPlayingQuery from "./latestPlaying.surql"
 type Session = {
 	place: {
 		id: number
+		serverTicket: string
 		ownerUser?: {
 			username: string
 		}
@@ -69,14 +71,17 @@ export async function GET({ locals, url }) {
 		}
 	)
 
+	const userId = engineUserId(user.username)
+	const characterAppearance = `${origin}/asset/characterfetch/${user.username}?ticket=${ticket}`
+
 	const joinconfig = {
 		ClientPort: 0,
 		MachineAddress: server.address,
 		ServerPort: server.port,
 		UserName: user.username,
 		DisplayName: user.username,
-		UserId: engineUserId(user.username),
-		CharacterAppearance: `${origin}/asset/characterfetch/${user.username}?ticket=${ticket}`,
+		UserId: userId,
+		CharacterAppearance: characterAppearance,
 		// presence is reported by the gameserver (see /game/serverpresence)
 		PingUrl: "",
 		PingInterval: 0,
@@ -94,7 +99,13 @@ export async function GET({ locals, url }) {
 		VirtualVersion: 0, // 2016
 		IsRobloxPlace: false,
 		BaseUrl: `${origin}/`,
-		ClientTicket: "",
+		// lets the gameserver check who this is before they join (see
+		// $lib/server/playerTicket)
+		ClientTicket: playerTicket(playerTicketKey(place.id, place.serverTicket), {
+			userId,
+			name: user.username,
+			characterAppearance,
+		}),
 		SessionId: "",
 		BrowserTrackerId: "",
 		FollowUserId: 0,

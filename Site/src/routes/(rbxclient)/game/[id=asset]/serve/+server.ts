@@ -4,6 +4,7 @@ import config from "$lib/server/config"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
 import idToPort from "$lib/server/idToPort"
+import { playerTicketKey } from "$lib/server/playerTicket"
 import { SignScript } from "$lib/server/sign"
 import { db, Record } from "$lib/server/surreal"
 import placeQuery from "./place.surql"
@@ -47,6 +48,10 @@ export async function GET({ params, request }) {
 		.replaceAll(
 			"_CREATOR_ID",
 			(place.owner ? engineUserId(place.owner) : 0).toString()
+		)
+		.replaceAll(
+			"_PLAYER_TICKET_KEY",
+			`"${playerTicketKey(id, place.serverTicket)}"`
 		)
 
 	return new Response(await SignScript(script))

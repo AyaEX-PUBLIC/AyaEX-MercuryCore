@@ -98,9 +98,11 @@ on either channel joins the same servers.
 
 ## Notes
 
-- Aya.Server runs with `--insecure` (no engine ticket checks). That is fine
-  locally. A public deployment needs Aya-compatible engine tickets and HTTPS:
-  set `ORIGIN`, `Domain` and the Caddy site address together.
+- Aya.Server runs with `--insecure`, which turns off the engine's client
+  checks (protocol, security key, hash) the browser Player can't pass. Player
+  identity is still checked: see [Player tickets](#player-tickets). A public
+  deployment needs HTTPS: set `ORIGIN`, `Domain` and the Caddy site address
+  together.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
 - Place files are only served to gameservers (`ASSET_KEY`), the place's owner
@@ -119,17 +121,36 @@ The owner also gets the server side of the developer console: the server log,
 server stats and the server command line. The console asks the website which
 tabs to show (`/users/{id}/canmanage/{placeId}`, true only for the owner
 asking with their own session, so never for a gameserver). That only decides
-what the client shows. Gameservers run with `--insecure`, so a
-player's UserId is only what their client claims until the host script has
-checked their join ticket, and the website can't vouch for a connection.
+what the client shows. The website can't vouch for a connection, so
 Aya.Server doesn't ask it on insecure servers: the host script calls
-`LogService:AllowConsoleAccess(player)` for the owner once their ticket is
-verified. Another player claiming the owner's UserId is a different connection
-and never gets the console.
+`LogService:AllowConsoleAccess(player)` for the owner once their join ticket
+is verified.
 
-Place scripts that trust `game.CreatorId` (admin scripts, for example) still
-run before the ticket check finishes, like anything else keyed on a UserId.
-Engine tickets would close that gap.
+## Player tickets
+
+Gameservers check who each player is before the Player joins `Players`, so
+place scripts (admin scripts keyed on `game.CreatorId`, DataStores, badges)
+can trust `player.userId`, and nobody can join as someone else:
+
+- `/game/join/aya` puts a `ClientTicket` in the join config:
+  `timestamp;fullSignature;userSignature`, HMAC-SHA256 signatures of the
+  player's UserId, name, `CharacterAppearance` URL and the time
+  (`Site/src/lib/server/playerTicket.ts`).
+- The key is derived from `GAMESERVER_KEY` and the place's server ticket, and
+  the host script hands it to the engine with
+  `NetworkServer:SetPlayerTicketKey` (`_PLAYER_TICKET_KEY`) before it starts
+  the network server.
+- Aya.Server then checks the ticket even under `--insecure`: the UserId when
+  the client connects, everything else before the Player joins. A ticket works
+  once, within five minutes. A bad, reused or missing ticket disconnects the
+  client, and the server log says why ("Rejected join ticket ...").
+- The host script's `/game/verifyticket` check still runs after that: it
+  spends the website's join ticket and marks the player as playing.
+
+The key call isn't in a pcall, so an Aya.Server without
+`SetPlayerTicketKey` (aya-dev before 2026-10-19) fails to host instead of
+hosting without checks. Deploy the engine before the Site. Only Mercury sets a
+key: Aya's own launcher hosts without one and keeps trusting the client.
 
 ## In-game reports
 

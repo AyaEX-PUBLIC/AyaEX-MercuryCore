@@ -5,6 +5,7 @@ SELECT
 			dedicated,
 			serverAddress,
 			serverPort,
+			serverTicket,
 			(
 				SELECT username
 				FROM $parent<-ownsPlace<-user

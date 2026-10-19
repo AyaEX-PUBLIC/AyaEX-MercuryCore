@@ -64,6 +64,11 @@ Before committing, check the diff for tokens, keys, webhook URLs and cookies.
   with the place's server ticket) needs the Orbiter's `GAMESERVER_KEY` as a
   bearer token.
   Aya.Server sends it via `--httpAccessKey`.
+- Gameservers check each player's join ticket (`ClientTicket`, signed in
+  `lib/server/playerTicket.ts`) before the player joins, so `player.userId`
+  can be trusted in game. `host.lua` needs an Aya.Server with
+  `NetworkServer:SetPlayerTicketKey`: deploy the engine before the Site (see
+  Player tickets in `aya/README.md`).
 - Test with temporary places and accounts, and delete them afterwards. Don't
   restart the RCC services or the Site while players are in games without
   checking first (`curl localhost:64991/` lists running gameservers).

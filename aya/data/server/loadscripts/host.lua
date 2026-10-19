@@ -1,7 +1,8 @@
 -- Aya.Server host script, served by /game/{id}/serve and sent to Aya.Server as
 -- an RCC OpenJobEx job by the Orbiter and RCC proxy.
 -- The Site substitutes _BASE_URL, _SITE_ORIGIN, _MAP_LOCATION, _SERVER_PORT,
--- _SERVER_PRESENCE_URL and _CREATOR_ID; the Orbiter substitutes _HOSTPING_URL.
+-- _SERVER_PRESENCE_URL, _CREATOR_ID and _PLAYER_TICKET_KEY; the Orbiter
+-- substitutes _HOSTPING_URL.
 print "[Host]: Starting Aya gameserver..."
 
 local NetworkServer = game:GetService "NetworkServer"
@@ -144,6 +145,11 @@ Players.PlayerRemoving:connect(function(player)
 	hostPing("PlayersLeft\n" .. tostring(player.userId))
 	reportPresence(player)
 end)
+
+-- Players must join with a ticket from the Site's join route, which the engine
+-- checks before they join Players, so nobody can claim another user's UserId.
+-- Not in a pcall: an engine without it must not host Mercury games.
+NetworkServer:SetPlayerTicketKey(_PLAYER_TICKET_KEY)
 
 -- Aya starts the network server before loading the place (content/host.lua)
 NetworkServer:Start(port)
