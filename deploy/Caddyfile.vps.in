@@ -1,5 +1,5 @@
-# Public deployment on a VPS (deploy/deploy.sh fills in __DOMAIN__ and
-# __AUTH__ and installs this as deploy/Caddyfile.vps on the VPS).
+# Public deployment on a VPS (deploy/deploy.sh fills in the domain and the
+# site-wide login, if any, and installs this as deploy/Caddyfile.vps there).
 #
 # The :8010 site is the same as at home (Caddyfile.aya). In front of it is
 # HTTPS for the public domain, with a Cloudflare origin certificate. The VPS

@@ -169,12 +169,12 @@ remote "cd $R/MercuryCore && $COMPOSE up -d --force-recreate --no-deps caddy 2>&
 
 step "checking"
 sleep 8
-remote "curl -sk -o /dev/null -w 'from the VPS itself: %{http_code}\n' -m 20 https://$DOMAIN/"
+remote "curl -sk -o /dev/null -w 'from the VPS itself: %{http_code}\n' -m 20 https://$DOMAIN/" || true
 ip="${VPS#*@}"
-curl -sk -o /dev/null -w "from here, straight to the VPS: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/"
+curl -sk -o /dev/null -w "from here, straight to the VPS: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/" || true
 if [[ -n "${BASIC_AUTH_USER:-}" ]]; then
 	curl -sk -o /dev/null -w "  with the login: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" \
-		-u "$BASIC_AUTH_USER:$BASIC_AUTH_PASSWORD" "https://$DOMAIN/"
+		-u "$BASIC_AUTH_USER:$BASIC_AUTH_PASSWORD" "https://$DOMAIN/" || true
 fi
 curl -s -o /dev/null -w "through Cloudflare: %{http_code}\n" -m 20 "https://$DOMAIN/" || true
 remote "systemctl is-active mercury-xvfb mercury-rcc-proxy mercury-orbiter | paste -sd' '; cd $R/MercuryCore && $COMPOSE ps --format '{{.Service}} {{.State}}' | paste -sd' '"
