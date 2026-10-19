@@ -102,9 +102,11 @@ step "preparing the VPS"
 remote "bash $R/MercuryCore/deploy/provision.sh $R $DOMAIN"
 # compose.yml runs the Site and database as the owner of data/
 remote "printf 'AYA_DATA_UID=%s\nAYA_DATA_GID=%s\n' \$(id -u mercury) \$(id -g mercury) >$R/MercuryCore/.env"
-if ! remote "test -z \"\$(ldd $R/aya-dev/build/x64-linux-rel/bin/Aya.Server | grep 'not found')\""; then
+# (with the library path the proxy's service gives it)
+aya="$R/aya-dev/build/x64-linux-rel/bin"
+if ! remote "test -z \"\$(LD_LIBRARY_PATH=$aya ldd $aya/Aya.Server | grep 'not found')\""; then
 	echo "Aya.Server is missing libraries on the VPS:" >&2
-	remote "ldd $R/aya-dev/build/x64-linux-rel/bin/Aya.Server | grep 'not found'" >&2
+	remote "LD_LIBRARY_PATH=$aya ldd $aya/Aya.Server | grep 'not found'" >&2
 	exit 1
 fi
 

@@ -9,6 +9,8 @@ Requires=mercury-xvfb.service
 User=mercury
 WorkingDirectory=@ROOT@/MercuryRCC/Proxy
 Environment=DISPLAY=:99
+# Aya.Server's runpath is the build machine's; FMOD sits next to it here
+Environment=LD_LIBRARY_PATH=@ROOT@/aya-dev/build/x64-linux-rel/bin
 ExecStart=@ROOT@/MercuryRCC/Proxy/Proxy
 # hosted gameservers are containers: stop them with the proxy
 # ($$ is a literal $ for systemd)
