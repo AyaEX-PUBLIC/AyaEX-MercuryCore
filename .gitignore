@@ -4,3 +4,8 @@
 /keys
 /Economy/Economy
 /Economy/Economy.exe
+
+# VPS deployment (deploy/deploy.sh): settings, and files made on the VPS
+/deploy/vps.env
+/deploy/Caddyfile.vps
+/deploy/certs/

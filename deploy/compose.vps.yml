@@ -1,0 +1,9 @@
+# Changes to compose.yml on a VPS (deploy/deploy.sh): Caddy serves the public
+# domain over HTTPS (deploy/Caddyfile.vps, made on the VPS from
+# Caddyfile.vps.in) in front of the usual :8010 site.
+services:
+    caddy:
+        volumes:
+            - ./deploy/Caddyfile.vps:/etc/caddy/Caddyfile:ro
+            - ./Caddyfile.aya:/etc/caddy/Caddyfile.aya:ro
+            - ./deploy/certs:/etc/caddy/certs:ro

@@ -1,0 +1,31 @@
+# Public deployment on a VPS (deploy/deploy.sh fills in __DOMAIN__ and
+# __AUTH__ and installs this as deploy/Caddyfile.vps on the VPS).
+#
+# The :8010 site is the same as at home (Caddyfile.aya). In front of it is
+# HTTPS for the public domain, with a Cloudflare origin certificate. The VPS
+# resolves the domain to itself (/etc/hosts), so its gameservers and renders
+# reach the site here directly instead of through Cloudflare, and only
+# requests from elsewhere need the site-wide login, if there is one.
+import /etc/caddy/Caddyfile.aya
+
+__DOMAIN__ {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+__AUTH__
+	reverse_proxy 127.0.0.1:8010 {
+		flush_interval -1
+	}
+}
+
+# Engine URLs use http:// (DomainInsecure): served directly for the VPS
+# itself, and sent to HTTPS for everyone else
+http://__DOMAIN__ {
+	@vps remote_ip 127.0.0.1 ::1
+	handle @vps {
+		reverse_proxy 127.0.0.1:8010 {
+			flush_interval -1
+		}
+	}
+	handle {
+		redir https://{host}{uri} 308
+	}
+}

@@ -49,6 +49,40 @@ The RCC proxy's `Proxy/.env` sets `RCC_EXE` (the native `Aya.Server`) and
 `RCC_ARGS`. `--contentPath` points at `aya-dev/client/resources/content`,
 because the native build's `bin/content` copy isn't refreshed by CMake.
 
+## Deploying to a VPS
+
+`deploy/deploy.sh` puts the whole stack on a Debian 13 VPS: the Site,
+database, economy and Caddy (compose), the RCC proxy and Orbiter, and the
+engine files they use. Settings go in `deploy/vps.env` (ignored by git; see
+`deploy/vps.env.example`): the SSH destination, the domain, a Cloudflare
+origin certificate and key, and an optional site-wide login.
+
+```bash
+deploy/deploy.sh                 # send the code, settings and engine build, rebuild, restart
+deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machine's
+```
+
+- The code sent is each repository's last commit (MercuryCore, MercuryRCC).
+  `mercury.core.ts` and the `.env` files are this machine's, switched to the
+  VPS's domain by `aya/set-domain.sh --no-restart`. From aya-dev it sends
+  only `Aya.Server` and its files, `client/resources`, the WebAssembly build
+  (the dev channel) and `assets`.
+- On the VPS (`/opt/mercury`, run by the `mercury` user), `deploy/provision.sh`:
+  - installs Docker and the libraries Aya.Server needs, all from Debian
+  - sets up a firewall that lets in only SSH, HTTP and HTTPS
+  - makes the domain resolve to the VPS itself
+  - installs systemd services for the RCC proxy, the Orbiter and an Xvfb
+    display (`:99`) for renders, so they come back after a reboot
+- Caddy (`deploy/Caddyfile.vps.in`, `deploy/compose.vps.yml`) serves the
+  domain over HTTPS with the origin certificate, in front of the usual `:8010`
+  site. Requests from the VPS itself, its gameservers and renders, never need
+  the site-wide login.
+- The gameserver image is copied from this machine (`docker save`), since
+  building it needs a `dhi.io` login.
+- `--migrate-data` stops this machine's database and economy for a few
+  seconds, for a consistent copy. Either way, the deploy stops if games are
+  running on the VPS (`--force` to go ahead).
+
 ## Client channels
 
 Players choose a client channel in **Settings → Client**: `stable` (the

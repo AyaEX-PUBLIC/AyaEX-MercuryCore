@@ -1,0 +1,11 @@
+# X display for Aya.Server's thumbnail renders (they need an OpenGL context)
+[Unit]
+Description=Mercury: X display for Aya.Server renders
+
+[Service]
+User=mercury
+ExecStart=/usr/bin/Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

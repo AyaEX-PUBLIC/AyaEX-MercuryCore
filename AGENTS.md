@@ -45,6 +45,8 @@ Before committing, check the diff for tokens, keys, webhook URLs and cookies.
   `docker compose up -d --force-recreate site`.
 - Bot: `docker compose --profile discord up -d --build discordbot`. Typecheck it
   with `bunx tsc --noEmit` in `DiscordBot/`.
+- Deploy to the VPS with `deploy/deploy.sh` (settings in `deploy/vps.env`,
+  never committed; see "Deploying to a VPS" in `aya/README.md`).
 - Change the public address with `aya/set-domain.sh <url>`. It keeps `Domain`,
   `DomainInsecure`, `ORIGIN` and the Aya.Server allowlist in sync. Afterwards,
   restart the RCC services while nobody is playing.

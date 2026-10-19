@@ -4,13 +4,19 @@
 #   aya/set-domain.sh https://example.trycloudflare.com
 # Updates Domain and DomainInsecure in mercury.core.ts and ORIGIN in Site/.env
 # (they must agree, or form posts fail with "Cross-site POST form submissions
-# are forbidden"), then rebuilds and restarts the Site.
+# are forbidden"), then rebuilds and restarts the Site, unless --no-restart is
+# given first (deploy/deploy.sh uses that on the copy it sends to a VPS).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+restart=1
+if [[ "${1:-}" == "--no-restart" ]]; then
+	restart=0
+	shift
+fi
 url="${1:-}"
 if [[ ! "$url" =~ ^(https?)://([^/]+)/?$ ]]; then
-	echo "usage: $0 http(s)://host[:port]" >&2
+	echo "usage: $0 [--no-restart] http(s)://host[:port]" >&2
 	exit 1
 fi
 origin="${BASH_REMATCH[1]}://${BASH_REMATCH[2]}"
@@ -56,5 +62,7 @@ EOF
 	echo "Updated the Aya.Server host allowlist; restart the RCC services (MercuryRCC/stop.sh, run.sh) to apply it."
 fi
 
-cd "$ROOT"
-docker compose up -d --build site
+if ((restart)); then
+	cd "$ROOT"
+	docker compose up -d --build site
+fi
