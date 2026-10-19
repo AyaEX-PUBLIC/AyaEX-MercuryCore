@@ -45,7 +45,13 @@
 		void main() { gl_Position = vec4(a, 0.0, 1.0); }`
 
 	const fragment = `
+		// Phone GPUs run mediump as 16-bit floats, too coarse for the hash: its
+		// noise comes out flat and no pixel lights up. Desktops use 32 bits anyway.
+		#ifdef GL_FRAGMENT_PRECISION_HIGH
+		precision highp float;
+		#else
 		precision mediump float;
+		#endif
 		uniform vec2 cells;
 		uniform float time, density, seed, clearAmount, fadeTop, fadeBottom;
 		uniform vec4 clearZone;
