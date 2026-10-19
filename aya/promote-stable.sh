@@ -7,7 +7,9 @@
 #   aya/promote-stable.sh --use VERSION  point stable at a kept release
 #
 # Releases live in data/runtime/releases/<runtime version>; data/runtime/stable
-# is a relative symlink that Caddy serves (Caddyfile.aya). Switching it is
+# is a relative symlink that Caddy serves (Caddyfile.aya). The runtime version
+# doesn't cover the page shell (Aya.App.html), so a build that changes only the
+# shell is kept as <runtime version>-<shell hash> instead. Switching it is
 # atomic, so players on stable never see a partially copied build. The newest
 # KEEP releases (default 3) are kept, plus whichever one stable points at.
 set -euo pipefail
@@ -20,6 +22,11 @@ FILES=(Aya.App.html Aya.App.js Aya.App.wasm Aya.App.data Aya.App.Brand.png
 	Aya.GameWebRtc.js Aya.App.StreamingFrame.js Aya.Diagnostics.js)
 
 die() { echo "promote-stable: $*" >&2; exit 1; }
+
+# whether release directory $2 holds exactly the files of build $1
+same_files() {
+	for f in "${FILES[@]}"; do cmp -s "$1/$f" "$2/$f" || return 1; done
+}
 
 point_stable() {
 	ln -sfn "releases/$1" "$RUNTIME/stable.tmp"
@@ -63,10 +70,17 @@ done
 version="$(grep -m1 -o 'const runtimeVersion = "[0-9a-f]*"' "$SRC/Aya.App.html" |
 	grep -o '[0-9a-f]\{8,\}')" || die "no runtimeVersion in Aya.App.html"
 
-if [[ -d "$RELEASES/$version" ]]; then
-	echo "release $version already kept"
+release="$version"
+if [[ -d "$RELEASES/$release" ]] && ! same_files "$SRC" "$RELEASES/$release"; then
+	release="$version-$(sha256sum "$SRC/Aya.App.html" | cut -c1-8)"
+fi
+
+if [[ -d "$RELEASES/$release" ]]; then
+	same_files "$SRC" "$RELEASES/$release" ||
+		die "releases/$release differs from $SRC; is a build half written?"
+	echo "release $release already kept"
 else
-	tmp="$RELEASES/.incoming-$version"
+	tmp="$RELEASES/.incoming-$release"
 	rm -rf "$tmp"
 	mkdir -p "$tmp"
 	for f in "${FILES[@]}"; do cp -p "$SRC/$f" "$tmp/"; done
@@ -74,10 +88,10 @@ else
 	for f in "${FILES[@]}"; do
 		cmp -s "$SRC/$f" "$tmp/$f" || { rm -rf "$tmp"; die "$f changed while copying; retry"; }
 	done
-	mv -T "$tmp" "$RELEASES/$version"
-	echo "copied $SRC -> releases/$version"
+	mv -T "$tmp" "$RELEASES/$release"
+	echo "copied $SRC -> releases/$release"
 fi
-point_stable "$version"
+point_stable "$release"
 
 cur="$(current)"
 ls -1t "$RELEASES" | tail -n +"$((KEEP + 1))" | while read -r old; do

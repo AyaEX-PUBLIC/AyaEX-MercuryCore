@@ -110,7 +110,10 @@ aya/promote-stable.sh --use VERSION  # roll stable back to a kept release
 Promoting refuses while `build_app_wasm.sh` is running or if the build output
 is incomplete, copies the files Caddy serves into a new release directory, and
 then switches the `stable` symlink atomically, so stable players never load a
-half-copied build. The three newest releases are kept (`KEEP=n` to change).
+half-copied build. Releases are named by runtime version, which doesn't cover
+the page shell (`Aya.App.html`): a build that changes only the shell becomes
+`<runtime version>-<shell hash>`. The three newest releases are kept (`KEEP=n`
+to change).
 The runtime caches by build version, so switching channels is safe.
 
 Gameservers are native `Aya.Server` builds and aren't channelled; a client
