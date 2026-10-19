@@ -1,5 +1,6 @@
 import { error } from "@sveltejs/kit"
 import config from "$lib/server/config"
+import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
 import idToPort from "$lib/server/idToPort"
 import { SignScript } from "$lib/server/sign"
@@ -10,6 +11,7 @@ type Place = {
 	id: number
 	serverPort: number
 	serverTicket: string
+	owner?: string
 }
 
 export async function GET({ params }) {
@@ -38,6 +40,10 @@ export async function GET({ params }) {
 		)
 		.replaceAll("_SERVER_PORT", idToPort(id).toString())
 		.replaceAll("_SERVER_PRESENCE_URL", `"${serverPresenceUrl}"`)
+		.replaceAll(
+			"_CREATOR_ID",
+			(place.owner ? engineUserId(place.owner) : 0).toString()
+		)
 
 	return new Response(await SignScript(script))
 }

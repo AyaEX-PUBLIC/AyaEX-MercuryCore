@@ -18,7 +18,7 @@ import latestPlayingQuery from "./latestPlaying.surql"
 type Session = {
 	place: {
 		id: number
-		ownerUser: {
+		ownerUser?: {
 			username: string
 		}
 	}
@@ -83,7 +83,8 @@ export async function GET({ locals, url }) {
 		GameId: "00000000-0000-0000-0000-000000000000",
 		PlaceId: place.id,
 		UniverseId: place.id,
-		CreatorId: 0,
+		// the owner gets the place owner icon, and game.CreatorId in scripts
+		CreatorId: place.ownerUser ? engineUserId(place.ownerUser.username) : 0,
 		CreatorTypeEnum: "User",
 		MembershipType: "None",
 		AccountAge: 0,

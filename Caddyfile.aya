@@ -115,6 +115,11 @@
 
 		rewrite /universes/validate-place-join /api/validateplacejoin
 
+		# the engine's web API calls put a second slash after the host
+		# (https://host//users/...): the developer console's canmanage check
+		@canManage path_regexp canManage ^/+(users/[0-9]+/canmanage/[0-9]+)$
+		rewrite @canManage /{re.canManage.1}
+
 		# in-game store and badges (Site lib/server/store.ts)
 		rewrite /Game/GamePass/GamePassHandler.ashx /game/gamepass/haspass
 		rewrite /game/gamepass/gamepasshandler.ashx /game/gamepass/haspass

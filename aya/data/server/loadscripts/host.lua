@@ -1,7 +1,7 @@
 -- Aya.Server host script, served by /game/{id}/serve and sent to Aya.Server as
 -- an RCC OpenJobEx job by the Orbiter and RCC proxy.
--- The Site substitutes _BASE_URL, _SITE_ORIGIN, _MAP_LOCATION, _SERVER_PORT
--- and _SERVER_PRESENCE_URL; the Orbiter substitutes _HOSTPING_URL.
+-- The Site substitutes _BASE_URL, _SITE_ORIGIN, _MAP_LOCATION, _SERVER_PORT,
+-- _SERVER_PRESENCE_URL and _CREATOR_ID; the Orbiter substitutes _HOSTPING_URL.
 print "[Host]: Starting Aya gameserver..."
 
 local NetworkServer = game:GetService "NetworkServer"
@@ -17,6 +17,7 @@ local port = _SERVER_PORT
 local presenceUrl = _SERVER_PRESENCE_URL
 local hostPingUrl = "_HOSTPING_URL"
 local siteOrigin = _SITE_ORIGIN -- https; the badge award POST can't follow an http -> https redirect
+local creatorId = _CREATOR_ID -- the place owner's UserId
 
 -- report the connected players with the presence ping, which marks them as
 -- playing on the website
@@ -56,6 +57,8 @@ ScriptContext.ScriptsDisabled = true
 
 local placeId = tonumber(mapLoc:match "id=(%d+)") or 0
 pcall(function() game:SetPlaceID(placeId, false) end)
+-- game.CreatorId in scripts (and on clients, from the join script)
+pcall(function() game:SetCreatorID(creatorId, Enum.CreatorType.User) end)
 pcall(function() game:GetService("ChangeHistoryService"):SetEnabled(false) end)
 
 pcall(function() ContentProvider:SetBaseUrl(url .. "/") end)
@@ -123,6 +126,12 @@ Players.PlayerAdded:connect(function(player)
 		print("[Host]: Player " .. player.userId .. " has no valid join ticket, kicking")
 		player:Kick "This game can only be joined from the website."
 		return
+	end
+	-- The ticket proved who this is, so the owner gets the server side of the
+	-- developer console (output, stats, command line). This server can't
+	-- authenticate players itself (--insecure), so it trusts no one else.
+	if creatorId ~= 0 and player.userId == creatorId then
+		pcall(function() game:GetService("LogService"):AllowConsoleAccess(player) end)
 	end
 	print("Player " .. player.userId .. " added")
 	hostPing("PlayerAdded\n" .. tostring(player.userId))

@@ -104,6 +104,29 @@ on either channel joins the same servers.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
 
+## Place owners
+
+The place's owner is its creator in game: the join script's `CreatorId` and
+the gameserver's `game:SetCreatorID` (host script, `_CREATOR_ID`) are the
+owner's engine UserId. Scripts see it as `game.CreatorId`, and the 2015 and
+2016 player lists show the place owner icon next to them.
+
+The owner also gets the server side of the developer console: the server log,
+server stats and the server command line. The console asks the website which
+tabs to show (`/users/{id}/canmanage/{placeId}`, true only for the owner
+asking with their own session, so never for a gameserver). That only decides
+what the client shows. Gameservers run with `--insecure`, so a
+player's UserId is only what their client claims until the host script has
+checked their join ticket, and the website can't vouch for a connection.
+Aya.Server doesn't ask it on insecure servers: the host script calls
+`LogService:AllowConsoleAccess(player)` for the owner once their ticket is
+verified. Another player claiming the owner's UserId is a different connection
+and never gets the console.
+
+Place scripts that trust `game.CreatorId` (admin scripts, for example) still
+run before the ticket check finishes, like anything else keyed on a UserId.
+Engine tickets would close that gap.
+
 ## Game passes, developer products and badges
 
 Created per place in **place settings → Store** (logic in
