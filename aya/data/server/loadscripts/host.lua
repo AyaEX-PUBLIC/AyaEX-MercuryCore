@@ -63,7 +63,9 @@ pcall(function() game:GetService("ChangeHistoryService"):SetEnabled(false) end)
 
 pcall(function() ContentProvider:SetBaseUrl(url .. "/") end)
 pcall(function() game:GetService("ScriptInformationProvider"):SetAssetUrl(url .. "/asset/") end)
-pcall(function() Players:SetAbuseReportUrl(url .. "/AbuseReport/InGameChatHandler.ashx") end)
+-- in-game abuse reports, with the chat the reporter could see (Site route
+-- game/abusereport)
+pcall(function() Players:SetAbuseReportUrl(siteOrigin .. "/game/abusereport") end)
 pcall(function() game:GetService("BadgeService"):SetPlaceId(placeId) end)
 -- badges and game passes (Site routes game/badge/* and game/gamepass/haspass)
 pcall(function()

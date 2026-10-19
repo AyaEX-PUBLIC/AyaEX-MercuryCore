@@ -61,6 +61,11 @@
 		padding: 0.5rem 0 0.5rem 1rem;
 		border-left: 0.2rem solid rgba(136, 136, 136, 0.667);
 		font-style: italic;
+		/* in-game reports carry the chat log, a line per message */
+		white-space: pre-line;
+		overflow-wrap: anywhere;
+		max-height: 50vh;
+		overflow-y: auto;
 	}
 
 	td {

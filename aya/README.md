@@ -127,6 +127,19 @@ Place scripts that trust `game.CreatorId` (admin scripts, for example) still
 run before the ticket check finishes, like anything else keyed on a UserId.
 Engine tickets would close that gap.
 
+## In-game reports
+
+The in-game menu's Report tab (and the report menus of the 2013 to 2015
+versions) sends reports to the gameserver. The gameserver adds the chat the
+reporter could see and posts them to `/game/abusereport`
+(`Players:SetAbuseReportUrl` in the host script, with the server key). They
+show up in **Admin → Abuse reports** like website reports: about the reported
+player, or about the place's owner for a report on the game. The in-game
+reason is mapped to the website's categories, and the chat log goes in the
+note. A player must be in the game to report in it, and can send 5 reports
+every 10 minutes (website reports included). The 2010 and 2011 versions'
+report buttons don't do anything.
+
 ## Game passes, developer products and badges
 
 Created per place in **place settings → Store** (logic in
