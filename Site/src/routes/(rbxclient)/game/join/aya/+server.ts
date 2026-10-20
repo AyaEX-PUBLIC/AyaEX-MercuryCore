@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto"
 import { error } from "@sveltejs/kit"
+import { playerRig } from "$lib/rigTypes"
 import { engineIdTaken, engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
 import { playerTicket, playerTicketKey } from "$lib/server/playerTicket"
@@ -19,12 +20,14 @@ import latestPlayingQuery from "./latestPlaying.surql"
 type Session = {
 	place: {
 		id: number
+		rigType?: string
 		serverTicket: string
 		ownerUser?: {
 			username: string
 		}
 	}
 	user: {
+		avatarRig?: string
 		permissionLevel: number
 		username: string
 	}
@@ -76,7 +79,9 @@ export async function GET({ locals, url }) {
 	)
 
 	const userId = engineUserId(user.username)
-	const characterAppearance = `${origin}/asset/characterfetch/${user.username}?ticket=${ticket}`
+	// the engine reads the character's rig from ayaRig (lib/rigTypes.ts)
+	const rig = playerRig(place.rigType, user.avatarRig)
+	const characterAppearance = `${origin}/asset/characterfetch/${user.username}?ticket=${ticket}&ayaRig=${rig}`
 
 	const joinconfig = {
 		ClientPort: 0,

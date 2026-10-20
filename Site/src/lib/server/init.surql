@@ -203,6 +203,9 @@ DEFINE TABLE OVERWRITE place SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE name ON place TYPE string DEFAULT "";
 	DEFINE FIELD OVERWRITE privateServer ON place TYPE bool DEFAULT false;
 	DEFINE FIELD OVERWRITE privateTicket ON place TYPE string DEFAULT rand::id();
+	# avatar rig: R6, R15, or Both (each player's choice, user.avatarRig; $lib/rigTypes.ts)
+	DEFINE FIELD OVERWRITE rigType ON place TYPE string DEFAULT ALWAYS "Both"
+		ASSERT $value IN ["Both", "R6", "R15"];
 	DEFINE FIELD OVERWRITE serverAddress ON place TYPE string DEFAULT "";
 	DEFINE FIELD OVERWRITE serverPing ON place TYPE int DEFAULT 0;
 	DEFINE FIELD OVERWRITE serverPort ON place TYPE int;
@@ -350,6 +353,9 @@ DEFINE TABLE OVERWRITE stuff SCHEMALESS;
 DEFINE TABLE OVERWRITE user SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE id ON user TYPE string;
 	DEFINE FIELD OVERWRITE admin ON user TYPE bool DEFAULT count(SELECT 1 FROM user) == 0; # Only the first account should be admin
+	# the avatar type the user plays as where a place lets players choose ($lib/rigTypes.ts)
+	DEFINE FIELD OVERWRITE avatarRig ON user TYPE string DEFAULT ALWAYS "R6"
+		ASSERT $value IN ["R6", "R15"];
 	DEFINE FIELD OVERWRITE bodyColours ON user TYPE object;
 		DEFINE FIELD OVERWRITE bodyColours.Head ON user TYPE int;
 		DEFINE FIELD OVERWRITE bodyColours.LeftArm ON user TYPE int;

@@ -8,6 +8,7 @@ SELECT
 	(SELECT status, username FROM $parent<-ownsPlace<-user)[0] AS owner,
 	privateServer,
 	privateTicket,
+	rigType ?? "Both" AS rigType,
 	serverAddress,
 	serverPort,
 	serverTicket

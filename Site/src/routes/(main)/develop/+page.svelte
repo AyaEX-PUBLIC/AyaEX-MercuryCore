@@ -27,18 +27,26 @@
 	<h2 class="text-base pb-3">Places</h2>
 	<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3 mb-12">
 		<AdminLink
+			href="/runtime?apptype=studio"
+			iconClass="fa-hammer"
+			num={0}
+			total={3}
+			name="Open Studio">
+			Build in your browser, then publish to a new or existing game.
+		</AdminLink>
+		<AdminLink
 			href="/games/create"
 			iconClass="fa-mountain-sun"
-			num={0}
-			total={2}
+			num={1}
+			total={3}
 			name="New place">
 			Start a new place, then upload a place file in its settings.
 		</AdminLink>
 		<AdminLink
 			href="/user/{data.user.username}"
 			iconClass="fa-folder-closed"
-			num={1}
-			total={2}
+			num={2}
+			total={3}
 			name="Your places">
 			Your games are listed on your profile.
 		</AdminLink>

@@ -3,6 +3,7 @@ LET $u = (SELECT
     record::id(id) AS id,
 	fn::currentContent($this.description) AS description,
     bodyColours,
+    avatarRig ?? "R6" AS avatarRig,
     # created,
     IF email {
 		string::concat("*******@", parse::email::host(email)) 

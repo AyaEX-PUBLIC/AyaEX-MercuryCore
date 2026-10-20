@@ -2,10 +2,17 @@ import fs from "node:fs"
 import { error, fail } from "@sveltejs/kit"
 import { type } from "arktype"
 import sharp from "sharp"
+import { placeRigTypes } from "$lib/rigTypes"
 import { authorise } from "$lib/server/auth"
 import filter from "$lib/server/filter"
 import formError from "$lib/server/formError"
 import { closeGameserver } from "$lib/server/orbiter"
+import {
+	lockedClientVersion,
+	maxPlaceFileSize,
+	setPlacePrivacy,
+	writePlaceFile,
+} from "$lib/server/places"
 import {
 	BADGE,
 	createDevProduct,
@@ -16,6 +23,7 @@ import {
 	updateStoreItem,
 } from "$lib/server/store"
 import { db, Record } from "$lib/server/surreal"
+import updatePlaceViewQuery from "$lib/server/updatePlaceView.surql"
 import { arktype, message, superValidate } from "$lib/server/validate"
 import {
 	maxPlayersTest,
@@ -24,11 +32,9 @@ import {
 } from "$lib/typeTests"
 import { encode } from "$lib/urlName"
 import type { RequestEvent } from "./$types.d"
-import { lockedClientVersion } from "../../../../games/create/clientVersions"
 import privateTicketQuery from "./privateTicket.surql"
 import serverTicketQuery from "./serverTicket.surql"
 import settingsQuery from "./settings.surql"
-import updateSettingsQuery from "./updateSettings.surql"
 
 const viewSchema = type({
 	name: "string <= 100",
@@ -46,6 +52,9 @@ const ticketSchema = type({} as never) // I'm a genius
 const privacySchema = type({
 	privateServer: "boolean",
 })
+const avatarSchema = type({
+	rigType: type.enumerated(...placeRigTypes),
+})
 const privatelinkSchema = type({} as never)
 const dataSchema = type({
 	file: "File",
@@ -61,6 +70,7 @@ type Place = {
 	owner: BasicUser
 	privateServer: boolean
 	privateTicket: string
+	rigType: (typeof placeRigTypes)[number]
 	clientVersion: number
 	serverAddress: string
 	serverPing: number
@@ -93,6 +103,10 @@ export async function load({ locals, params }) {
 		),
 		networkForm: await superValidate(arktype(networkSchema)),
 		ticketForm: await superValidate(arktype(ticketSchema)), // lmaooo it works
+		avatarForm: await superValidate(
+			{ rigType: getPlace.rigType },
+			arktype(avatarSchema)
+		),
 		privacyForm: await superValidate(arktype(privacySchema)),
 		privatelinkForm: await superValidate(arktype(privatelinkSchema)),
 		dataForm: await superValidate(arktype(dataSchema)),
@@ -164,7 +178,7 @@ actions.view = async e => {
 		}
 	}
 
-	await db.query(updateSettingsQuery, {
+	await db.query(updatePlaceViewQuery, {
 		place: Record("place", +id),
 		name: filter(name),
 		description: filter(description || ""),
@@ -208,18 +222,18 @@ actions.privacy = async e => {
 	const form = await superValidate(e.request, arktype(privacySchema))
 	if (!form.valid) return formError(form)
 
-	const { privateServer } = form.data
-	const place = Record("place", id)
-
-	const [[wasPrivate]] = await db.query<boolean[][]>(
-		"SELECT VALUE privateServer FROM $place",
-		{ place }
-	)
-	await db.update(place).merge({ privateServer })
-	// anyone could see the old private link while the place was public, so
-	// making it private gives it a new one
-	if (privateServer && !wasPrivate) await db.query(privateTicketQuery, { place })
+	await setPlacePrivacy(id, form.data.privateServer)
 	return message(form, "Privacy settings updated successfully!")
+}
+actions.avatar = async e => {
+	const id = await getData(e)
+	const form = await superValidate(e.request, arktype(avatarSchema))
+	if (!form.valid) return formError(form)
+
+	// players get the rig when they join (game/join/aya), so a running server
+	// can keep going
+	await db.update(Record("place", id)).merge({ rigType: form.data.rigType })
+	return message(form, "Avatar settings updated successfully!")
 }
 actions.privatelink = async e => {
 	const id = await getData(e)
@@ -238,14 +252,14 @@ actions.data = async e => {
 
 	const { file } = form.data
 	form.data.file = undefined as unknown as File
-	if (file.size > 100e6)
+	if (file.size > maxPlaceFileSize)
 		return formError(
 			form,
 			["file"],
 			["File must be less than 100MB in size"]
 		)
 
-	await Bun.write(`../data/places/${id}`, file)
+	await writePlaceFile(id, file)
 	return message(form, "Place data updated successfully!")
 }
 

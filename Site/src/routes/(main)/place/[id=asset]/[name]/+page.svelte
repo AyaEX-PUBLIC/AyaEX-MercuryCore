@@ -194,6 +194,13 @@
 					<span class="ml-auto flex items-center">
 						{#if place.ownerUser?.username === user.username || user.permissionLevel >= 4}
 							<a
+								aria-label="Edit in Studio"
+								href="/runtime?apptype=studio&placeId={place.id}"
+								target="_blank"
+								class="btn btn-sm btn-quatenary tooltip px-2">
+								<fa fa-hammer></fa>
+							</a>
+							<a
 								aria-label="Place settings"
 								href="/place/{place.id}/{data.slug}/settings"
 								class="btn btn-sm btn-quatenary tooltip px-2">

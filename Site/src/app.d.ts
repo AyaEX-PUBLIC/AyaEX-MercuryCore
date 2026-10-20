@@ -39,6 +39,8 @@ declare global {
 		hasPhrase: boolean
 		css: string
 		clientChannel?: import("$lib/clientChannels").ClientChannel
+		/** The avatar type for places that let players choose (lib/rigTypes.ts) */
+		avatarRig?: import("$lib/rigTypes").AvatarRig
 		theme: number
 	}
 

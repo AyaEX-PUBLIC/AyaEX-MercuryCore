@@ -3,6 +3,7 @@ SELECT
 		SELECT
 			record::id(id) AS id,
 			dedicated,
+			rigType,
 			serverAddress,
 			serverPort,
 			serverTicket,
@@ -14,6 +15,7 @@ SELECT
 	)[0] AS place,
 	(
 		SELECT
+			avatarRig,
 			permissionLevel,
 			username
 		FROM $parent<-user

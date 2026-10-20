@@ -4,6 +4,7 @@
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import Tab from "$components/Tab.svelte"
 	import TabData from "$components/TabData"
+	import AvatarForm from "./Avatar.svelte"
 	import DataForm from "./Data.svelte"
 	import NetworkForm from "./Network.svelte"
 	import PrivacyForm from "./Privacy.svelte"
@@ -17,8 +18,8 @@
 	let tabData = $state(
 		TabData(
 			data.url,
-			["View", "Network", "Privacy", "Data", "Store"],
-			["fa-eye", "fa-network-wired", "fa-eye-low-vision", "fa-database", "fa-coins"]
+			["View", "Network", "Avatar", "Privacy", "Data", "Store"],
+			["fa-eye", "fa-network-wired", "fa-user", "fa-eye-low-vision", "fa-database", "fa-coins"]
 		)
 	)
 </script>
@@ -70,6 +71,20 @@
 					<TicketForm {data} />
 					{#key data.serverTicket}
 						<NetworkForm {data} />
+					{/key}
+				</div>
+			</section>
+		</Tab>
+
+		<Tab bind:tabData>
+			<section class="panel">
+				<div class="panel-head">Avatar</div>
+				<div class="p-5">
+					<p class="grey-text text-sm">
+						Choose whether players spawn as R6 or R15 characters.
+					</p>
+					{#key data.rigType}
+						<AvatarForm {data} />
 					{/key}
 				</div>
 			</section>

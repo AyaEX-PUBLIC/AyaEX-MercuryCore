@@ -148,6 +148,41 @@ it, so it plays as "Player"). Aya only runs scripts loaded this way behind an
 `--ayasig%` header (`SignAyaScript` in `Site/src/lib/server/sign.ts`); native
 Roblox clients still get `--rbxsig%`.
 
+Studio works with the user's games (aya-dev `client/studio/MercuryStudio.cpp`
+and `client/app/MercuryStudio.js`). Before the engine starts, the shell asks
+`/studio/api/session`; a reply turns on Mercury's parts of Studio, and the
+standalone site's Studio stays as it was. Open it from Create > Open Studio,
+or from a place page's hammer button (`/runtime?apptype=studio&placeId=…`,
+which opens that game).
+
+- The Start page and File > Open from Mercury list the user's games and open
+  them from `/game/{id}` (a game without a place file opens an empty place).
+- File > Publish to Mercury (also on the Home tab) uploads the place to the
+  game it came from; Publish to Mercury As makes a new game (within the same
+  two-game limit as the site) or publishes over another one.
+- Game Settings (File menu and Home tab) changes the name, description,
+  server size, avatar type and privacy. Icons, thumbnails and the store stay
+  on the place's settings page.
+- Playtests use the game's place id and the user's Mercury avatar; the
+  standalone build's Aya Web Util dock is hidden.
+
+The routes are in `Site/src/routes/(rbxclient)/studio/api` (`session`,
+`places`, `places/{id}`, `places/{id}/file`). They use the session, refuse
+requests that browsers mark as coming from another site, and only let a
+game's owner (or a moderator) change it. Place changes they share with the
+site's forms are in `Site/src/lib/server/places.ts`.
+
+## Avatar types
+
+A place's avatar type (Settings > Avatar, or Studio's Game Settings) is R6,
+R15 or Both. With Both, each player spawns with the avatar type they chose on
+the Character page (`user.avatarRig`). The Site puts the result in the
+CharacterAppearance URL as `ayaRig=R6|R15` (join configuration and Studio's
+visit script), and Aya picks the character from it (`Site/src/lib/rigTypes.ts`).
+Avatar pictures stay R6: native Aya.Server renders don't draw R15 characters
+properly yet (no clothing, nothing below the waist). Players get the rig when
+they join, so changing it doesn't restart a running server.
+
 ## Notes
 
 - Aya.Server runs with `--insecure`, which turns off the engine's client

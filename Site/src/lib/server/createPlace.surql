@@ -6,6 +6,7 @@ LET $place = CREATE ONLY place CONTENT {
 	maxPlayers: $maxPlayers,
 	name: $name,
 	privateServer: $privateServer,
+	rigType: $rigType,
 	clientVersion: $clientVersion,
 	serverAddress: $serverAddress,
 	serverPort: $serverPort,

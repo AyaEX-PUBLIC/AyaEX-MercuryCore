@@ -1,6 +1,7 @@
 import { error, fail } from "@sveltejs/kit"
 import { brickColours } from "$lib/brickColours"
 import { assetRegex } from "$lib/paramTests"
+import { avatarRigs } from "$lib/rigTypes"
 import { authorise } from "$lib/server/auth"
 import ratelimit from "$lib/server/ratelimit"
 import requestRender from "$lib/server/requestRender"
@@ -115,6 +116,19 @@ async function regen({ fetch: f, locals }: RequestEvent) {
 
 	return await rerender(f, user)
 }
+// the avatar type for places that let players choose (lib/rigTypes.ts)
+async function rig({ fetch: f, locals, url }: RequestEvent) {
+	const { user } = await authorise(locals)
+	const avatarRig = url.searchParams.get("rig")
+	if (!avatarRigs.includes(avatarRig as (typeof avatarRigs)[number]))
+		return fail(400)
+
+	const limit = ratelimit(null, "regen", user.id, 2)
+	if (limit) return limit
+
+	await db.update(Record("user", user.id)).merge({ avatarRig })
+	return await rerender(f, user)
+}
 async function equip(e: RequestEvent) {
 	const { user, id, asset, error } = await getEquipData(e)
 	if (error) return error
@@ -150,6 +164,7 @@ async function unequip(e: RequestEvent) {
 export const actions: import("./$types").Actions = {
 	paint,
 	regen,
+	rig,
 	equip,
 	unequip,
 }

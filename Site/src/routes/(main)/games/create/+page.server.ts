@@ -2,11 +2,8 @@ import { redirect } from "@sveltejs/kit"
 import { type } from "arktype"
 import { authorise } from "$lib/server/auth"
 // import { createPlace, getPlacePrice } from "$lib/server/economy"
-import filter from "$lib/server/filter"
 import formError from "$lib/server/formError"
-import { randomAssetId } from "$lib/server/id"
-import oneAtATime from "$lib/server/oneAtATime"
-import { db, Record } from "$lib/server/surreal"
+import { createPlace, placeLimit } from "$lib/server/places"
 import { arktype, superValidate } from "$lib/server/validate"
 import {
 	maxPlayersTest,
@@ -14,9 +11,6 @@ import {
 	serverPortTest,
 } from "$lib/typeTests"
 import { encode } from "$lib/urlName"
-import countQuery from "./count.surql"
-import createQuery from "./create.surql"
-import { lockedClientVersion } from "./clientVersions"
 
 const schema = type({
 	name: "3 <= string <= 50",
@@ -27,13 +21,6 @@ const schema = type({
 	maxPlayers: maxPlayersTest.default(10),
 	privateServer: "boolean | undefined",
 })
-
-async function placeCount(id: string) {
-	const [[count]] = await db.query<number[][]>(countQuery, {
-		user: Record("user", id),
-	})
-	return count
-}
 
 export async function load() {
 	// const price = getPlacePrice()
@@ -50,12 +37,6 @@ actions.default = async ({ locals, request }) => {
 	const form = await superValidate(request, arktype(schema))
 	if (!form.valid) return formError(form)
 
-	const { maxPlayers, privateServer } = form.data
-	// only administrators can see or set the selfhosted server address
-	const isAdmin = user.permissionLevel >= 5
-	const serverAddress = isAdmin ? form.data.serverAddress : "localhost"
-	const serverPort = isAdmin ? form.data.serverPort : 53640
-
 	const name = form.data.name.trim()
 	if (!name) return formError(form, ["name"], ["Place must have a name"])
 	const description = form.data.description.trim()
@@ -66,40 +47,26 @@ actions.default = async ({ locals, request }) => {
 			["Place must have a description"]
 		)
 	const slug = encode(name)
-	const id = randomAssetId() // listen, this still isn't great, but whatever atp
 
 	// const created = await createPlace(f, user.id, id, name, slug)
 	// if (!created.ok) return formError(form, ["other"], [created.msg])
 
-	const create = () =>
-		db.query(createQuery, {
-			id,
-			user: Record("user", user.id),
-			name: filter(name),
-			description: filter(description),
-			serverAddress,
-			serverPort,
-			privateServer,
-			maxPlayers,
-			clientVersion: lockedClientVersion,
-		})
-
-	// administrators can create any number of places; everyone else two, checked
-	// and created one request at a time so concurrent requests can't both pass
-	if (isAdmin) await create()
-	else {
-		const created = await oneAtATime(`placeCreate:${user.id}`, async () => {
-			if ((await placeCount(user.id)) >= 2) return false
-			await create()
-			return true
-		})
-		if (!created)
-			return formError(
-				form,
-				["other"],
-				["You can't have more than two places"]
-			)
-	}
+	// (only administrators can set the selfhosted server address)
+	const { maxPlayers, privateServer, serverAddress, serverPort } = form.data
+	const id = await createPlace(user, {
+		name,
+		description,
+		maxPlayers,
+		privateServer,
+		serverAddress,
+		serverPort,
+	})
+	if (!id)
+		return formError(
+			form,
+			["other"],
+			[`You can't have more than ${placeLimit} places`]
+		)
 
 	redirect(302, `/place/${id}/${slug}`)
 }

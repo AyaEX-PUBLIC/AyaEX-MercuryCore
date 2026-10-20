@@ -5,6 +5,7 @@
 	import TabData from "$components/TabData"
 	import TabNav from "$components/TabNav.svelte"
 	import { brickColours, brickToHex } from "$lib/brickColours"
+	import { avatarRigs } from "$lib/rigTypes"
 	import AvatarItem from "./AvatarItem.svelte"
 
 	const { data, form } = $props()
@@ -101,6 +102,24 @@
 				{#if form?.msg}
 					<p class="text-red-400 text-sm px-4 pb-3">{form.msg}</p>
 				{/if}
+				<div class="avatar-type line-t">
+					<span class="grey-text text-sm">Avatar type</span>
+					<div class="flex">
+						{#each avatarRigs as rig}
+							<form use:enhance={enhanceRegen} method="post" action="?/rig&rig={rig}">
+								<button
+									class={["btn btn-sm", (user.avatarRig || "R6") === rig ? "btn-primary" : "btn-tertiary"]}
+									aria-pressed={(user.avatarRig || "R6") === rig}
+									disabled={regenerating}>
+									{rig}
+								</button>
+							</form>
+						{/each}
+					</div>
+				</div>
+				<p class="grey-text text-xs px-4 pb-4">
+					Used in games that let players choose. Some games always use R6 or R15.
+				</p>
 			</section>
 
 			<section class="panel">
@@ -192,6 +211,14 @@
 			height: 100%;
 			object-fit: contain;
 		}
+	}
+
+	.avatar-type {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem 0.5rem;
 	}
 
 	.bodyPart {
