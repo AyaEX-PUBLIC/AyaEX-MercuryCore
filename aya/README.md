@@ -135,6 +135,19 @@ on either channel joins the same servers.
 5. Gameservers send heartbeats and close themselves after five minutes without
    players.
 
+## Studio
+
+The WebAssembly Studio runs at `/runtime?apptype=studio`, on the same channels
+as the Player. Its Start page is `welcome.html` (with `aya-studio.png`), which
+ships with the runtime build.
+
+Its Play button starts a playtest with `/Game/Visit.ashx`
+(`data/server/loadscripts/visit.lua`, served by `/game/visit`). The Site gives
+the local player the signed-in user's UserId and avatar (scripts can't rename
+it, so it plays as "Player"). Aya only runs scripts loaded this way behind an
+`--ayasig%` header (`SignAyaScript` in `Site/src/lib/server/sign.ts`); native
+Roblox clients still get `--rbxsig%`.
+
 ## Notes
 
 - Aya.Server runs with `--insecure`, which turns off the engine's client

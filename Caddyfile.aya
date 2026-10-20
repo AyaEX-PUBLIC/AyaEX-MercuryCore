@@ -52,7 +52,8 @@
 		@unversioned not query v=*
 		header @unversioned Cache-Control "no-cache"
 		root * {aya_runtime_root}
-		@unknownRuntimeAsset not path /Aya.App.js /Aya.App.wasm /Aya.App.data /Aya.App.Brand.png /Aya.GameWebRtc.js /Aya.App.StreamingFrame.js /Aya.Diagnostics.js
+		# (welcome.html and aya-studio.png: Studio's Start page)
+		@unknownRuntimeAsset not path /Aya.App.js /Aya.App.wasm /Aya.App.data /Aya.App.Brand.png /Aya.GameWebRtc.js /Aya.App.StreamingFrame.js /Aya.Diagnostics.js /welcome.html /aya-studio.png
 		respond @unknownRuntimeAsset 404
 		file_server
 	}
@@ -83,6 +84,9 @@
 		rewrite /Asset /asset
 		rewrite /Asset/ /asset
 		rewrite /Asset/Default.ashx /asset
+		# assetdelivery-style URLs, which places and the engine also use
+		rewrite /v1/asset /asset
+		rewrite /v1/asset/ /asset
 
 		rewrite /Game/Studio.ashx /game/studio
 		rewrite /Game/Visit.ashx /game/visit

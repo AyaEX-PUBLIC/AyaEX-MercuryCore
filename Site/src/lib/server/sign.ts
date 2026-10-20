@@ -17,6 +17,21 @@ export async function SignScript(data: string, assetId?: number) {
 }
 
 /**
+ * Signs a Lua script for the Aya engine, which only runs scripts it loads with
+ * loadfile (like /game/visit) behind "--ayasig%<signature>%": an RSA SHA-512
+ * signature of the text after it. Its WebAssembly builds only check that the
+ * header is there.
+ * @param data The Lua script to sign.
+ * @returns A signed version of the script.
+ */
+export async function SignAyaScript(data: string) {
+	const sig = createSign("sha512")
+		.update(data)
+		.sign(await Bun.file("../data/PrivateKey.pem").text(), "base64")
+	return `--ayasig%${sig}%${data}`
+}
+
+/**
  * Signs other data with a private key by adding a signature to the top of the script.
  * @param data The data to sign.
  * @returns A signed version of the data.

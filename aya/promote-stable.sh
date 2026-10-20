@@ -19,7 +19,8 @@ RELEASES="$RUNTIME/releases"
 KEEP="${KEEP:-3}"
 # the files Caddyfile.aya serves from /runtime
 FILES=(Aya.App.html Aya.App.js Aya.App.wasm Aya.App.data Aya.App.Brand.png
-	Aya.GameWebRtc.js Aya.App.StreamingFrame.js Aya.Diagnostics.js)
+	Aya.GameWebRtc.js Aya.App.StreamingFrame.js Aya.Diagnostics.js
+	welcome.html aya-studio.png)
 
 die() { echo "promote-stable: $*" >&2; exit 1; }
 
