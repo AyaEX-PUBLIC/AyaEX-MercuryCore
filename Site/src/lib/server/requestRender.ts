@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import { RCC_KEY } from "$env/static/private"
 import config from "$lib/server/config"
-import { db } from "$lib/server/surreal"
+import { db, Record } from "$lib/server/surreal"
 import createRenderQuery from "./createRender.surql"
 import renderQuery from "./render.surql"
 
@@ -74,11 +74,22 @@ export default async function (
 
 	const pingUrl = `http://localhost:64990/ping/${renderId}` // the proxy will handle sending to /api/render/update
 
+	// avatars render as the user's avatar type (lib/rigTypes.ts)
+	let avatarRig = "R6"
+	if (renderType === "Avatar") {
+		const [[rig]] = await db.query<(string | undefined)[][]>(
+			"SELECT VALUE avatarRig FROM $user",
+			{ user: Record("user", relativeId.toString()) }
+		)
+		if (rig === "R15") avatarRig = rig
+	}
+
 	const script = (await scriptFile.text())
 		.replaceAll("_BASE_URL", `"${config.Domain}"`)
 		.replaceAll("_RENDER_TYPE", `"${renderType}"`)
 		.replaceAll("_ASSET_ID", `"${relativeName}"`) // TODO: make not string
 		.replaceAll("_PING_URL", `"${pingUrl}"`)
+		.replaceAll("_AVATAR_RIG", `"${avatarRig}"`)
 
 	// console.log(
 	// 	`Sending render request to RCCService for render ID ${renderId}`

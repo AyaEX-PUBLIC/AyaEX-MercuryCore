@@ -176,11 +176,11 @@ site's forms are in `Site/src/lib/server/places.ts`.
 
 A place's avatar type (Settings > Avatar, or Studio's Game Settings) is R6,
 R15 or Both. With Both, each player spawns with the avatar type they chose on
-the Character page (`user.avatarRig`). The Site puts the result in the
-CharacterAppearance URL as `ayaRig=R6|R15` (join configuration and Studio's
-visit script), and Aya picks the character from it (`Site/src/lib/rigTypes.ts`).
-Avatar pictures stay R6: native Aya.Server renders don't draw R15 characters
-properly yet (no clothing, nothing below the waist). Players get the rig when
+the Character page (`user.avatarRig`), which their avatar picture uses too.
+The Site puts the result in the CharacterAppearance URL as `ayaRig=R6|R15`
+(join configuration, Studio's visit script and avatar renders, through
+`_AVATAR_RIG` in `renderAvatar.lua`), and Aya picks the character from it
+(`Site/src/lib/rigTypes.ts`). Players get the rig when
 they join, so changing it doesn't restart a running server.
 
 ## Notes

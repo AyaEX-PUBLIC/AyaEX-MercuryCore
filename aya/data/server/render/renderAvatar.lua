@@ -1,9 +1,11 @@
 -- Aya render script (plain Lua 5.1). The Site substitutes _BASE_URL, _PING_URL,
--- _RENDER_TYPE and _ASSET_ID. Mirrors tp-link-extender/2013 Render + Modules/Render.
+-- _RENDER_TYPE, _ASSET_ID and _AVATAR_RIG. Mirrors tp-link-extender/2013 Render + Modules/Render.
 local baseUrl = _BASE_URL
 local pingUrl = _PING_URL
 local renderType = _RENDER_TYPE
 local assetId = _ASSET_ID
+-- the user's avatar type, R6 or R15 (Site lib/rigTypes.ts)
+local avatarRig = _AVATAR_RIG
 
 local ContentProvider = game:GetService("ContentProvider")
 local InsertService = game:GetService("InsertService")
@@ -41,7 +43,9 @@ print("[" .. game.JobId .. "] Starting " .. tostring(renderType) .. " render for
 
 local function setupAvatar(appearancePath)
 	local player = game:GetService("Players"):CreateLocalPlayer(0)
-	player.CharacterAppearance = "http://" .. baseUrl .. appearancePath .. assetId
+	-- Aya picks the rig from the ayaRig parameter
+	local rig = avatarRig and "?ayaRig=" .. avatarRig or ""
+	player.CharacterAppearance = "http://" .. baseUrl .. appearancePath .. assetId .. rig
 	player:LoadCharacter(false)
 
 	local character = player.Character
