@@ -52,8 +52,9 @@
 		@unversioned not query v=*
 		header @unversioned Cache-Control "no-cache"
 		root * {aya_runtime_root}
-		# (welcome.html and aya-studio.png: Studio's Start page)
-		@unknownRuntimeAsset not path /Aya.App.js /Aya.App.wasm /Aya.App.data /Aya.App.Brand.png /Aya.GameWebRtc.js /Aya.App.StreamingFrame.js /Aya.Diagnostics.js /welcome.html /aya-studio.png
+		# (welcome.html and aya-studio.png: Studio's Start page; Aya.App.js.symbols:
+		# function names for crash reports)
+		@unknownRuntimeAsset not path /Aya.App.js /Aya.App.wasm /Aya.App.data /Aya.App.Brand.png /Aya.GameWebRtc.js /Aya.App.StreamingFrame.js /Aya.Diagnostics.js /welcome.html /aya-studio.png /Aya.App.js.symbols
 		respond @unknownRuntimeAsset 404
 		file_server
 	}
