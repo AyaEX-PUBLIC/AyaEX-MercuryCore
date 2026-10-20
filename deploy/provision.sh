@@ -3,7 +3,8 @@
 # before every deploy (it changes nothing that's already in place):
 #   provision.sh REMOTE_ROOT DOMAIN
 # - packages: Docker and Compose, and what native Aya.Server renders need
-#   (Xvfb, Mesa, the libraries it links against), all from Debian
+#   (Xvfb, Mesa, the libraries it links against), all from Debian (Mesa from
+#   trixie-backports)
 # - the mercury user (uid 1000, as compose.yml runs the Site and database)
 # - a firewall letting in only SSH, HTTP and HTTPS
 # - DOMAIN resolving to the VPS itself, for its gameservers and renders
@@ -28,6 +29,17 @@ if ((${#missing[@]})); then
 	echo "installing: ${missing[*]}"
 	apt-get update -qq
 	apt-get install -y -qq --no-install-recommends "${missing[@]}" >/dev/null
+fi
+
+# Debian 13's Mesa 25.0 software renderer (llvmpipe, which draws renders on
+# the Xvfb display) gives every plain part a black material: R15 heads, and
+# models in thumbnails. The backports' Mesa draws them properly.
+if ! dpkg-query -W -f='${Version}' mesa-libgallium 2>/dev/null | grep -q '~bpo13'; then
+	grep -rqs trixie-backports /etc/apt/sources.list /etc/apt/sources.list.d/ ||
+		echo "deb http://deb.debian.org/debian trixie-backports main" >/etc/apt/sources.list.d/trixie-backports.list
+	echo "installing Mesa from trixie-backports"
+	apt-get update -qq
+	apt-get install -y -qq --no-install-recommends -t trixie-backports libgl1-mesa-dri libglx-mesa0 mesa-libgallium >/dev/null
 fi
 systemctl enable --now docker >/dev/null
 

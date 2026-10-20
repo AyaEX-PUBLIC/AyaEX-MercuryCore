@@ -180,7 +180,10 @@ the Character page (`user.avatarRig`), which their avatar picture uses too.
 The Site puts the result in the CharacterAppearance URL as `ayaRig=R6|R15`
 (join configuration, Studio's visit script and avatar renders, through
 `_AVATAR_RIG` in `renderAvatar.lua`), and Aya picks the character from it
-(`Site/src/lib/rigTypes.ts`). Players get the rig when
+(`Site/src/lib/rigTypes.ts`). The R15 body's meshes (the 14 assets
+7430070991–7430071119 that Aya's `characterR15.rbxm` uses) are in
+`aya-dev/assets` as `<id>.mesh`, so a site without an asset fallback (the
+VPS) still serves them; without them R15 limbs are invisible. Players get the rig when
 they join, so changing it doesn't restart a running server.
 
 ## Notes
