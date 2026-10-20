@@ -4,6 +4,8 @@ import type { ReturnErr, ReturnValue } from "./economy"
 type Gameserver = {
 	pid: number
 	startTime: number
+	/** 0 closed, 1 starting, 2 running */
+	status?: number
 }
 
 type GameserverId = [number, Gameserver]
@@ -18,6 +20,21 @@ export async function listGameservers(
 	} catch {
 		return { ok: false }
 	}
+}
+
+/** Is this place's gameserver starting or running? */
+export async function gameserverActive(
+	f: typeof globalThis.fetch,
+	placeId: number
+) {
+	const res = await listGameservers(f)
+	return (
+		res.ok &&
+		res.value.some(
+			([id, server]) =>
+				id === placeId && (server.status === 1 || server.status === 2)
+		)
+	)
 }
 
 async function fetchGameserver(

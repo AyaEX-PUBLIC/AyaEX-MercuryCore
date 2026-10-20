@@ -40,6 +40,7 @@
 		| "success"
 		| "fail"
 		| "noplacefile"
+		| "ratelimited"
 
 	let popover = $state<HTMLDivElement>()
 	let closeStatus = $state<"" | "closing" | "closed" | "failed">("")
@@ -87,10 +88,15 @@
 				const res = await fetch(`${currentPath}?/start`, privateFetchParams())
 				const result = deserialize(await res.text())
 				// the action errors before contacting the Orbiter, e.g. with 404
-				// when no place file has been uploaded yet, or fails when this
-				// user has started servers too often
+				// when no place file has been uploaded yet, or fails (429) when
+				// this user has just started another server
 				if (result.type === "error" || result.type === "failure") {
-					current = result.status === 404 ? "noplacefile" : "fail"
+					current =
+						result.status === 404
+							? "noplacefile"
+							: result.status === 429
+								? "ratelimited"
+								: "fail"
 					return
 				}
 			} catch {
@@ -572,7 +578,7 @@
 		<div class="eyebrow">
 			{#if current === "success"}
 				Have fun!
-			{:else if current === "fail" || current === "noplacefile" || current === "not installed"}
+			{:else if current === "fail" || current === "noplacefile" || current === "ratelimited" || current === "not installed"}
 				Something went wrong
 			{:else}
 				Joining
@@ -598,6 +604,11 @@
 			<span class="text-xl font-600">
 				"{place.name}" doesn't have a place file yet. Upload one in the
 				place settings to start a server.
+			</span>
+		{:else if current === "ratelimited"}
+			<span class="text-xl font-600">
+				You started a server a moment ago. Try "{place.name}" again in a
+				few seconds.
 			</span>
 		{:else if current === "fail"}
 			<span class="text-xl font-600">

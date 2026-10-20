@@ -4,7 +4,11 @@ import { authorise } from "$lib/server/auth"
 import config from "$lib/server/config"
 import like from "$lib/server/like"
 import formData from "$lib/server/formData"
-import { closeGameserver, startGameserver } from "$lib/server/orbiter"
+import {
+	closeGameserver,
+	gameserverActive,
+	startGameserver,
+} from "$lib/server/orbiter"
 import ratelimit from "$lib/server/ratelimit"
 import { BADGE, buyGamePass, GAME_PASS, placeItems, storeItem } from "$lib/server/store"
 import { db, findWhere, Record } from "$lib/server/surreal"
@@ -148,6 +152,10 @@ actions.start = async ({ fetch: f, locals, params, request }) => {
 
 	const id = +params.id
 	const [_place, _placeR] = await findPlace(request, id, user)
+
+	// a Play while the place's server is starting or running starts nothing
+	// (the Orbiter ignores it), so it doesn't count towards the limit
+	if (await gameserverActive(f, id)) return
 
 	// per user, not per place: one account mustn't start a server for every place
 	const limit = ratelimit(null, "serverstart", user.id, 20)
