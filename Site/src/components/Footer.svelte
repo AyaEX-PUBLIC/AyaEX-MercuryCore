@@ -10,14 +10,7 @@
 	type Column = [string, [string, string][]]
 
 	let columns = $derived.by(() => {
-		const about: Column = [
-			data.siteName,
-			[
-				["About", "/about"],
-				["Rules", "/rules"],
-				["Download", "/download"]
-			]
-		]
+		const about: Column = [data.siteName, [["About", "/about"]]]
 		if (!data.user)
 			return [
 				[
@@ -30,6 +23,8 @@
 				about
 			] as Column[]
 
+		// signed-in pages
+		about[1].push(["Rules", "/rules"], ["Download", "/download"])
 		if (data.pages.includes("Statistics"))
 			about[1].push(["Statistics", "/statistics"])
 		const play: Column = [

@@ -168,11 +168,11 @@
 			</div>
 		{:else}
 			<nav aria-label="Main" class="links guest-links">
-				{#each [["About", "/about"], ["Rules", "/rules"], ["Download", "/download"]] as [name, href]}
-					<a {href} aria-current={page.url.pathname === href ? "page" : undefined}>
-						{name}
-					</a>
-				{/each}
+				<a
+					href="/about"
+					aria-current={page.url.pathname === "/about" ? "page" : undefined}>
+					About
+				</a>
 			</nav>
 			<div class="ml-auto flex items-center gap-2">
 				<a href="/login" class="btn btn-sm btn-quatenary">Log in</a>
