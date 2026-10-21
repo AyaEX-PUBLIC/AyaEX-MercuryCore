@@ -76,6 +76,14 @@ export async function verifyAnswer(
 	if (actual.length !== expected.length || !timingSafeEqual(actual, expected))
 		return false
 
+	// Claim the challenge now: nothing below awaits, so two answers to the same
+	// challenge can't both get past the check above (it awaits the MAC).
+	// Only a challenge this server signed gets this far, so junk nonces can't
+	// fill the map
+	if (used.has(nonce)) return false
+	for (const [n, e] of used) if (e < now) used.delete(n)
+	used.set(nonce, expires)
+
 	let valid = false
 	try {
 		valid = ed25519.verify(
@@ -84,11 +92,8 @@ export async function verifyAnswer(
 			hexToBytes(publicKey)
 		)
 	} catch {}
-	if (!valid) return false
-
-	for (const [n, e] of used) if (e < now) used.delete(n)
-	used.set(nonce, expires)
-	return true
+	if (!valid) used.delete(nonce) // a bad signature doesn't use the challenge up
+	return valid
 }
 
 /** The account a phrase key belongs to */
