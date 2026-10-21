@@ -23,6 +23,9 @@ type Asset = {
 	}
 }
 
+// must match the types in asset.surql
+const queueTypes = [2, 8, 11, 12, 17, 18, 19]
+
 export async function load({ locals }) {
 	const { user } = await authorise(locals, 3)
 
@@ -44,11 +47,19 @@ async function getData({ locals, url }: RequestEvent) {
 		user: Record("user", user.id),
 		asset: Record("asset", id),
 	})
-	const [[asset]] = await db.query<{ name: string }[][]>(
-		"SELECT name FROM $asset",
-		params
-	)
+	const [[asset]] = await db.query<
+		{ name: string; visibility: string; type: number }[][]
+	>("SELECT name, visibility, type FROM $asset", params)
 	if (!asset) error(404, "Asset not found")
+
+	// Catalog managers (level 3) work the pending queue only: the same
+	// assets the list shows. Anything else, such as a visible asset made by
+	// staff, is for moderators and up (like the catalog's settings page)
+	if (
+		user.permissionLevel < 4 &&
+		(asset.visibility !== "Pending" || !queueTypes.includes(asset.type))
+	)
+		error(403, "This asset is not in the pending queue")
 
 	return { user, id, params, assetName: asset.name }
 }
