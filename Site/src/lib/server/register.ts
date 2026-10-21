@@ -127,6 +127,10 @@ export async function createAccount(
 			// checked again here, as two registrations may race
 			if (await usernameTaken(username))
 				error(409, "This username is already in use")
+			// the first account is the administrator and needs no invite: if
+			// another one got there first, this one isn't the first any more
+			if (checked.initial && (await accountRegistered()))
+				error(409, "Someone else just made the first account. Try again.")
 			return db.query<RecordId<"user">[]>(createUserQuery, {
 				username,
 				email: (config.Registration.Emails && email) || "",
