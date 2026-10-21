@@ -1,137 +1,186 @@
-# ![Mercury Core logo banner](./Assets/banner.png)
+<p align="center"><img src="Assets/Branding/Icon.png" width="112" alt="AyaEX logo"></p>
 
-Mercury Core is the ultimate community-driven secure, flexible, and stable foundation for the future of your revival web platform, allowing for easy customisation or complete overhaul and possible integration with multiple clients and external services.
+# AyaEX (Aya Extended)
 
-> [!NOTE]  
-> If you don’t know what any of those things are, Mercury Core is a build-your-own-Roblox.
+**AyaEX is an improved fork of two projects, made to work as one:**
+
+| Part | Upstream project | AyaEX fork |
+| --- | --- | --- |
+| Website, accounts, economy, game hosting | [Mercury Core](https://github.com/tp-link-extender/MercuryCore) | this repository |
+| Game client: Player, Studio, gameservers | Aya, the Kiseki project's 2016 client | the AyaEX client (`aya` repository) |
+| Gameserver orchestration (Orbiter, RCC proxy) | [RCCService](https://github.com/tp-link-extender/RCCService) | `MercuryRCC` repository |
+
+Players sign in on the website and play in their browser: the Player and Studio
+are the AyaEX client compiled to WebAssembly, so there is nothing to download.
+Gameservers and avatar renders are native AyaEX `Aya.Server` processes, run by
+the Orbiter and RCC proxy from `../MercuryRCC`. A Nintendo Switch app signs into
+the same site.
+
+AyaEX was called AyaWASM until October 2026.
+
+> [!NOTE]
+> Mercury Core is a build-your-own-Roblox website. Aya is a heavily modified
+> fork of the Roblox client code leaked in 2016. AyaEX is not affiliated with
+> Roblox Corporation.
 
 ## Contents
 
--   [Recommended development setup](#recommended-development-setup)
--   [Editing the code](#editing-the-code)
--   [Hosting](#hosting)
--   [Customisation](#customisation)
-    -   [Client integration](#client-integration)
--   [Mercury Core's stack](#mercury-cores-stack)
-    -   [Route structure](#route-structure)
+- [What AyaEX changes in Mercury Core](#what-ayaex-changes-in-mercury-core)
+- [What AyaEX changes in Aya](#what-ayaex-changes-in-aya)
+- [Getting started](#getting-started)
+- [Repository layout](#repository-layout)
+- [Developing](#developing)
+- [Customisation](#customisation)
+- [The stack](#the-stack)
+- [Credits](#credits)
 
-# Recommended development setup
+## What AyaEX changes in Mercury Core
 
-We recommend using [Visual Studio Code](https://code.visualstudio.com) as your editor, as it has great support for languages like Typescript, Svelte, and Go, and allows for easier navigation of the codebase. Derivatives like [Insiders](https://code.visualstudio.com/insiders/) and [VSCodium](https://vscodium.com) are also recommended (all we're saying is something a little more than Notepad++).
+**Aya as the client.** Upstream Mercury Core leaves the client to you. Here
+the Play button opens the AyaEX Player in the browser, with a signed join ticket
+that the gameserver checks before the player joins. Gameservers start on
+demand. Players choose a stable or dev client channel, and the operator promotes
+tested builds to stable with `aya/promote-stable.sh`. Studio runs in the browser, opens your games,
+and publishes to them.
 
-The [Mercury Core development](https://marketplace.visualstudio.com/items?itemName=MercuryCore.mercurycoredevelopment) extension pack is also recommended, as it includes all the extensions needed to work with the codebase alongside a couple for general quality-of-life improvements.
+**Accounts.**
 
-# Editing the code
+- Sign-in uses a 12-word recovery phrase instead of a password. The browser
+  derives a key from it, and the site only stores the public key.
+- Administrators can issue reset codes for lost phrases.
+- The Switch app signs in with a short code approved on `/device`.
 
-You will need:
+**Invites.**
 
--   Latest version of Bun installed (expected as `bun`)
--   Latest version of Docker installed (expected as `docker`, optional)
-    -   Alternative container managers can be used, for example Podman
--   A terminal
--   A modern web browser (Early 2024 onwards for most major browsers)
--   A computer, as it would be painful to live without one, wouldn't it?
+- An invite tree shows who invited whom.
+- People without an invite can send an application.
+- Members can buy invites with weekly limits. Administrators configure all of
+  this.
 
-Instructions:
+**Community.**
 
--   Clone the repository to your local machine
--   Open a terminal and navigate to the directory of the repository
--   Run `bun i` to install all dependencies
--   Copy the **Site/.env.example** file to **Site/.env** and modify it to set up the environment variables
--   Run `docker compose up -d database economy` to start the database and economy service
+- A live shoutbox with channels and safe formatting.
+- A News section that administrators write in Markdown.
+- In-game abuse reports that land in the moderation queue.
 
-> [!TIP]  
-> If you don't have or can't install a container manager, you can start the database manually by [installing SurrealDB](https://surrealdb.com/install) and running `surreal start -l trace -u=root -p=root  file:./data/surreal` in the repository's root directory, and the economy service manually by [installing Go](https://go.dev/dl/) and running `go run .` in the **Economy** directory. You'll need to run these in separate terminals or in the background.
+**Games.**
 
-To start a local dev server, go to the **Site** directory, run `bun dev`, and navigate to the link shown in the terminal (remember not to use HTTPS!). Upon saving a file, your changes will be shown in the web browser.
+- Private places and links.
+- R6 or R15 avatars per place.
+- Game passes, developer products and badges.
+- Place owners get the in-game server console.
+- Playtime rewards.
+- Friends and follows in game.
+- StreamingFrames, which show live web pages on in-game screens.
 
--   If you are using WSL2, the server may not correctly reflect the changes you make if the repository is stored on the Windows drive. To fix this, move the repository into a folder managed by WSL, or alternatively add the following to the default export of vite.config.ts:
+**Economy.** A casino, and an Economy service that only takes requests carrying
+the site's key.
 
-```ts
-server: { watch: { usePolling: true } },
+**Look.** A redesigned dark, blocky interface with an orange accent, laid out
+like the legacy Aya/Kiseki site.
+
+**Operations.**
+
+- `deploy/deploy.sh` puts the whole stack on a VPS behind Cloudflare.
+- A Discord bot handles invites and look-ups.
+- The site has had security audits and fixes, such as per-place file tokens,
+  per-account rate limits and frame protection.
+
+## What AyaEX changes in Aya
+
+- **One WebAssembly app for Player, Server and Studio.** It runs in the browser,
+  and the site serves it from `/runtime`.
+- **Browser-hosted games.** A browser tab can host a game, joined with a 9-digit
+  code.
+- **Virtual versions.** Players switch between the 2010 to 2016 client looks
+  mid-game, and there's Freaky Mode.
+- **DataStores without a backend.**
+- **A Nintendo Switch homebrew port.**
+- **Mercury integration.** The gameserver checks join tickets, the engine uses
+  an access key for its own site requests, and place scripts' HTTP requests are
+  limited to allowlisted hosts.
+
+The client's own README covers building it, including the Switch NRO.
+
+## Getting started
+
+The full guide, with ports, services, client channels and every feature's
+notes, is [`aya/README.md`](aya/README.md). You need Docker, Bun, a built AyaEX
+client in `../aya-dev`, and `../MercuryRCC`.
+
+```bash
+cp Site/.env.example Site/.env       # then fill it in (keys, ORIGIN)
+aya/setup-data.sh                    # loadscripts, render scripts, signing key, stable client into data/
+docker compose up -d --build         # database, economy, site, caddy
+../MercuryRCC/run.sh                 # RCC proxy + Orbiter (from a desktop session: renders need DISPLAY)
 ```
 
-After starting a local web server, navigate to /register and make an account.
+Then open <http://localhost:8010> and register. The first account becomes the
+administrator and needs no invite. To change the public address, use
+`aya/set-domain.sh`. To deploy to a VPS, see
+[Deploying to a VPS](aya/README.md#deploying-to-a-vps).
 
--   While in the browser, you can press ctrl-i to open the inspector, allowing you to select any element and show it in your editor.
+## Repository layout
 
-To build for production, run `bun run build` then `bun preview` (or `bun buildview`) to preview the final site.
+| Path | What |
+| --- | --- |
+| `mercury.core.ts` | Site configuration (name, domain, branding, registration, …) |
+| `Site/` | The SvelteKit website; `Site/src/lib/server/init.surql` is the database schema |
+| `Economy/` | The Go currency service (ledger, balances, transfers) |
+| `Caddyfile.aya` | Reverse proxy on :8010: site, `/runtime`, gameserver and Orbiter paths |
+| `compose.yml` | Database, Economy, site, Caddy, and the Discord bot (profile `discord`) |
+| `aya/` | AyaEX setup scripts (`setup-data.sh`, `set-domain.sh`, `promote-stable.sh`) and the guide |
+| `deploy/` | VPS deployment (`deploy.sh`, Caddy and systemd templates) |
+| `DiscordBot/` | Bun and discord.js bot: `/invite`, `/getuser`, `/autoadd` |
+| `Assets/` | Branding, themes and default images |
 
-The data directory, which is hidden from source control and should be kept private, includes a number of subdirectories:
+## Developing
 
--   **data/assets** &ndash; binary files for assets: images, meshes, etc
--   **data/economy** &ndash; transaction ledger and other economy data
--   **data/icons** &ndash; place icons
--   **data/surreal** &ndash; database files
--   **data/thumbnails** &ndash; asset thumbnails
+For a dev server, go to **Site**, run `bun i`, then
+`bun x -b vite dev --port 5180`, and open the link it prints. It uses the real
+database and applies `init.surql` on start. Production builds come from
+`docker compose up -d --build site`.
 
-> [!TIP]  
-> It may be helpful to mount to an external volume or directory to keep this data safe, allow for easier backups, and to provide it with more space.
+The **data** directory is not in git and should be kept private:
 
-# Hosting
+- the database (`data/surreal`)
+- the economy ledger and key (`data/economy`)
+- assets and thumbnails
+- place icons and news covers
+- loadscripts
+- the script-signing key (`data/PrivateKey.pem`)
 
-You will need:
+Secrets belong in `.env` files, never in `mercury.core.ts`.
 
--   Latest version of Bun installed (expected as `bun`)
--   Latest version of Docker or another container manager installed (expected as `docker`)
--   Latest version of Caddy server installed (expected as `caddy`)
--   A terminal
--   Some sort of server hardware
+## Customisation
 
-Instructions:
+Most settings are in **mercury.core.ts**: the site's name, domain, branding,
+registration rules, and more. Properties are checked against a schema, so you
+can hover over them to see what they do. Themes are CSS files in
+**Assets/Themes**.
 
--   Clone the repository to your server and navigate to the **Site** directory
--   Run `caddy start` to start the Caddy reverse proxy server
-    -   You can also run `caddy reload` to reload the configuration file without restarting the server.
-    -   If you're using Caddy with multiple configuration files, import the Caddyfile in the repository's root directory into a Caddyfile somewhere else, and run `caddy start` and `caddy reload` from there.
--   Run `docker compose up -d database economy` to start the database and economy service
-	-   If you want to run the site in your container manager as well, just run `docker compose up -d` instead to start all services
--   Copy the **Site/.env.example** file to **Site/.env** and modify it to set up the environment variables
--   Run `bun prod` to install dependencies and begin building
--   Run `bun ./build` (not to be confused with `bun build`) to start Mercury Core.
+For anything deeper, edit the code. The codebase aims to be modular and
+consistent. The stack is described below.
 
-> [!TIP]  
-> Several methods can be used to run Mercury Core as a background process as well. Daemons, GNU Screen, containers, and PM2 all work for this purpose.
+## The stack
 
-# Customisation
+- **[Svelte](https://svelte.dev) and [SvelteKit](https://kit.svelte.dev):** the
+  frontend, compiled to plain JavaScript, and a full-stack framework for pages,
+  forms and APIs. Pages live in **Site/src/routes**. See the
+  [routing docs](https://kit.svelte.dev/docs/routing).
+- **[TypeScript](https://www.typescriptlang.org):** used throughout.
+- **[SurrealDB](https://surrealdb.com):** the database, a multi-model database
+  suited to the site's highly relational data.
+- **[Bun](https://bun.sh) and [Vite](https://vitejs.dev):** run and build the
+  site.
+- **[Caddy](https://caddyserver.com):** the reverse proxy, with automatic HTTPS,
+  URL rewriting and the cross-origin isolation headers the WebAssembly client
+  needs.
 
-Customisation is primarily done through the **mercury.core.ts** file in the root of the repository. It contains a wide variety of commonly used settings and configurations, and is the easiest way to change the site's appearance and functionality. Properties in the file are checked against a schema, so you can hover over them to see what they do and what values they can take.
+## Credits
 
-However, the most powerful way to customise Mercury Core will always be to edit the code directly. To facilitate this, the codebase is designed to be as modular, extensible, and as consistent as possible, and the stack is built with modern technologies and standards that are easy to work with. See the [Mercury Core's stack](#mercury-cores-stack) section for more information.
-
-## Client integration
-
-Client integration remains, by its nature, a difficult part of building any revival platform.
-
-We'll use the term "Privileged asset" for any asset with an ID hardcoded into the client, or depended on by a script sent to the client. These should be generated in a specific folder structure (details at [tp-link-extender/2013](https://github.com/tp-link-extender/2013)) and placed in the **data/assets** directory. This includes corescripts, host, join, studio, visit, and render scripts (loadscripts), as well as any external libraries you wish to use. Beyond this, privileged assets are not in the scope of Mercury Core.  
-Any scripts used should be written in or compiled to Lua, and should aim to be as lightweight and efficient as possible. Minification and removal of extraneous code is recommended to decrease load on both the server and clients, as well as the use of a module system to keep code organised and reduce duplication.
-
-> [!CAUTION]  
-> If you're using original corescripts provided with the client instead of custom ones, it's common to encounter issues which may need heavy modification to fix or rewrite into your own custom corescripts. This requires a significant amount of internal client knowledge and maintenance effort, with very sparse documentation available for beginners.  
-> If choosing to go down the route of using original corescripts or loadscripts, especially for older clients, we recommend taking a look at the scripts used for original Mercury 2 at [tp-link-extender/2013](https://github.com/tp-link-extender/2013) and wish you the best of luck.
-
-The private key for corescript signing should be placed in **data/PrivateKey.pem**, with the corresponding public key patched into the client.
-
-Different client versions may try to access different endpoints on Mercury Core, so it's important to keep this in mind when modifying corescripts. You may also have to modify the Caddyfile at **Site/Caddyfile** to allow for requests to be rewritten to their corresponding endpoints.
-
-# Mercury Core's stack
-
-Mercury's frontend is built with [Svelte](https://svelte.dev), a UI framework that compiles to vanilla JS, and [SvelteKit](https://kit.svelte.dev), a powerful full-stack framework for building transitional apps.
-
-The site uses [Typescript](https://typescripts.org) throughout, a language that adds type extensions ontop of Javascript. Intellisense and type checking are used as well, as they help to prevent bugs and improve understanding of the codebase.
-
-[SurrealDB](https://surrealdb.com) is used as the database, a powerful multi-model database that easily allows for storing and querying the highly relational data used in Mercury.
-
-[Vite](https://vitejs.dev) brings the stack for the website together, giving an extremely fast and responsive development environment, as well as zero-downtime deployments.
-
-[Caddy](https://caddyserver.com) is used as a reverse proxy server, which allows for automatic HTTPS and TLS certificates, rewriting URLs, and provides a simpler configuration interface than popular alternatives like Apache or nginx.
-
-## Route structure
-
-Actual pages for the site are stored in **Site/src/routes**. The structure for them might look crazy at first if you're not familiar with SvelteKit, but it makes it very simple to differentiate between clientside and serverside code, and layout groups help to heavily reduce boilerplate and code duplication.
-
-See the [SvelteKit Routing docs](https://kit.svelte.dev/docs/routing) for more information.
-
-The markup for pages is enhanced with HTMLx templating, which adds extra features such as adding variables, reactivity, and logic blocks such as {#if} and {#each}.
-
-Take a look at the [Svelte docs](https://svelte.dev/docs), or the incredibly helpful [Svelte tutorial](https://learn.svelte.dev), for more information.
+- **Mercury Core** is by tp-link-extender and contributors
+  ([upstream repository](https://github.com/tp-link-extender/MercuryCore)).
+  This fork keeps its [Unlicense](UNLICENSE).
+- **Aya** comes from the Kiseki project's 2016 client.
+- **AyaEX** is the combined, improved fork of both.
