@@ -59,7 +59,12 @@ actions.default = async ({ cookies, request }) => {
 		"SELECT VALUE id FROM user WHERE email = $email LIMIT 1",
 		{ email }
 	)
-	if (user) await sendRecoveryEmail(email, await issueResetCode(user))
+	// not awaited (see sendRecoveryEmail), so the response takes the same time
+	// either way, and a failing mail server can't give a registered address away
+	if (user)
+		issueResetCode(user)
+			.then(code => sendRecoveryEmail(email, code))
+			.catch(e => console.error("Failed to send a recovery email:", e))
 
 	redirect(302, "/recover/code")
 }
