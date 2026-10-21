@@ -192,8 +192,8 @@ site's forms are in `Site/src/lib/server/places.ts`.
 
 ## Avatar types
 
-A place's avatar type (Settings > Avatar, or Studio's Game Settings) is R6,
-R15 or Both. With Both, each player spawns with the avatar type they chose on
+A place's avatar type (Settings > Avatar, or Studio's Game Settings) is R6
+(the default for new places), R15 or Both. With Both, each player spawns with the avatar type they chose on
 the Character page (`user.avatarRig`), which their avatar picture uses too.
 The Site puts the result in the CharacterAppearance URL as `ayaRig=R6|R15`
 (join configuration, Studio's visit script and avatar renders, through

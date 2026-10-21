@@ -218,8 +218,9 @@ DEFINE TABLE OVERWRITE place SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE name ON place TYPE string DEFAULT "";
 	DEFINE FIELD OVERWRITE privateServer ON place TYPE bool DEFAULT false;
 	DEFINE FIELD OVERWRITE privateTicket ON place TYPE string DEFAULT rand::id();
-	# avatar rig: R6, R15, or Both (each player's choice, user.avatarRig; $lib/rigTypes.ts)
-	DEFINE FIELD OVERWRITE rigType ON place TYPE string DEFAULT ALWAYS "Both"
+	# avatar rig: R6 (the default), R15, or Both (each player's choice,
+	# user.avatarRig; $lib/rigTypes.ts)
+	DEFINE FIELD OVERWRITE rigType ON place TYPE string DEFAULT ALWAYS "R6"
 		ASSERT $value IN ["Both", "R6", "R15"];
 	DEFINE FIELD OVERWRITE serverAddress ON place TYPE string DEFAULT "";
 	DEFINE FIELD OVERWRITE serverPing ON place TYPE int DEFAULT 0;

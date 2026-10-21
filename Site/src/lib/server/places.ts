@@ -55,7 +55,7 @@ export async function createPlace(
 			serverPort: isAdmin ? (place.serverPort ?? 53640) : 53640,
 			privateServer: place.privateServer ?? false,
 			maxPlayers: place.maxPlayers,
-			rigType: place.rigType ?? "Both",
+			rigType: place.rigType ?? "R6",
 			clientVersion: lockedClientVersion,
 		})
 

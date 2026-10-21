@@ -50,7 +50,7 @@ export async function studioPlaceInfo(id: number) {
 			fn::currentContent($this.description) AS description,
 			maxPlayers,
 			privateServer,
-			rigType ?? "Both" AS rigType,
+			rigType ?? "R6" AS rigType,
 			updated
 		FROM $place`,
 		{ place: Record("place", id) }

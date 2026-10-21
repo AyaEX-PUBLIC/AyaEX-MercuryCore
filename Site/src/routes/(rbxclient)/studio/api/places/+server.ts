@@ -31,7 +31,7 @@ const createSchema = type({
 	description: "1 <= string <= 1000",
 	maxPlayers: maxPlayersTest.default(10),
 	privateServer: "boolean = false",
-	rigType: type.enumerated(...placeRigTypes).default("Both"),
+	rigType: type.enumerated(...placeRigTypes).default("R6"),
 })
 
 // Publish as a new game (Studio uploads its file next, to places/{id}/file)
