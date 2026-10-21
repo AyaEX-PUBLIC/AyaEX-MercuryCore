@@ -3,6 +3,7 @@ import { type } from "arktype"
 import { authorise } from "$lib/server/auth"
 import { sendModerationDiscordWebhook } from "$lib/server/discordModerationWebhook"
 import formError from "$lib/server/formError"
+import oneAtATime from "$lib/server/oneAtATime"
 import ratelimit from "$lib/server/ratelimit"
 import { db, findWhere, Record } from "$lib/server/surreal"
 import { arktype, message, superValidate } from "$lib/server/validate"
@@ -90,39 +91,31 @@ actions.default = async ({ locals, request }) => {
 
 	if (action === "Unban") {
 		// Unban
-		const foundUnban = await findWhere(
-			"moderation",
-			`in = $user
-				AND out = $moderatee
-				AND active = true`,
-			qParams
-		)
-		if (!foundUnban)
+		const unbanned = await oneAtATime("moderation", async () => {
+			const foundUnban = await findWhere(
+				"moderation",
+				`in = $user
+					AND out = $moderatee
+					AND active = true`,
+				qParams
+			)
+			if (!foundUnban) return false
+
+			await db.query(unbanQuery, {
+				...qParams,
+				note: `Unban ${username}`,
+			})
+			return true
+		})
+		if (!unbanned)
 			return formError(
 				form,
 				["action"],
 				["You cannot unban a user that has not been moderated yet"]
 			)
 
-		await db.query(unbanQuery, {
-			...qParams,
-			note: `Unban ${username}`,
-		})
-
 		return message(form, `${username} has been unbanned`)
 	}
-
-	const foundModeration = await findWhere(
-		"moderation",
-		"out = $moderatee AND active = true",
-		qParams
-	)
-	if (foundModeration)
-		return formError(
-			form,
-			["username"],
-			["User has already been moderated"]
-		)
 
 	const actions: { [_: string]: () => [string, string] } = {
 		Warning: () => [`Warn ${username}`, "warned"],
@@ -135,13 +128,31 @@ actions.default = async ({ locals, request }) => {
 
 	const [note, actioned] = actions[action]()
 
-	await db.query(moderateQuery, {
-		...qParams,
-		reason,
-		moderationAction: action,
-		timeEnds: banDate || new Date(),
-		note: `${note}: ${reason}`,
+	// one at a time, so two moderators acting on the same user together can't
+	// both pass the check below (SurrealDB lets racing transactions both commit)
+	const moderated = await oneAtATime("moderation", async () => {
+		const foundModeration = await findWhere(
+			"moderation",
+			"out = $moderatee AND active = true",
+			qParams
+		)
+		if (foundModeration) return false
+
+		await db.query(moderateQuery, {
+			...qParams,
+			reason,
+			moderationAction: action,
+			timeEnds: banDate || new Date(),
+			note: `${note}: ${reason}`,
+		})
+		return true
 	})
+	if (!moderated)
+		return formError(
+			form,
+			["username"],
+			["User has already been moderated"]
+		)
 
 	await sendModerationDiscordWebhook({
 		username,
