@@ -92,6 +92,7 @@ const schema = type({
 		Keys: type({
 			Enabled: "boolean",
 			Prefix: "string",
+			"OldPrefixes?": "string[]",
 		}),
 		Emails: "boolean",
 	}),

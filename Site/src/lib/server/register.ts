@@ -33,8 +33,12 @@ async function usernameTaken(username: string) {
 	)
 }
 
-const prefix = config.Registration.Keys.Prefix
-const prefixRegex = new RegExp(`^${prefix}(.+)$`)
+// keys handed out before the prefix was renamed still work
+const prefixes = [
+	config.Registration.Keys.Prefix,
+	...(config.Registration.Keys.OldPrefixes || []),
+].map(p => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+const prefixRegex = new RegExp(`^(?:${prefixes.join("|")})(.+)$`)
 const emailTest = /^.+@.+$/
 
 export async function accountRegistered() {

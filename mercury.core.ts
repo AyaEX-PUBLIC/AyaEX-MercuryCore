@@ -2,7 +2,7 @@
 // If you're running in production, you'll need to rebuild Mercury Core to apply changes.
 
 export default {
-	Name: "AyaWASM",
+	Name: "AyaEX",
 	Domain: "mercury.nodium.lol",
 	DomainInsecure: "mercury.nodium.lol",
 	RCCServiceProxyURL: "http://localhost:64990",
@@ -82,7 +82,9 @@ export default {
 	Registration: {
 		Keys: {
 			Enabled: true,
-			Prefix: "ayawasm-",
+			Prefix: "ayaex-",
+			// invite codes given out as AyaWASM still work
+			OldPrefixes: ["ayawasm-"],
 		},
 		Emails: false,
 	},
