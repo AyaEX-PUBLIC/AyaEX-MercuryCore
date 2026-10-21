@@ -57,23 +57,21 @@ func (e *EconomyServer) locked(h http.HandlerFunc) http.HandlerFunc {
 }
 
 // authorised checks the request carries the Site's key ("Authorization: Bearer
-// <key>"). The key is read when first needed, and again if it doesn't match, as
-// the Site may only have just made it.
+// <key>"). The key file is read on every request, so a rotated key takes effect
+// at once (the old one stops working without a restart), and the Site can make
+// the key after the Economy has started.
 func (e *EconomyServer) authorised(r *http.Request) bool {
 	given, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if !ok || given == "" {
 		return false
 	}
-	matches := func() bool {
-		return e.key != "" && subtle.ConstantTimeCompare([]byte(given), []byte(e.key)) == 1
+	b, err := os.ReadFile(keypath)
+	if err != nil {
+		e.key = ""
+		return false
 	}
-	if matches() {
-		return true
-	}
-	if b, err := os.ReadFile(keypath); err == nil {
-		e.key = strings.TrimSpace(string(b))
-	}
-	return matches()
+	e.key = strings.TrimSpace(string(b))
+	return e.key != "" && subtle.ConstantTimeCompare([]byte(given), []byte(e.key)) == 1
 }
 
 // limit reads ?limit= (how many transactions to list): 100 by default, at most 5000
@@ -203,7 +201,7 @@ func (e *EconomyServer) stipendRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func createFilepath() (file *os.File, err error) {
-	if file, err = os.OpenFile(currentFilepath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o644); err != nil {
+	if file, err = os.OpenFile(currentFilepath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o600); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, fmt.Errorf("failed to open ledger: %w", err)
 		}
@@ -212,10 +210,13 @@ func createFilepath() (file *os.File, err error) {
 		if err = os.MkdirAll(folderpath, 0o644); err != nil {
 			return nil, fmt.Errorf("failed to create *Economy data folder: %w", err)
 		}
-		if file, err = os.Create(currentFilepath); err != nil {
+		if file, err = os.OpenFile(currentFilepath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o600); err != nil {
 			return nil, fmt.Errorf("failed to create ledger: %w", err)
 		}
 	}
+	// every transaction is in here: no need for anyone else to read it, so
+	// tighten a ledger made with the old, world-readable mode too
+	_ = file.Chmod(0o600)
 	return
 }
 

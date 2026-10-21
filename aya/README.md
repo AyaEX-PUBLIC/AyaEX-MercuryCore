@@ -331,7 +331,9 @@ transactions; before, it was their share of the last 100 site-wide.
 The Economy refuses any request without `Authorization: Bearer <key>`, so
 nothing else that can reach its port can move currency. The Site makes the key
 on first use in `data/economy/key` (mode 0600). To change it, delete the file
-and restart the Economy and the Site.
+and restart the Site, which makes a new one. The Economy reads the file on every
+request, so the old key stops working at once and it needs no restart.
+The ledger (`data/economy/ledger`) is mode 0600 as well.
 
 ## Friends and follows in game
 
