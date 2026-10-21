@@ -339,42 +339,46 @@ export async function apply(input: typeof applicationSchema.infer) {
 		error(400, "Tell us a bit more: at least 20 characters")
 	if (about.length > 1000) error(400, "Keep it under 1000 characters")
 
-	const now = Date.now()
-	applying.tokens = Math.min(
-		20,
-		applying.tokens + (now - applying.at) / 180e3
-	)
-	applying.at = now
-	if (applying.tokens < 1)
-		error(
-			429,
-			"Lots of people are applying right now. Try again in a few minutes."
+	// One at a time: the checks and the spend are separated by a query, so
+	// requests that arrive together would all pass the checks first
+	return oneAtATime("applications", async () => {
+		const now = Date.now()
+		applying.tokens = Math.min(
+			20,
+			applying.tokens + (now - applying.at) / 180e3
 		)
+		applying.at = now
+		if (applying.tokens < 1)
+			error(
+				429,
+				"Lots of people are applying right now. Try again in a few minutes."
+			)
 
-	const [pending, taken] = await db.query<[number, boolean]>(
-		`count(SELECT 1 FROM application WHERE status = "pending");
-		!!(SELECT 1 FROM user WHERE string::lowercase(username) = string::lowercase($username))
-			OR !!(SELECT 1 FROM application WHERE status = "pending"
-				AND string::lowercase(username) = string::lowercase($username));`,
-		{ username: input.username }
-	)
-	if (pending >= maxPending)
-		error(503, "There are too many applications waiting. Try again later.")
-	if (taken)
-		error(409, "That username is taken, or already has an application")
-	applying.tokens--
+		const [pending, taken] = await db.query<[number, boolean]>(
+			`count(SELECT 1 FROM application WHERE status = "pending");
+			!!(SELECT 1 FROM user WHERE string::lowercase(username) = string::lowercase($username))
+				OR !!(SELECT 1 FROM application WHERE status = "pending"
+					AND string::lowercase(username) = string::lowercase($username));`,
+			{ username: input.username }
+		)
+		if (pending >= maxPending)
+			error(503, "There are too many applications waiting. Try again later.")
+		if (taken)
+			error(409, "That username is taken, or already has an application")
+		applying.tokens--
 
-	const code = randomCode(16) // 80 bits
-	await db.query(
-		`CREATE application CONTENT {
-			about: $about,
-			contact: $contact,
-			tokenHash: $hash,
-			username: $username,
-		}`,
-		{ about, contact, hash: hash(code), username: input.username }
-	)
-	return code
+		const code = randomCode(16) // 80 bits
+		await db.query(
+			`CREATE application CONTENT {
+				about: $about,
+				contact: $contact,
+				tokenHash: $hash,
+				username: $username,
+			}`,
+			{ about, contact, hash: hash(code), username: input.username }
+		)
+		return code
+	})
 }
 
 export type ApplicationStatus = {
