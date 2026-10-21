@@ -429,10 +429,26 @@ DEFINE FUNCTION OVERWRITE fn::currentContent($thing: array) {
 	ORDER BY updated)[$].text
 };
 
+# Whether $user may see an asset: it's visible, they made it, or they're staff
+# (as on the catalog page). Comments on an asset follow the same rule, so a
+# pending or moderated item's id and name don't leak through them.
+DEFINE FUNCTION OVERWRITE fn::assetVisible($asset: record<asset>, $user: record<user>) {
+	RETURN (SELECT VALUE
+		visibility = "Visible"
+		OR $user.permissionLevel >= 3
+		OR $user IN <-created<-user
+	FROM ONLY $asset) ?? false;
+};
+
 DEFINE FUNCTION OVERWRITE fn::getComments($comment: record<comment>, $depth: number, $user: record<user>) {
     IF $depth > 9 {
         RETURN [];
     };
+
+	LET $kind = (SELECT VALUE type FROM ONLY $comment);
+	IF $kind[0] == "asset" AND !fn::assetVisible(type::record("asset", $kind[1]), $user) {
+		RETURN [];
+	};
 
 	RETURN SELECT
 		record::id(id) AS id,

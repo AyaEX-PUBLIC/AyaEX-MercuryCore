@@ -144,14 +144,17 @@ actions.comment = async ({ locals, params, request }) => {
 	if (limit) return limit
 
 	const id = +params.id
-	const [getAsset] = await db.query<{ creatorId: string }[]>(
+	const [getAsset] = await db.query<
+		{ creatorId: string; visible: boolean }[]
+	>(
 		`
 			SELECT
-				record::id(<-created[0]<-user[0].id) AS creatorId
+				record::id(<-created[0]<-user[0].id) AS creatorId,
+				fn::assetVisible($this.id, $user) AS visible
 			FROM ONLY $asset`,
-		{ asset: Record("asset", id) }
+		{ asset: Record("asset", id), user: Record("user", user.id) }
 	)
-	if (!getAsset) error(404)
+	if (!getAsset?.visible) error(404)
 
 	const { creatorId } = getAsset
 	const content = filter(unfiltered)

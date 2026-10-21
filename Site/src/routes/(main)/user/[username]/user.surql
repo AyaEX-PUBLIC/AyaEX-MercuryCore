@@ -11,7 +11,10 @@ SELECT
 		*,
 		record::id(id) AS id,
 		fn::currentContent($this.content) AS content
-	FROM $parent->createdComment->comment LIMIT 40) AS comments,
+	FROM $parent->createdComment->comment
+	# comments on pending or moderated items are only for those who can see the item
+	WHERE type[0] != "asset" OR fn::assetVisible(type::record("asset", type[1]), $user)
+	LIMIT 40) AS comments,
 
 	(SELECT
 		record::id(id) AS id,
