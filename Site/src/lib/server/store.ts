@@ -216,11 +216,17 @@ export const buyDevProduct = (
 ) =>
 	withLock(buyer, async (): Promise<PurchaseResult> => {
 		// the purchase prompt retries with the same requestId: don't charge twice
-		const [[existing]] = await db.query<[{ id: string }[]]>(
-			"SELECT record::id(id) AS id FROM productReceipt WHERE user = $user AND requestId = $requestId",
+		const [[existing]] = await db.query<[{ id: string; product: number }[]]>(
+			"SELECT record::id(id) AS id, record::id(product) AS product FROM productReceipt WHERE user = $user AND requestId = $requestId",
 			{ user: Record("user", buyer), requestId }
 		)
-		if (existing) return { success: true, status: "Bought", receipt: existing.id }
+		if (existing) {
+			// a retry is for the same product; a requestId reused for another one
+			// is not a retry, and must not pass as a purchase of that product
+			if (existing.product !== productId)
+				return { success: false, status: "Failed" }
+			return { success: true, status: "Bought", receipt: existing.id }
+		}
 
 		const product = await devProduct(productId)
 		if (!product?.forSale || (placeId && product.place !== placeId))
