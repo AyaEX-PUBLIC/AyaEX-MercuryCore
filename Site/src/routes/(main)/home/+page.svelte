@@ -30,6 +30,15 @@
 			.slice(0, 6)
 	)
 
+	// UTC, so the server and the browser agree on the day
+	const newsDate = (d: Date) =>
+		d.toLocaleDateString("en-US", {
+			month: "long",
+			day: "numeric",
+			year: "numeric",
+			timeZone: "UTC"
+		})
+
 	const quickLinks = [
 		["Customise character", "/character", "fa-user-pen"],
 		["Inventory", "/inventory", "fa-box-open-full"],
@@ -91,6 +100,26 @@
 
 		<!-- Friends and games -->
 		<aside class="flex flex-col gap-6 lg:col-start-2 xl:col-start-auto">
+			{#if data.news.length > 0}
+				<section class="panel">
+					<div class="panel-head">
+						<span>News</span>
+						<a href="/news">See all</a>
+					</div>
+					<div class="flex flex-col">
+						{#each data.news as post, num (post.id)}
+							<a
+								in:fade|global={{ num, total: data.news.length }}
+								href="/news/{post.id}/{encode(post.title)}"
+								class="headline light-text">
+								<span class="eyebrow">{newsDate(post.published)}</span>
+								<span class="block text-sm font-500">{post.title}</span>
+							</a>
+						{/each}
+					</div>
+				</section>
+			{/if}
+
 			<section class="panel">
 				<div class="panel-head">
 					<span>
@@ -206,6 +235,20 @@
 			font-size: 0.6875rem;
 			opacity: 0;
 			transition: opacity 0.15s;
+		}
+	}
+
+	.headline {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		padding: 0.75rem 1rem;
+		transition: background-color 0.15s;
+		&:hover {
+			background: var(--accent);
+		}
+		& + .headline {
+			border-top: 1px solid var(--accent2);
 		}
 	}
 

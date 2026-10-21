@@ -22,6 +22,7 @@
 				"Administration",
 				[
 					["Banners", "banners", "fa-bullhorn"],
+					["News", "news", "fa-pencil"],
 					["Shoutbox", "shoutbox", "fa-messages"],
 					["Accounts", "accounts", "fa-user"],
 					["Sign-in", "signin", "fa-key"],

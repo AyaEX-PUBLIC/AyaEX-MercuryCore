@@ -35,6 +35,7 @@
 		...(data.pages.includes("Forum")
 			? [{ name: "Forum", href: "/forum", icon: "fa-messages", also: ["/comment"] }]
 			: []),
+		{ name: "News", href: "/news", icon: "fa-bullhorn" },
 		{ name: "Rules", href: "/rules", icon: "fa-gavel" },
 		{ name: "Download", href: "/download", icon: "fa-arrow-down" }
 	])

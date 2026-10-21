@@ -3,6 +3,7 @@ import { messages, pageSize, readableChannels } from "$lib/server/shoutbox"
 import { cursor } from "$lib/server/shoutbox/live"
 import { db, Record } from "$lib/server/surreal"
 import homeQuery from "./home.surql"
+import newsQuery from "./news.surql"
 
 type Place = {
 	id: number
@@ -11,6 +12,12 @@ type Place = {
 	serverPing: number
 	likeCount: number
 	dislikeCount: number
+}
+
+type News = {
+	id: string
+	title: string
+	published: Date
 }
 
 // lazy eval 💞
@@ -29,17 +36,19 @@ export async function load({ locals, url }) {
 	const wanted = url.searchParams.get("channel")
 	const channel = channels.find(c => c.id === wanted) || channels[0]
 
-	const [[places, friends], shouts] = await Promise.all([
+	const [[places, friends], shouts, [news]] = await Promise.all([
 		db.query<[Place[], BasicUser[]]>(homeQuery, {
 			user: Record("user", user.id),
 		}),
 		channel ? messages(channel.id, user) : [],
+		db.query<[News[]]>(newsQuery),
 	])
 
 	return {
 		greet: greets[Math.floor(Math.random() * greets.length)](user.username),
 		places,
 		friends,
+		news,
 		shoutbox: {
 			channels,
 			channel: channel?.id || "",

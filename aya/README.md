@@ -335,6 +335,23 @@ and restart the Site, which makes a new one. The Economy reads the file on every
 request, so the old key stops working at once and it needs no restart.
 The ledger (`data/economy/ledger`) is mode 0600 as well.
 
+## News
+
+Administrators (permission level 5) write news posts at Admin > News: Markdown
+with a live preview, an optional cover image (cropped to 16:9 and kept as
+`data/news/<id>.avif`), and a draft state or a publish date to schedule a post.
+Readers see them at `/news` (newest first, with the latest as the lead story),
+at `/news/<id>/<title>`, and as the three latest headlines on the home page.
+Drafts and scheduled posts are visible only to administrators. Posts are in
+the `news` table, and every change is in the audit log.
+
+The Markdown is parsed by `Site/src/lib/markdown.ts` into a tree that
+`components/Markdown.svelte` draws as elements, so a post can't carry HTML or
+script: HTML is shown as text, links may only be web, mail or site addresses,
+and images https or site paths. Run its tests with `bun test
+src/lib/markdown.test.ts` in `Site/`. The masthead font is UnifrakturCook (SIL
+OFL, in `Site/static/fonts`).
+
 ## Friends and follows in game
 
 In-game friends and follows use the website's friends, requests and follows,

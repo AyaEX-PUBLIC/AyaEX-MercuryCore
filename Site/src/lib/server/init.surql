@@ -172,6 +172,21 @@ DEFINE TABLE OVERWRITE moderation SCHEMAFULL TYPE RELATION FROM user TO user ENF
 	DEFINE FIELD OVERWRITE timeEnds ON moderation TYPE datetime;
 	DEFINE FIELD OVERWRITE type ON moderation TYPE string;
 
+# News posts, written in Markdown by administrators (routes/(main)/admin/news).
+# A post is shown once its published date has passed; with no date it's a draft.
+# A cover image, if there is one, is data/news/<id>.avif.
+DEFINE TABLE OVERWRITE news SCHEMAFULL TYPE NORMAL;
+	DEFINE FIELD OVERWRITE id ON news TYPE string;
+	DEFINE FIELD OVERWRITE author ON news TYPE record<user>;
+	DEFINE FIELD OVERWRITE body ON news TYPE string;
+	DEFINE FIELD OVERWRITE cover ON news TYPE bool DEFAULT false;
+	DEFINE FIELD OVERWRITE created ON news TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE excerpt ON news TYPE string DEFAULT "";
+	DEFINE FIELD OVERWRITE published ON news TYPE option<datetime>;
+	DEFINE FIELD OVERWRITE title ON news TYPE string;
+	DEFINE FIELD OVERWRITE updated ON news TYPE datetime DEFAULT time::now();
+DEFINE INDEX OVERWRITE newsPublished ON news FIELDS published;
+
 DEFINE TABLE OVERWRITE notification SCHEMAFULL TYPE RELATION FROM user TO user ENFORCED;
 	DEFINE FIELD OVERWRITE id ON notification TYPE string;
 	DEFINE FIELD OVERWRITE created ON notification TYPE datetime DEFAULT ALWAYS time::now();
