@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from "svelte"
+	import { page } from "$app/state"
 	import PixelField from "$components/PixelField.svelte"
 
 	const {
@@ -27,7 +28,10 @@
 			</a>
 			<div class="mt-auto pt-16 <lg:hidden">
 				{#if tagline}
-					<span class="badge mb-5">{tagline}</span>
+					<span class="badge mb-5">
+						{tagline}
+						<span class="version">{page.data.version}</span>
+					</span>
 				{/if}
 				<dl class="grid gap-px max-w-110">
 					{#each descriptions as [title, description]}

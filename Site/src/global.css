@@ -447,6 +447,12 @@ img[src^="/icons"] {
 		border-color: var(--primary-line);
 		background: var(--primary-soft);
 	}
+	/* the release beside the tagline (deploy/release.sh) */
+	& .version {
+		padding-left: 0.3rem;
+		color: var(--dim-text);
+		border-left: 1px solid var(--accent3);
+	}
 }
 
 kbd,

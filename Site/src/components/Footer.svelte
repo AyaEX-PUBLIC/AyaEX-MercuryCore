@@ -25,6 +25,7 @@
 			<span>
 				&copy; {new Date().getFullYear()}
 				{data.siteName}{data.tagline ? ` · ${data.tagline}` : ""}
+				<span class="version">{data.version}</span>
 			</span>
 			<button
 				onmousedown={() => {
@@ -72,6 +73,12 @@
 		font-size: 0.8125rem;
 		color: var(--dim-text);
 		border-top: 1px solid var(--accent2);
+	}
+
+	.version {
+		margin-left: 0.25rem;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
 	}
 
 	#heart {

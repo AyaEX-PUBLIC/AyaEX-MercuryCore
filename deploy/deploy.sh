@@ -1,28 +1,32 @@
 #!/usr/bin/env bash
-# Deploy Mercury Core, the RCC services (../MercuryRCC) and the Aya engine
-# files they use (../aya-dev) to a Debian 13 VPS, from this machine.
+# Deploy a production release (deploy/release.sh) of Mercury Core, the RCC
+# services (../MercuryRCC) and the Aya engine files they use (../aya-dev) to a
+# Debian 13 VPS, from this machine.
 #
-#   deploy/deploy.sh                 send the code, settings and engine build,
-#                                    then rebuild and restart
+#   deploy/deploy.sh                 send the newest release, then rebuild and
+#                                    restart
+#   deploy/deploy.sh 2026.10.0       send that release (an older one rolls back)
 #   deploy/deploy.sh --migrate-data  also replace the VPS's data with this
 #                                    machine's (database, economy, places, ...)
 #   deploy/deploy.sh --force         restart even if games are running
 #
 # Settings are in deploy/vps.env (see vps.env.example). The code sent is each
-# repository's last commit. mercury.core.ts and the .env files are this
-# machine's, with the domain switched to DOMAIN (aya/set-domain.sh).
+# repository's commit tagged with the version. The engine build, the
+# gameserver image, mercury.core.ts and the .env files are the release's
+# copies, with the domain switched to DOMAIN (aya/set-domain.sh).
 set -euo pipefail
 CORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE="$(dirname "$CORE")"
 RCC="$WORKSPACE/MercuryRCC"
-AYA="$WORKSPACE/aya-dev"
 
 migrate=0
 force=0
+version=""
 for arg in "$@"; do
 	case "$arg" in
 	--migrate-data) migrate=1 ;;
 	--force) force=1 ;;
+	[0-9]*) version="$arg" ;;
 	*)
 		echo "unknown option: $arg" >&2
 		exit 1
@@ -34,6 +38,19 @@ done
 source "$CORE/deploy/vps.env"
 : "${VPS:?set VPS in deploy/vps.env}" "${DOMAIN:?set DOMAIN}" "${TLS_CERT:?set TLS_CERT}" "${TLS_KEY:?set TLS_KEY}"
 R="${REMOTE_ROOT:-/opt/mercury}"
+RELEASES="${RELEASES:-$WORKSPACE/mercury-releases}"
+if [[ -z "$version" ]]; then
+	version="$({ find "$RELEASES" -mindepth 2 -maxdepth 2 -name RELEASE -printf '%h\n' 2>/dev/null || true; } | xargs -rn1 basename | sort -V | tail -1)"
+	if [[ -z "$version" ]]; then
+		echo "no releases in $RELEASES yet: make one with deploy/release.sh" >&2
+		exit 1
+	fi
+fi
+rel="$RELEASES/$version"
+if [[ ! -f "$rel/RELEASE" ]]; then
+	echo "no release $version in $RELEASES" >&2
+	exit 1
+fi
 COMPOSE="docker compose -f compose.yml -f deploy/compose.vps.yml"
 command -v go >/dev/null || PATH="/usr/local/go/bin:$PATH"
 
@@ -62,24 +79,29 @@ cleanup() {
 }
 trap cleanup EXIT
 
-step "staging the code"
+current="$(remote "sed -n 's/^version=//p' $R/RELEASE 2>/dev/null" || true)"
+step "staging release $version (the VPS runs ${current:-no release})"
 for repo in MercuryCore MercuryRCC; do
 	src="$WORKSPACE/$repo"
-	if [[ -n "$(git -C "$src" status --porcelain --untracked-files=no -- . ':!mercury.core.ts')" ]]; then
-		echo "note: $repo has uncommitted changes; only its last commit is deployed"
+	commit="$(sed -n "s/^$repo=//p" "$rel/RELEASE")"
+	# the tag is the release's code: it must still be the commit it was made from
+	if [[ "$(git -C "$src" rev-parse -q --verify "refs/tags/$version^{commit}" || true)" != "$commit" ]]; then
+		echo "$repo's tag $version is missing or no longer $commit" >&2
+		exit 1
 	fi
 	mkdir -p "$WORK/$repo"
-	git -C "$src" archive HEAD | tar -x -C "$WORK/$repo"
-	echo "$repo $(git -C "$src" rev-parse --short HEAD)"
+	git -C "$src" archive "$commit" | tar -x -C "$WORK/$repo"
+	echo "$repo $(git -C "$src" rev-parse --short "$commit")"
 done
-cp "$CORE/mercury.core.ts" "$WORK/MercuryCore/"
-install -m 600 "$CORE/Site/.env" "$WORK/MercuryCore/Site/.env"
-install -m 600 "$RCC/Proxy/.env" "$WORK/MercuryRCC/Proxy/.env"
-install -m 600 "$RCC/Orbiter/.env" "$WORK/MercuryRCC/Orbiter/.env"
+cp "$rel/config/mercury.core.ts" "$WORK/MercuryCore/"
+install -m 600 "$rel/config/Site.env" "$WORK/MercuryCore/Site/.env"
+install -m 600 "$rel/config/Proxy.env" "$WORK/MercuryRCC/Proxy/.env"
+install -m 600 "$rel/config/Orbiter.env" "$WORK/MercuryRCC/Orbiter/.env"
 "$WORK/MercuryCore/aya/set-domain.sh" --no-restart "https://$DOMAIN" >/dev/null
-# the Site only listens on loopback there: Caddy is in front of it
-sed -i '/^HOST=/d' "$WORK/MercuryCore/Site/.env"
-echo "HOST=127.0.0.1" >>"$WORK/MercuryCore/Site/.env"
+# the Site only listens on loopback there: Caddy is in front of it. It shows
+# the version in its footer.
+sed -i '/^HOST=/d; /^MERCURY_VERSION=/d' "$WORK/MercuryCore/Site/.env"
+printf 'HOST=127.0.0.1\nMERCURY_VERSION=%s\n' "$version" >>"$WORK/MercuryCore/Site/.env"
 # the proxy's engine paths point into this machine's workspace
 sed -i "s#$WORKSPACE/#$R/#g" "$WORK/MercuryRCC/Proxy/.env"
 for service in Proxy Orbiter; do
@@ -91,9 +113,10 @@ remote "command -v rsync >/dev/null || { apt-get update -qq && DEBIAN_FRONTEND=n
 rsync -az --delete --exclude=/data/ --exclude=/.env --exclude=/deploy/Caddyfile.vps --exclude=/deploy/certs/ \
 	"$WORK/MercuryCore/" "$VPS:$R/MercuryCore/"
 rsync -az --delete --exclude=/data/ --exclude=/logs/ "$WORK/MercuryRCC/" "$VPS:$R/MercuryRCC/"
-bin="$AYA/./build/x64-linux-rel/bin"
+engine="$rel/aya-dev"
+bin="$engine/./build/x64-linux-rel/bin"
 rsync -azR --delete "$bin/Aya.Server" "$bin/libfmod.so" "$bin/libfmod.so.13" "$bin/ClientSettings.json" \
-	"$bin/shaders" "$bin/platform" "$AYA/./client/resources" "$AYA/./build/wasm-app-rel/bin" "$AYA/./assets" \
+	"$bin/shaders" "$bin/platform" "$engine/./client/resources" "$engine/./build/wasm-app-rel/bin" "$engine/./assets" \
 	"$VPS:$R/aya-dev/"
 rsync -zp --chmod=F600 "$TLS_CERT" "$VPS:$R/MercuryCore/deploy/certs/origin.pem"
 rsync -zp --chmod=F600 "$TLS_KEY" "$VPS:$R/MercuryCore/deploy/certs/origin.key"
@@ -125,10 +148,10 @@ print(text.replace("__DOMAIN__", os.environ["DOMAIN"]).replace("__AUTH__", os.en
 rsync -zp --chmod=F600 "$WORK/Caddyfile.vps" "$VPS:$R/MercuryCore/deploy/Caddyfile.vps"
 
 step "gameserver image"
-image="$({ grep -E '^GAMESERVER_IMAGE=' "$RCC/Proxy/.env" || true; } | tail -1 | cut -d= -f2-)"
+image="$({ grep -E '^GAMESERVER_IMAGE=' "$rel/config/Proxy.env" || true; } | tail -1 | cut -d= -f2-)"
 image="${image:-mercury-gameserver}"
-if [[ "$(docker image inspect -f '{{.Id}}' "$image")" != "$(remote "docker image inspect -f '{{.Id}}' $image 2>/dev/null" || true)" ]]; then
-	docker save "$image" | gzip -1 | remote "gunzip | docker load"
+if [[ "$(sed -n 's/^gameserver=//p' "$rel/RELEASE")" != "$(remote "docker image inspect -f '{{.Id}}' $image 2>/dev/null" || true)" ]]; then
+	remote "gunzip | docker load" <"$rel/gameserver.tar.gz"
 else
 	echo "$image is up to date"
 fi
@@ -159,7 +182,7 @@ if ((migrate)); then
 	rsync -aH --delete "$RCC/data/" "$VPS:$R/MercuryRCC/data/"
 fi
 # console clients offered on /download (Site lib/server/downloads.ts)
-nro="$AYA/build/switch-engine-clang/Aya.Switch.nro"
+nro="$rel/Aya.Switch.nro"
 if [[ -f "$nro" ]]; then
 	remote "mkdir -p $R/MercuryCore/data/downloads"
 	rsync -z --times "$nro" "$VPS:$R/MercuryCore/data/downloads/Aya.Switch.nro"
@@ -172,8 +195,9 @@ remote "systemctl restart mercury-rcc-proxy mercury-orbiter"
 remote "cd $R/MercuryCore && $COMPOSE up -d --remove-orphans 2>&1 | tail -n 5"
 # a single-file mount keeps the old Caddyfile until the container is recreated
 remote "cd $R/MercuryCore && $COMPOSE up -d --force-recreate --no-deps caddy 2>&1 | tail -n 1"
+rsync -z --chmod=F644 "$rel/RELEASE" "$VPS:$R/RELEASE"
 
-step "checking"
+step "checking (the VPS now runs $version)"
 sleep 8
 remote "curl -sk -o /dev/null -w 'from the VPS itself: %{http_code}\n' -m 20 https://$DOMAIN/" || true
 ip="${VPS#*@}"

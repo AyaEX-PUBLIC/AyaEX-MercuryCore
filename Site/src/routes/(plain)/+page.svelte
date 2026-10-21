@@ -59,7 +59,10 @@
 			fadeBottom={0.2} />
 		<div class="ctnr relative flex flex-col items-center text-center py-28 lg:py-40">
 			{#if data.tagline}
-				<span class="badge mb-7">{data.tagline}</span>
+				<span class="badge mb-7">
+					{data.tagline}
+					<span class="version">{data.version}</span>
+				</span>
 			{/if}
 			<h1 class="headline">
 				{first}

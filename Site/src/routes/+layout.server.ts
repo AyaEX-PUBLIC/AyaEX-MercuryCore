@@ -1,3 +1,4 @@
+import { env } from "$env/dynamic/private"
 import config from "$lib/server/config"
 import { getBalance } from "$lib/server/economy"
 import { db } from "$lib/server/surreal"
@@ -30,6 +31,8 @@ export async function load({ fetch: f, locals, request }) {
 		siteName: config.Name,
 		tagline: config.Branding.Tagline,
 		longTagline: config.Branding.LongTagline,
+		// the production release deployed (deploy/release.sh), or "dev"
+		version: env.MERCURY_VERSION || "dev",
 		pages: config.Pages,
 	}
 }

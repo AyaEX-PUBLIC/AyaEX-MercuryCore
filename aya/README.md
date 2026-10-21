@@ -57,18 +57,36 @@ engine files they use. Settings go in `deploy/vps.env` (ignored by git; see
 `deploy/vps.env.example`): the SSH destination, the domain, a Cloudflare
 origin certificate and key, and an optional site-wide login.
 
+The VPS only ever runs production releases. Work on this machine as usual;
+once it's stable, make a release and deploy it:
+
 ```bash
-deploy/deploy.sh                 # send the code, settings and engine build, rebuild, restart
+deploy/release.sh                # make the next release (2026.10.0, 2026.10.1, 2026.11.0, ...)
+deploy/release.sh 2026.10.0      # or name it
+deploy/deploy.sh                 # send the newest release, rebuild, restart
+deploy/deploy.sh 2026.10.0       # send that release (an older one rolls back)
 deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machine's
 ```
 
-- The code sent is each repository's last commit (MercuryCore, MercuryRCC).
-  `mercury.core.ts` and the `.env` files are this machine's, switched to the
-  VPS's domain by `aya/set-domain.sh --no-restart`. From aya-dev it sends
-  only `Aya.Server` and its files, `client/resources`, the WebAssembly build
-  (the dev channel) and `assets`, plus the Switch client
-  (`build/switch-engine-clang/Aya.Switch.nro`) for `/download`, which serves
-  console clients from `data/downloads/`.
+- Versions are YEAR.MONTH.N, N counting from 0 each month. The site's footer
+  shows the version next to the tagline (`MERCURY_VERSION`; `dev` on this
+  machine).
+- A release tags the last commit of MercuryCore, MercuryRCC and aya-dev with
+  its version and pushes the tags. Everything else the VPS gets is copied into
+  `../mercury-releases/<version>` (`RELEASES` in `vps.env`), so later work here
+  never reaches the VPS by accident: from aya-dev `Aya.Server` and its files,
+  `client/resources`, the WebAssembly build (the VPS's dev channel), `assets`
+  and the Switch client (`build/switch-engine-clang/Aya.Switch.nro`, for
+  `/download`); this machine's `mercury.core.ts` and `.env` files; the
+  gameserver image. Files an earlier release has are hard links to it, so a
+  release takes only the space of what changed. `RELEASE` in it lists the
+  commits, and the VPS keeps the deployed one as `/opt/mercury/RELEASE`.
+- Deploying sends the release's tagged code and its copies, with the settings
+  switched to the VPS's domain by `aya/set-domain.sh --no-restart`. The
+  stable client channel on the VPS still changes only with `--migrate-data`
+  or `aya/promote-stable.sh` there.
+- The database and other `data/` aren't part of a release: rolling back
+  doesn't undo changes `init.surql` made.
 - On the VPS (`/opt/mercury`, run by the `mercury` user), `deploy/provision.sh`:
   - installs Docker and the libraries Aya.Server needs, all from Debian
   - sets up a firewall that lets in only SSH, HTTP and HTTPS
@@ -79,8 +97,8 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   domain over HTTPS with the origin certificate, in front of the usual `:8010`
   site. Requests from the VPS itself, its gameservers and renders, never need
   the site-wide login.
-- The gameserver image is copied from this machine (`docker save`), since
-  building it needs a `dhi.io` login.
+- The gameserver image is copied from the release (`docker save` when it was
+  made), since building it needs a `dhi.io` login.
 - `--migrate-data` stops this machine's database and economy for a few
   seconds, for a consistent copy. Either way, the deploy stops if games are
   running on the VPS (`--force` to go ahead).
