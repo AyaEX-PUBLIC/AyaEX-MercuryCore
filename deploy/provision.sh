@@ -6,7 +6,8 @@
 #   (Xvfb, Mesa, the libraries it links against), all from Debian (Mesa from
 #   trixie-backports)
 # - the mercury user (uid 1000, as compose.yml runs the Site and database)
-# - a firewall letting in only SSH, HTTP and HTTPS
+# - a firewall letting in only SSH, HTTP and HTTPS (and WireGuard, once
+#   deploy/wireguard.sh has set it up)
 # - DOMAIN resolving to the VPS itself, for its gameservers and renders
 # - systemd services for Xvfb, the RCC proxy and the Orbiter
 set -euo pipefail
@@ -50,9 +51,14 @@ usermod -aG docker mercury
 mkdir -p "$root"
 chown mercury:mercury "$root"
 
-# Only SSH, HTTP and HTTPS from outside. Its own table, so reloading it never
-# touches the rules Docker adds.
-cat >/etc/nftables.conf <<'EOF'
+# Only SSH, HTTP and HTTPS from outside, and WireGuard once deploy/wireguard.sh
+# has set it up. Its own table, so reloading it never touches the rules Docker
+# adds.
+wireguard=
+if [ -f /etc/wireguard/wg0.conf ]; then
+	wireguard='udp dport 51820 accept'
+fi
+cat >/etc/nftables.conf <<EOF
 #!/usr/sbin/nft -f
 # Mercury VPS firewall (MercuryCore deploy/provision.sh)
 table inet mercury
@@ -65,6 +71,7 @@ table inet mercury {
 		ct state invalid drop
 		meta l4proto { icmp, ipv6-icmp } accept
 		tcp dport { 22, 80, 443 } accept
+		$wireguard
 	}
 }
 EOF

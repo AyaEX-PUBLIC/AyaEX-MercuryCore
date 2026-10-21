@@ -84,6 +84,15 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
 - `--migrate-data` stops this machine's database and economy for a few
   seconds, for a consistent copy. Either way, the deploy stops if games are
   running on the VPS (`--force` to go ahead).
+- `deploy/wireguard.sh` sets up a WireGuard server on the VPS (UDP 51820), so
+  this machine can browse from the VPS's own IPv4 and IPv6 addresses. Use it to
+  sign in to the Roblox account whose cookie the VPS fetches assets with: Roblox
+  ties a login to where it was made. It writes the client config to
+  `deploy/wg-mercury.conf` (ignored by git; the private key never leaves this
+  machine). Import it with
+  `nmcli connection import type wireguard file deploy/wg-mercury.conf`, then
+  `nmcli connection up wg-mercury` / `down wg-mercury`. While it's up, all of
+  this machine's traffic goes through the VPS.
 
 ## Client channels
 

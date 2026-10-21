@@ -9,3 +9,4 @@
 /deploy/vps.env
 /deploy/Caddyfile.vps
 /deploy/certs/
+/deploy/wg-mercury.conf
