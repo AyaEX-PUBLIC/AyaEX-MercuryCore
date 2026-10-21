@@ -26,6 +26,17 @@ export function requireAssetAccess(locals: App.Locals, request: Request) {
 	error(401, "Unauthorized")
 }
 
+/**
+ * Whether a request may ask what an account owns: a gameserver (the server key)
+ * can ask about any player, a signed-in player only about themselves, so
+ * nobody can read another account's inventory.
+ */
+export const mayAskAbout = (
+	locals: App.Locals,
+	request: Request,
+	userId: string | undefined
+) => hasServerKey(request) || (!!userId && locals.user?.id === userId)
+
 /** Routes only gameservers may call (badges, developer product receipts). */
 export function requireServerKey(request: Request) {
 	if (!hasServerKey(request)) error(401, "Unauthorized")
