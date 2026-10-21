@@ -177,10 +177,14 @@ step "checking"
 sleep 8
 remote "curl -sk -o /dev/null -w 'from the VPS itself: %{http_code}\n' -m 20 https://$DOMAIN/" || true
 ip="${VPS#*@}"
-curl -sk -o /dev/null -w "from here, straight to the VPS: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/" || true
+# the origin certificate isn't from a public CA, so it is the one thing trusted
+# here: the VPS has to show it, and nothing else can receive the login below
+curl -s --cacert "$TLS_CERT" -o /dev/null -w "from here, straight to the VPS: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" "https://$DOMAIN/" || true
 if [[ -n "${BASIC_AUTH_USER:-}" ]]; then
-	curl -sk -o /dev/null -w "  with the login: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" \
-		-u "$BASIC_AUTH_USER:$BASIC_AUTH_PASSWORD" "https://$DOMAIN/" || true
+	# the login goes in on stdin (-K -), not in curl's arguments, where other
+	# accounts on this machine could read it from the process list
+	curl -s --cacert "$TLS_CERT" -o /dev/null -w "  with the login: %{http_code}\n" -m 20 --resolve "$DOMAIN:443:$ip" \
+		-K - "https://$DOMAIN/" <<<"user = \"$(printf '%s' "$BASIC_AUTH_USER:$BASIC_AUTH_PASSWORD" | sed 's/[\\"]/\\&/g')\"" || true
 fi
 curl -s -o /dev/null -w "through Cloudflare: %{http_code}\n" -m 20 "https://$DOMAIN/" || true
 remote "systemctl is-active mercury-xvfb mercury-rcc-proxy mercury-orbiter | paste -sd' '; cd $R/MercuryCore && $COMPOSE ps --format '{{.Service}} {{.State}}' | paste -sd' '"
