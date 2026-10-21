@@ -146,11 +146,17 @@ actions.view = async e => {
 				["Icon must be less than 1MB in size"]
 			)
 
-		if (!fs.existsSync("../data/icons")) fs.mkdirSync("../data/icons")
-		sharp(await icon.arrayBuffer())
-			.resize(270, 270)
-			.avif({ effort: 9 }) // not awaited, so this'll happen in the background (takes a sec or 2)
-			.toFile(`../data/icons/${id}.avif`) // also errors aren't caught but whatever
+		fs.mkdirSync("../data/icons", { recursive: true })
+		// awaited: a file that isn't an image rejects, and an unhandled
+		// rejection would take the whole Site down
+		try {
+			await sharp(await icon.arrayBuffer())
+				.resize(270, 270)
+				.avif({ effort: 9 })
+				.toFile(`../data/icons/${id}.avif`)
+		} catch {
+			return formError(form, ["icon"], ["Icon must be a valid image"])
+		}
 	}
 
 	if (thumbnail && thumbnail.size > 0) {
