@@ -82,25 +82,70 @@ function xmlText(raw: string) {
 	return new TextDecoder().decode(new Uint8Array(bytes))
 }
 
-const attributes = (tag: string) =>
-	Object.fromEntries(
-		Array.from(tag.matchAll(/(\w+)="([^"]*)"/g), ([, name, value]) => [
-			name,
-			xmlText(value),
-		])
-	)
+/**
+ * The next `<name ...>` at or after `from`. Everything here scans forward
+ * once, so a body full of unclosed tags (at most maxBody of them) costs no
+ * more than its length; lazy regular expressions would rescan to the end of
+ * the body for each one.
+ */
+function openTag(xml: string, name: string, from = 0) {
+	const open = `<${name}`
+	for (
+		let start = xml.indexOf(open, from);
+		start >= 0;
+		start = xml.indexOf(open, start + open.length)
+	) {
+		// <message, not <messages
+		const next = xml[start + open.length]
+		if (!(next === ">" || next === "/" || (next && next <= " "))) continue
+
+		const end = xml.indexOf(">", start)
+		if (end < 0) return // no tag can end after this
+		return { attrs: xml.slice(start + open.length, end), end }
+	}
+}
+
+/** The attributes and text of each `<name ...>text</name>`; unclosed tags are skipped */
+function* elements(xml: string, name: string) {
+	const close = `</${name}>`
+	for (let from = 0; ; ) {
+		const tag = openTag(xml, name, from)
+		if (!tag) return
+		const end = xml.indexOf(close, tag.end + 1)
+		if (end < 0) return // nothing after an unclosed tag can be closed either
+		yield { attrs: tag.attrs, text: xml.slice(tag.end + 1, end) }
+		from = end + close.length
+	}
+}
+
+/** name="value" pairs from the inside of a tag */
+function attributes(tag: string) {
+	const out: { [name: string]: string } = {}
+	for (let i = 0; i < tag.length; ) {
+		const eq = tag.indexOf('="', i)
+		if (eq < 0) break
+		const close = tag.indexOf('"', eq + 2)
+		if (close < 0) break
+
+		let start = eq
+		while (start > i && /\w/.test(tag[start - 1])) start--
+		if (start < eq) out[tag.slice(start, eq)] = xmlText(tag.slice(eq + 2, close))
+		i = close + 1
+	}
+	return out
+}
 
 /** The report, or nothing if it isn't one */
 function parse(xml: string) {
-	const root = /<report\b([^>]*)>/.exec(xml)
-	const comment = /<comment>([\s\S]*?)<\/comment>/.exec(xml)
+	const root = openTag(xml, "report")
+	const comment = elements(xml, "comment").next().value
 	if (!root || !comment) return
-	const { userID, placeID } = attributes(root[1])
+	const { userID, placeID } = attributes(root.attrs)
 
 	// the gameserver puts the reported player first, the client's
 	// "reason;description" after it
 	const fields = /^AbuserID:(\d+);([^;]*);?([\s\S]*)$/.exec(
-		xmlText(comment[1])
+		xmlText(comment.text)
 	)
 	if (!fields) return
 
@@ -110,13 +155,10 @@ function parse(xml: string) {
 		abuser: Number(fields[1]),
 		reason: fields[2].trim().slice(0, 60),
 		description: fields[3].trim().slice(0, 500),
-		messages: Array.from(
-			xml.matchAll(/<message\b([^>]*)>([\s\S]*?)<\/message>/g),
-			([, tag, text]) => ({
-				userId: Number(attributes(tag).userID),
-				text: xmlText(text).slice(0, 300),
-			})
-		).slice(-50),
+		messages: Array.from(elements(xml, "message"), ({ attrs, text }) => ({
+			userId: Number(attributes(attrs).userID),
+			text: xmlText(text).slice(0, 300),
+		})).slice(-50),
 	}
 }
 
