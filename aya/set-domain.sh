@@ -52,7 +52,12 @@ def fix(match):
         out.append(flag)
         i += 1
     if not host.startswith(("localhost", "127.0.0.1")):
-        out += ["--httpAllowHost", host, "--scriptHttpAllowHost", host]
+        # an entry without a port allows every port, and where the public name
+        # resolves to this machine (the VPS's /etc/hosts does) a place script
+        # could address any local service through it: allow only what the site
+        # is served on
+        for entry in [host] if ":" in host else [host + ":80", host + ":443"]:
+            out += ["--httpAllowHost", entry, "--scriptHttpAllowHost", entry]
     # the engine derives its marketplace API URL from this (needs the trailing slash)
     if "--baseUrl" in out:
         out[out.index("--baseUrl") + 1] = origin + "/"
