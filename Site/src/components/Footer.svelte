@@ -6,78 +6,20 @@
 	} = $props()
 
 	let clicked = $state(false)
-
-	type Column = [string, [string, string][]]
-
-	let columns = $derived.by(() => {
-		const about: Column = [data.siteName, [["About", "/about"]]]
-		if (!data.user)
-			return [
-				[
-					"Account",
-					[
-						["Log in", "/login"],
-						["Register", "/register"]
-					]
-				],
-				about
-			] as Column[]
-
-		// signed-in pages
-		about[1].push(["Rules", "/rules"], ["Download", "/download"])
-		if (data.pages.includes("Statistics"))
-			about[1].push(["Statistics", "/statistics"])
-		const play: Column = [
-			"Play",
-			[
-				["Games", "/games"],
-				["Catalog", "/catalog"],
-				["Create", "/develop"],
-				["Casino", "/casino"]
-			]
-		]
-		if (data.pages.includes("Groups")) play[1].push(["Groups", "/groups"])
-		if (data.pages.includes("Forum")) play[1].push(["Forum", "/forum"])
-
-		const you: Column = [
-			"You",
-			[
-				["Profile", `/user/${data.user.username}`],
-				["Character", "/character"],
-				["Friends", "/requests"],
-				["Settings", "/settings"]
-			]
-		]
-		return [play, you, about]
-	})
 </script>
 
 <footer>
 	<div class="ctnr">
-		<div class="flex <md:flex-col justify-between gap-10 py-12">
-			<div class="max-w-72">
-				<a href="/" class="brand">
-					<img src="/assets/icon" alt="" class="size-5" />
-					{data.siteName}
-				</a>
-				{#if data.longTagline || data.tagline}
-					<p class="grey-text text-sm pt-3">
-						{data.longTagline || data.tagline}
-					</p>
-				{/if}
-			</div>
-			<div class="flex flex-wrap gap-x-16 gap-y-8">
-				{#each columns as [title, links]}
-					<div>
-						<div class="text-sm font-500 pb-3">{title}</div>
-						<ul>
-							{#each links as [name, href]}
-								<li><a {href}>{name}</a></li>
-							{/each}
-						</ul>
-					</div>
-				{/each}
-			</div>
+		<div class="max-w-72 py-8">
+			<a href="/" class="brand">
+				<img src="/assets/icon" alt="" class="size-5" />
+				{data.siteName}
+			</a>
+			{#if data.longTagline || data.tagline}
+				<p class="grey-text text-sm pt-3">
+					{data.longTagline || data.tagline}
+				</p>
+			{/if}
 		</div>
 		<div class="fine">
 			<span>
@@ -118,21 +60,6 @@
 		font-size: 0.875rem;
 		font-weight: 600;
 		color: var(--light-text);
-	}
-
-	ul {
-		list-style: none;
-		display: flex;
-		flex-direction: column;
-		gap: 0.625rem;
-	}
-
-	li a {
-		font-size: 0.875rem;
-		color: var(--grey-text);
-		&:hover {
-			color: var(--light-text);
-		}
 	}
 
 	.fine {
