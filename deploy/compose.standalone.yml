@@ -1,0 +1,31 @@
+# The standalone AyaEX site on a VPS (deploy/deploy.sh, when STANDALONE_DOMAIN
+# is set): aya-dev's launcher, WebAssembly runtime and API, run as aya-dev's
+# own compose file runs them, but only on 127.0.0.1:8005, behind Mercury's
+# Caddy (deploy/Caddyfile.vps.in). The API's Roblox login is the VPS's own
+# (ROBLOSECURITY in /etc/mercury/site.env), never the one in aya-dev's compose
+# file. Paths are relative to this file, in REMOTE_ROOT/MercuryCore/deploy.
+name: ayaex-standalone
+services:
+    caddy:
+        image: caddy:2
+        restart: unless-stopped
+        ports:
+            - 127.0.0.1:8005:8005
+        volumes:
+            - ../../aya-dev/Caddyfile:/etc/caddy/Caddyfile:ro
+            - ../../aya-dev/build/wasm-app-rel/bin:/srv5:ro
+            - ../../aya-dev/web:/srv4:ro
+        depends_on:
+            - api
+
+    api:
+        build: ../../aya-dev/apiserver
+        restart: unless-stopped
+        volumes:
+            - ../../aya-dev/assets:/assets:ro
+            - ../../aya-dev/build/wasm-app-rel/bin:/app-runtime:ro
+        environment:
+            AYA_APP_DIST_DIR: /app-runtime
+        env_file:
+            - path: /etc/mercury/site.env
+              required: false

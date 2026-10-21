@@ -99,6 +99,14 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   the site-wide login.
 - The gameserver image is copied from the release (`docker save` when it was
   made), since building it needs a `dhi.io` login.
+- With `STANDALONE_DOMAIN` set in `vps.env`, the VPS also runs the standalone
+  AyaEX site (aya-dev's launcher, runtime and API) on that domain, with the
+  same origin certificate and an optional login of its own
+  (`STANDALONE_BASIC_AUTH_*`). It runs from `deploy/compose.standalone.yml`
+  on 127.0.0.1:8005 behind Mercury's Caddy, with aya-dev's `Caddyfile`,
+  `apiserver/` and `web/` from the release's aya-dev tag. Its API fetches
+  Roblox assets with the VPS's own `ROBLOSECURITY` (below), never the cookie in
+  aya-dev's compose file.
 - `--migrate-data` stops this machine's database and economy for a few
   seconds, for a consistent copy. Either way, the deploy stops if games are
   running on the VPS (`--force` to go ahead).

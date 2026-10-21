@@ -16,6 +16,18 @@ __AUTH__
 	}
 }
 
+# The standalone AyaEX site (deploy/compose.standalone.yml) on its own domain,
+# when STANDALONE_DOMAIN is set (deploy.sh leaves this part out otherwise)
+# __STANDALONE_BEGIN__
+__STANDALONE_DOMAIN__ {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+__STANDALONE_AUTH__
+	reverse_proxy 127.0.0.1:8005 {
+		flush_interval -1
+	}
+}
+# __STANDALONE_END__
+
 # Engine URLs use http:// (DomainInsecure): served directly for the VPS
 # itself, and sent to HTTPS for everyone else
 http://__DOMAIN__ {
