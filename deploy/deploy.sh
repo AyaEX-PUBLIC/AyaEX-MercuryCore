@@ -150,10 +150,13 @@ if ! remote "test -z \"\$(LD_LIBRARY_PATH=$aya ldd $aya/Aya.Server | grep 'not f
 fi
 
 step "Caddy settings"
-# Caddy's basic_auth for USER PASSWORD; the VPS's own requests never need it
+# Caddy's basic_auth for USER PASSWORD; the VPS's own requests never need it.
+# Cloudflare mustn't cache anything behind it: it would hand its copy to
+# anyone, login or not (and once kept an empty favicon.ico for hours).
 login() {
 	local hash
 	hash="$(printf '%s\n' "$2" | remote "docker run --rm -i caddy:2 caddy hash-password")"
+	printf '\theader Cloudflare-CDN-Cache-Control no-store\n'
 	printf '\t@outside not remote_ip 127.0.0.1 ::1\n\tbasic_auth @outside {\n\t\t%s %s\n\t}' "$1" "$hash"
 }
 auth=""

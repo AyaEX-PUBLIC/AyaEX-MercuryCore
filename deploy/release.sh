@@ -5,6 +5,9 @@
 #
 #   deploy/release.sh             the next version for this month
 #   deploy/release.sh 2026.10.0   that version
+#   deploy/release.sh --replace 2026.10.0
+#                                 make that version again from what's here now
+#                                 (moving its tags), while nobody outside has it
 #
 # - tags the last commit of MercuryCore, MercuryRCC and aya-dev with the
 #   version, and pushes the tags
@@ -15,7 +18,8 @@
 #   files) and the gameserver image. Files an earlier release already has are
 #   hard links to it, so a release only takes the space of what changed.
 #
-# A release never changes afterwards. Deploy it with deploy/deploy.sh VERSION.
+# Otherwise a release never changes afterwards. Deploy it with
+# deploy/deploy.sh VERSION.
 set -euo pipefail
 CORE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKSPACE="$(dirname "$CORE")"
@@ -27,6 +31,12 @@ source "$CORE/deploy/vps.env"
 RELEASES="${RELEASES:-$WORKSPACE/mercury-releases}"
 repos=("$CORE" "$RCC" "$AYA")
 
+replace=0
+if [[ "${1:-}" == --replace ]]; then
+	replace=1
+	shift
+	: "${1:?--replace needs the version to make again}"
+fi
 version="${1:-}"
 if [[ -z "$version" ]]; then
 	month="$(date +%Y).$(date +%-m)"
@@ -38,18 +48,20 @@ if ! [[ "$version" =~ ^[0-9]{4}\.(1[0-2]|[1-9])\.(0|[1-9][0-9]*)$ ]]; then
 	exit 1
 fi
 rel="$RELEASES/$version"
-if [[ -e "$rel" ]]; then
-	echo "release $version already exists: $rel" >&2
-	exit 1
-fi
-for repo in "${repos[@]}"; do
-	if git -C "$repo" rev-parse -q --verify "refs/tags/$version" >/dev/null; then
-		echo "$(basename "$repo") already has a tag $version" >&2
+if ((!replace)); then
+	if [[ -e "$rel" ]]; then
+		echo "release $version already exists: $rel (--replace to make it again)" >&2
 		exit 1
 	fi
-done
+	for repo in "${repos[@]}"; do
+		if git -C "$repo" rev-parse -q --verify "refs/tags/$version" >/dev/null; then
+			echo "$(basename "$repo") already has a tag $version" >&2
+			exit 1
+		fi
+	done
+fi
 
-echo "release $version"
+echo "release $version$( ((replace)) && echo " (made again)")"
 for repo in "${repos[@]}"; do
 	if [[ -n "$(git -C "$repo" status --porcelain --untracked-files=no -- . ':!mercury.core.ts')" ]]; then
 		echo "note: $(basename "$repo") has uncommitted changes; only its last commit is tagged"
@@ -67,7 +79,12 @@ mkdir -p "$RELEASES"
 tmp="$(mktemp -d "$RELEASES/.$version.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 chmod 700 "$tmp"
-prev="$(find "$RELEASES" -mindepth 2 -maxdepth 2 -name RELEASE -printf '%h\n' | xargs -rn1 basename | sort -V | tail -1)"
+# hard links to the release this one replaces, or else the newest
+if [[ -f "$rel/RELEASE" ]]; then
+	prev="$version"
+else
+	prev="$(find "$RELEASES" -mindepth 2 -maxdepth 2 -name RELEASE -printf '%h\n' | xargs -rn1 basename | sort -V | tail -1)"
+fi
 link=()
 nrolink=()
 if [[ -n "$prev" ]]; then
@@ -102,16 +119,36 @@ docker save "$image" | gzip -1 >"$tmp/gameserver.tar.gz"
 	done
 	echo "gameserver=$(docker image inspect -f '{{.Id}}' "$image")"
 } >"$tmp/RELEASE"
+old=""
+if [[ -e "$rel" ]]; then
+	old="$RELEASES/.$version.replaced"
+	rm -rf "$old"
+	mv "$rel" "$old"
+fi
 mv "$tmp" "$rel"
 trap - EXIT
+# du counts a hard-linked file once, under the first directory it's given
+base=()
+if [[ -n "$old" ]]; then
+	base=("$old")
+elif [[ -n "$prev" ]]; then
+	base=("$RELEASES/$prev")
+fi
+size="$(du -sh "${base[@]}" "$rel" | tail -1 | cut -f1)"
+if [[ -n "$old" ]]; then
+	rm -rf "$old"
+fi
 
+force=()
+if ((replace)); then
+	force=(--force)
+fi
 for repo in "${repos[@]}"; do
-	git -C "$repo" tag -a "$version" -m "AyaEX $version"
-	if ! git -C "$repo" push -q origin "refs/tags/$version"; then
+	git -C "$repo" tag -a "${force[@]}" "$version" -m "AyaEX $version"
+	if ! git -C "$repo" push -q "${force[@]}" origin "refs/tags/$version"; then
 		echo "warning: couldn't push the tag to $(basename "$repo")'s origin; push it later with" >&2
-		echo "  git -C $repo push origin $version" >&2
+		echo "  git -C $repo push ${force[*]} origin $version" >&2
 	fi
 done
-# du counts a hard-linked file once, under the first directory it's given
-echo "release $version: $rel ($(du -sh ${prev:+"$RELEASES/$prev"} "$rel" | tail -1 | cut -f1) new)"
+echo "release $version: $rel ($size new)"
 echo "deploy it with: deploy/deploy.sh $version"
