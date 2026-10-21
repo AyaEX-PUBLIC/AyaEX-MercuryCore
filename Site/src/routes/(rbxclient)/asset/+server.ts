@@ -117,7 +117,7 @@ async function loadAyaAsset(id: number) {
 	return response(await substituteURLs(Bun.file(path)))
 }
 
-// Assets fetched from the Aya API or Open Cloud are cached here, up to
+// Assets fetched from the Aya API, Roblox or Open Cloud are cached here, up to
 // ASSET_CACHE_MAX_MB (2 GiB by default); past that the oldest files go
 const cacheDir = "../data/assetcache"
 const cacheMax = () => (Number(env.ASSET_CACHE_MAX_MB) || 2048) * 1024 ** 2
@@ -216,6 +216,47 @@ async function loadAyaApiAsset(id: number) {
 	}
 }
 
+// Roblox's asset delivery, signed in with the operator's account
+// (ROBLOSECURITY, its .ROBLOSECURITY cookie). Roblox ends a login used from
+// somewhere other than where it was made, so only set it where it was made
+// (for a VPS, through deploy/wireguard.sh)
+async function loadRobloxAsset(id: number) {
+	const cookie = env.ROBLOSECURITY
+	if (!cookie) return
+
+	try {
+		let res = await fetch(
+			`https://assetdelivery.roblox.com/v1/asset/?id=${id}`,
+			{
+				headers: {
+					Cookie: `.ROBLOSECURITY=${cookie}`,
+					"User-Agent": "Roblox/WinInet",
+				},
+				redirect: "manual",
+			}
+		)
+		// the file itself comes from Roblox's CDN, which doesn't need the cookie
+		const location = res.headers.get("location")
+		if (res.status >= 300 && res.status < 400 && location)
+			res = await fetch(
+				new URL(location, "https://assetdelivery.roblox.com/")
+			)
+		if (res.status === 401)
+			console.error(
+				"Roblox refused ROBLOSECURITY: the login has ended (used from elsewhere, or signed out)"
+			)
+		if (!res.ok) return
+
+		const asset = await substituteURLs(res)
+		await cacheAsset(id, asset)
+
+		console.log("Serving Roblox", id)
+		return response(asset)
+	} catch (e) {
+		console.error("Roblox asset delivery failed", e)
+	}
+}
+
 async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 	try {
 		const req = await f(
@@ -242,7 +283,7 @@ async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 	}
 }
 
-// ids that neither upstream had, so asking for them again doesn't reach them
+// ids that no upstream had, so asking for them again doesn't reach them
 // (with the operator's credentials) every time
 const missing = new Map<number, number>()
 const missingFor = 10 * 60 * 1000
@@ -300,6 +341,9 @@ export async function GET({ fetch: f, url, locals, request }) {
 
 	const resultAyaApi = await loadAyaApiAsset(id)
 	if (resultAyaApi) return resultAyaApi
+
+	const resultRoblox = await loadRobloxAsset(id)
+	if (resultRoblox) return resultRoblox
 
 	try {
 		const result3 = await loadOpenCloudAsset(f, id)

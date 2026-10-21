@@ -93,6 +93,15 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   `nmcli connection import type wireguard file deploy/wg-mercury.conf`, then
   `nmcli connection up wg-mercury` / `down wg-mercury`. While it's up, all of
   this machine's traffic goes through the VPS.
+- There's no Aya API on the VPS: its Site fetches assets from Roblox itself,
+  with the `ROBLOSECURITY` in `/etc/mercury/site.env` on the VPS (root and the
+  `mercury` group only). That file holds the VPS's own Site settings, which
+  `deploy/compose.vps.yml` adds to `Site/.env`'s and `deploy.sh` never sends
+  or replaces. Never copy the cookie to this machine's `Site/.env` or anywhere
+  else: Roblox ends a login used from somewhere other than where it was made.
+  After changing the file, run `docker compose -f compose.yml -f
+  deploy/compose.vps.yml up -d site` in `/opt/mercury/MercuryCore`. The Site
+  logs "Roblox refused ROBLOSECURITY" once the login has ended.
 
 ## Client channels
 
@@ -205,7 +214,8 @@ they join, so changing it doesn't restart a running server.
 - Places must be uploaded (place settings) or copied to `data/places/{id}`
   before Play can start a server.
 - Assets Mercury doesn't have come from Aya's local library, then the Aya API
-  (`AYA_ASSET_FALLBACK_URL`) or Open Cloud, which use the operator's Roblox
+  (`AYA_ASSET_FALLBACK_URL`), Roblox itself (a `ROBLOSECURITY` cookie in the
+  Site's environment) or Open Cloud, which use the operator's Roblox
   credentials. Those are cached in `data/assetcache`, up to `ASSET_CACHE_MAX_MB`
   (2 GiB by default; the oldest files go first). Each user, and each gameserver
   by the place it hosts, may fetch 1000 new assets at once and then 2 a second;

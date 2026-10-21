@@ -2,6 +2,19 @@
 # domain over HTTPS (deploy/Caddyfile.vps, made on the VPS from
 # Caddyfile.vps.in) in front of the usual :8010 site.
 services:
+    site:
+        # /etc/mercury/site.env holds the VPS's own settings, which deploy.sh
+        # never sends or replaces: ROBLOSECURITY, a Roblox login made from the
+        # VPS's address (deploy/wireguard.sh), which Roblox would end if this
+        # machine used it
+        env_file:
+            - Site/.env
+            - path: /etc/mercury/site.env
+              required: false
+        environment:
+            # no Aya API runs there
+            AYA_ASSET_FALLBACK_URL: ${AYA_ASSET_FALLBACK_URL-}
+
     caddy:
         volumes:
             - ./deploy/Caddyfile.vps:/etc/caddy/Caddyfile:ro
