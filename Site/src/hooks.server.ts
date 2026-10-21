@@ -51,6 +51,27 @@ const userLog = (user: User | null) =>
 		? blue(user.username) + " ".repeat(21 - user.username.length)
 		: yellow("Logged-out user      ")
 
+// tickets, file tokens and keys travel in query strings; the console and any
+// log kept from it shouldn't hold them
+const redact = (search: string) =>
+	search.replace(
+		/([?&](?:ticket|token|accesskey|access_key|key|code|auth)=)[^&]*/gi,
+		"$1…"
+	)
+
+/** Sets a response header, copying the response if its headers are read-only */
+function setHeader(res: Response, name: string, value: string) {
+	try {
+		res.headers.set(name, value)
+		return res
+	} catch {
+		// headers of a fetched response can't be changed
+		const copy = new Response(res.body, res)
+		copy.headers.set(name, value)
+		return copy
+	}
+}
+
 async function finish({ event, resolve }: Parameters<Handle>[0]) {
 	const { pathname, search } = event.url
 	const { user } = event.locals
@@ -63,11 +84,23 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 			userLog(user),
 			methodColours[method] || method,
 			" ".repeat(7 - method.length),
-			pathnameColour(decodeURI(pathname) + search)
+			pathnameColour(decodeURI(pathname) + redact(search))
 		)
 	}
 
 	let res = await resolve(event)
+
+	// the Site's pages may be framed by the Site itself and by nobody else, so
+	// another site can't overlay them to trick a click (clickjacking)
+	if (!res.headers.has("x-frame-options"))
+		res = setHeader(res, "x-frame-options", "SAMEORIGIN")
+	const csp = res.headers.get("content-security-policy")
+	if (!csp?.includes("frame-ancestors"))
+		res = setHeader(
+			res,
+			"content-security-policy",
+			csp ? `${csp}; frame-ancestors 'self'` : "frame-ancestors 'self'"
+		)
 
 	// a signed-in user's pages (or anything renewing the session cookie) are
 	// theirs alone, so a cache in front of the site must never keep them
