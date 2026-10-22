@@ -149,22 +149,11 @@
 			expression {http.request.uri.query} == ""
 		}
 		rewrite @engineUnfollow /game/social/unfollow
-		# gameservers check and complete developer product receipts with a
-		# form-encoded or text/plain POST and no Origin header, which SvelteKit's
-		# cross-site form check would reject; the routes authenticate them with
-		# the server key instead
-		@receiptComplete path /gametransactions/settransactionstatuscomplete /gametransactions/settransactionstatuscomplete/ /marketplace/validatepurchase /marketplace/validatepurchase/
+		# gameservers complete developer product receipts with a form-encoded POST
+		# and no Origin header, which SvelteKit's cross-site form check would
+		# reject; the route authenticates them with the server key instead
+		@receiptComplete path /gametransactions/settransactionstatuscomplete /gametransactions/settransactionstatuscomplete/
 		request_header @receiptComplete Content-Type application/octet-stream
-		# the WebAssembly Player posts its request bodies as raw bytes, with no
-		# Content-Type, and SvelteKit's node adapter drops a body that has none:
-		# in-game purchases (marketplace/submitpurchase, marketplace/purchase) and
-		# follows arrived with no parameters. engineParams reads any type, and
-		# octet-stream isn't a form type for the cross-site form check
-		@untypedBody {
-			method POST PUT PATCH
-			not header Content-Type *
-		}
-		request_header @untypedBody Content-Type application/octet-stream
 
 		reverse_proxy 127.0.0.1:4443
 	}
