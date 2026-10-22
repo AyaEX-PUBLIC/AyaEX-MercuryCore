@@ -12,7 +12,7 @@ import type { PlaceRigType } from "$lib/rigTypes"
 export const lockedClientVersion = 2016
 
 /** Places a user may own; administrators have no limit. */
-export const placeLimit = 2
+export const placeLimit = 5
 
 /** Place files can be up to this size. */
 export const maxPlaceFileSize = 100e6
