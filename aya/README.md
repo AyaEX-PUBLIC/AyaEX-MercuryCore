@@ -100,6 +100,12 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   the site-wide login. While a site has a login, its responses carry
   `Cloudflare-CDN-Cache-Control: no-store`: Cloudflare would otherwise give its
   cached copies to anyone, login or not.
+- `deploy/maintenance.sh on` shows a static "under maintenance" page on
+  `DOMAIN` instead of the Site (themed like it, linking to the standalone
+  site) and stops the Site container; `deploy/maintenance.sh off` undoes
+  both. It never touches `STANDALONE_DOMAIN` or running games. The toggle is
+  one file in `data/maintenance/`, so it needs no Caddy restart and survives
+  an unrelated `deploy.sh` run.
 - The gameserver image is copied from the release (`docker save` when it was
   made), since building it needs a `dhi.io` login.
 - With `STANDALONE_DOMAIN` set in `vps.env`, the VPS also runs the standalone

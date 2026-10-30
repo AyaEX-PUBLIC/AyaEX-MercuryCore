@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="robots" content="noindex" />
+	<title>AyaEX — Down for maintenance</title>
+	<link rel="icon" href="/favicon.png" />
+
+	<style>
+		@font-face {
+			font-family: Geist;
+			font-style: normal;
+			font-weight: 100 900;
+			font-display: swap;
+			src: url(/fonts/Geist-latin.woff2) format("woff2");
+		}
+		@font-face {
+			font-family: "Geist Mono";
+			font-style: normal;
+			font-weight: 100 900;
+			font-display: swap;
+			src: url(/fonts/GeistMono-latin.woff2) format("woff2");
+		}
+
+		:root {
+			--background: #18181a;
+			--accent: #1d1d20;
+			--accent2: #2a2a2e;
+			--accent3: #404045;
+			--light-text: #fafafa;
+			--grey-text: #a2a2a9;
+			--dim-text: #6e6e76;
+			--primary: #c4511a;
+			--primary-hover: #d45f25;
+			--primary-text: #fdba74;
+			--primary-soft: rgb(196 81 26 / 0.14);
+			--primary-line: rgb(196 81 26 / 0.5);
+			--font-sans: Geist, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+			--font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			min-height: 100dvh;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			padding: 2rem 1.25rem;
+			background:
+				radial-gradient(60rem 32rem at 50% -8rem, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%),
+				repeating-linear-gradient(
+					to right,
+					color-mix(in srgb, var(--light-text) 3%, transparent) 0,
+					color-mix(in srgb, var(--light-text) 3%, transparent) 1px,
+					transparent 1px,
+					transparent 3rem
+				),
+				repeating-linear-gradient(
+					to bottom,
+					color-mix(in srgb, var(--light-text) 3%, transparent) 0,
+					color-mix(in srgb, var(--light-text) 3%, transparent) 1px,
+					transparent 1px,
+					transparent 3rem
+				),
+				var(--background);
+			color: var(--light-text);
+			font-family: var(--font-sans);
+			line-height: 1.5;
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+		}
+
+		main {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+			max-width: 30rem;
+		}
+
+		.brand {
+			display: flex;
+			align-items: center;
+			gap: 0.625rem;
+			margin-bottom: 2rem;
+		}
+
+		.brand img {
+			width: 2rem;
+			height: 2rem;
+		}
+
+		.brand span {
+			font-weight: 600;
+			font-size: 1.125rem;
+			letter-spacing: -0.01em;
+		}
+
+		.badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.4rem;
+			padding: 0.25rem 0.625rem;
+			margin-bottom: 1.25rem;
+			font-family: var(--font-mono);
+			font-size: 0.6875rem;
+			font-weight: 500;
+			letter-spacing: 0.08em;
+			text-transform: uppercase;
+			color: var(--primary-text);
+			background: var(--primary-soft);
+			border: 1px solid var(--primary-line);
+		}
+
+		.badge .dot {
+			width: 0.4rem;
+			height: 0.4rem;
+			background: var(--primary-text);
+			animation: pulse 1.8s ease-in-out infinite;
+		}
+
+		@keyframes pulse {
+			0%,
+			100% {
+				opacity: 1;
+			}
+			50% {
+				opacity: 0.35;
+			}
+		}
+
+		h1 {
+			margin: 0 0 0.75rem;
+			font-size: 2rem;
+			line-height: 1.15;
+			font-weight: 600;
+			letter-spacing: -0.03em;
+		}
+
+		p {
+			margin: 0;
+			padding-bottom: 1.5rem;
+			color: var(--grey-text);
+		}
+
+		.actions {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: center;
+			gap: 0.75rem;
+		}
+
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 0.5rem;
+			padding: 0.75rem 1.375rem;
+			font-family: inherit;
+			font-size: 0.9375rem;
+			font-weight: 500;
+			color: #fff;
+			text-decoration: none;
+			background: var(--primary);
+			border: 1px solid var(--primary);
+			border-radius: 0;
+			transition: background-color 0.15s, border-color 0.15s;
+		}
+
+		.btn:hover {
+			background: var(--primary-hover);
+			border-color: var(--primary-hover);
+		}
+
+		.btn svg {
+			width: 1em;
+			height: 1em;
+		}
+
+		footer {
+			margin-top: 3rem;
+			font-family: var(--font-mono);
+			font-size: 0.75rem;
+			color: var(--dim-text);
+		}
+	</style>
+</head>
+
+<body>
+	<main>
+		<div class="brand">
+			<img src="/icon.png" alt="" />
+			<span>AyaEX</span>
+		</div>
+
+		<div class="badge"><span class="dot"></span>Maintenance</div>
+
+		<h1>We'll be right back</h1>
+		<p>
+			AyaEX is offline for maintenance. We expect to be back within a
+			few days at the very most &mdash; your account, games and items
+			aren't going anywhere.
+		</p>
+
+		<div class="actions">
+			<a class="btn" href="https://aya.nodium.lol">
+				Open the AyaEX launcher instead
+				<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+					<path d="M6 3h7v7" />
+					<path d="M13 3 3 13" />
+				</svg>
+			</a>
+		</div>
+
+		<footer>AyaEX</footer>
+	</main>
+</body>
+</html>

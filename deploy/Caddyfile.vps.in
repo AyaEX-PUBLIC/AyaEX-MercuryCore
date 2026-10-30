@@ -11,8 +11,24 @@ import /etc/caddy/Caddyfile.aya
 __DOMAIN__ {
 	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
 __AUTH__
-	reverse_proxy 127.0.0.1:8010 {
-		flush_interval -1
+	# deploy/maintenance.sh on|off: a static page instead of the Site, without
+	# a Caddy restart. data/maintenance/live exists whenever the Site should
+	# be shown (data/ is untouched by deploy.sh, so this state outlives a
+	# deploy); deploy/maintenance/ is the page, sent like the rest of the code.
+	@live {
+		file {
+			root /srv/maintenance-state
+			try_files live
+		}
+	}
+	handle @live {
+		reverse_proxy 127.0.0.1:8010 {
+			flush_interval -1
+		}
+	}
+	handle {
+		root * /srv/maintenance-content
+		file_server
 	}
 }
 

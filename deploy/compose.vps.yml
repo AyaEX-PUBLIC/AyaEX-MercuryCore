@@ -20,3 +20,8 @@ services:
             - ./deploy/Caddyfile.vps:/etc/caddy/Caddyfile:ro
             - ./Caddyfile.aya:/etc/caddy/Caddyfile.aya:ro
             - ./deploy/certs:/etc/caddy/certs:ro
+            # deploy/maintenance.sh: the static maintenance page (code, synced
+            # like the rest of MercuryCore) and its on/off state (data/, which
+            # deploy.sh never touches)
+            - ./deploy/maintenance:/srv/maintenance-content:ro
+            - ./data/maintenance:/srv/maintenance-state:ro
