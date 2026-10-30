@@ -48,6 +48,9 @@ print(f"{running} running")'
 step "sending the maintenance page and Caddy config"
 remote "mkdir -p $R/deploy/maintenance $R/data/maintenance"
 rsync -az --delete "$CORE/deploy/maintenance/" "$VPS:$R/deploy/maintenance/"
+# compose.vps.yml declares the two mounts below: without it on the VPS too,
+# a --force-recreate here would start caddy with neither of them
+rsync -zp "$CORE/deploy/compose.vps.yml" "$VPS:$R/deploy/compose.vps.yml"
 
 login() {
 	local hash
@@ -75,8 +78,10 @@ else:
 print(text.replace("__DOMAIN__", os.environ["DOMAIN"]).replace("__AUTH__", os.environ["AUTH"]), end="")
 ' "$CORE/deploy/Caddyfile.vps.in" >"$WORK/Caddyfile.vps"
 
-remote_sum="$(remote "sha256sum $R/deploy/Caddyfile.vps 2>/dev/null" | cut -d' ' -f1 || true)"
-local_sum="$(sha256sum "$WORK/Caddyfile.vps" | cut -d' ' -f1)"
+# recreate caddy (picking up any new mount in compose.vps.yml, not just a
+# changed Caddyfile.vps) only if either actually differs from the VPS's copy
+remote_sum="$(remote "sha256sum $R/deploy/Caddyfile.vps $R/deploy/compose.vps.yml 2>/dev/null" | cut -d' ' -f1 | tr '\n' ' ' || true)"
+local_sum="$(sha256sum "$WORK/Caddyfile.vps" "$CORE/deploy/compose.vps.yml" | cut -d' ' -f1 | tr '\n' ' ')"
 if [[ "$remote_sum" != "$local_sum" ]]; then
 	rsync -zp --chmod=F600 "$WORK/Caddyfile.vps" "$VPS:$R/deploy/Caddyfile.vps"
 	remote "cd $R && $COMPOSE up -d --force-recreate --no-deps caddy 2>&1 | tail -n 1"
