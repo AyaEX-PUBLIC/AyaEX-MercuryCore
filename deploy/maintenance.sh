@@ -98,10 +98,13 @@ on)
 off)
 	step "starting the Site"
 	remote "cd $R && $COMPOSE start site 2>&1 | tail -n 3"
-	# only once the Site is accepting connections, or a visitor could land on
-	# neither the maintenance page nor a working Site
-	for _ in $(seq 1 30); do
-		remote "curl -s -o /dev/null -m 2 http://127.0.0.1:8010/" && break
+	# only once the Site answers, or a visitor could land on neither the
+	# maintenance page nor a working Site. :8010 is Caddy, which replies 502
+	# itself while the Site is still starting, so a plain connection check
+	# passes at once: the status has to be something else
+	for _ in $(seq 1 45); do
+		code="$(remote "curl -s -o /dev/null -m 2 -w '%{http_code}' http://127.0.0.1:8010/" || true)"
+		case "$code" in 000 | 502 | 503 | 504 | "") ;; *) break ;; esac
 		sleep 2
 	done
 	remote "touch $R/data/maintenance/live"
