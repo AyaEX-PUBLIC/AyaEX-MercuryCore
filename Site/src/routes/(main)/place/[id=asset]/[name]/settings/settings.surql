@@ -1,5 +1,4 @@
 SELECT
-	dedicated,
 	fn::currentContent($this.description) AS description,
 	record::id(id) AS id,
 	maxPlayers,
@@ -10,6 +9,5 @@ SELECT
 	privateTicket,
 	rigType ?? "R6" AS rigType,
 	serverAddress,
-	serverPort,
-	serverTicket
+	serverPort
 FROM $place;

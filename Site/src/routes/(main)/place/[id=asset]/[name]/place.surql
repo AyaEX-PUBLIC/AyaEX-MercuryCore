@@ -3,7 +3,6 @@ SELECT
 	name,
 	fn::currentContent($this.description) AS description,
 	serverPing,
-	serverTicket,
 	privateServer,
 	privateTicket,
 	clientVersion,

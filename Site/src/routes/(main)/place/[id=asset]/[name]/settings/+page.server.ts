@@ -31,7 +31,6 @@ import {
 import { encode } from "$lib/urlName"
 import type { RequestEvent } from "./$types.d"
 import privateTicketQuery from "./privateTicket.surql"
-import serverTicketQuery from "./serverTicket.surql"
 import settingsQuery from "./settings.surql"
 
 const viewSchema = type({
@@ -41,12 +40,10 @@ const viewSchema = type({
 	description: "(string <= 1000) | undefined",
 })
 const networkSchema = type({
-	dedicated: "boolean",
 	serverAddress: serverAddressTest.optional(),
 	serverPort: serverPortTest.optional(),
 	maxPlayers: maxPlayersTest,
 })
-const ticketSchema = type({} as never) // I'm a genius
 const privacySchema = type({
 	privateServer: "boolean",
 })
@@ -57,7 +54,6 @@ const privatelinkSchema = type({} as never)
 
 type Place = {
 	created: string
-	dedicated: boolean
 	description: string
 	id: string // graah
 	maxPlayers: number
@@ -70,7 +66,6 @@ type Place = {
 	serverAddress: string
 	serverPing: number
 	serverPort: number
-	serverTicket: string
 	updated: Date
 }
 
@@ -185,15 +180,6 @@ actions.view = async e => {
 	})
 	return message(form, "View settings updated successfully!")
 }
-actions.ticket = async e => {
-	const id = await getData(e)
-
-	await db.query(serverTicketQuery, { place: Record("place", id) })
-	return message(
-		await superValidate(e.request, arktype(ticketSchema)),
-		"Regenerated!"
-	)
-}
 actions.network = async e => {
 	const id = await getData(e)
 	const form = await superValidate(e.request, arktype(networkSchema))
@@ -202,12 +188,14 @@ actions.network = async e => {
 	// only administrators can see or change the selfhosted server address
 	const { user } = await authorise(e.locals)
 	const { serverAddress, serverPort, ...settings } = form.data
+	// places are never hosted as dedicated servers: the Site's configured
+	// hosting mode decides that, and the option is gone from the UI
 	await db
 		.update(Record("place", id))
 		.merge(
 			user.permissionLevel >= 5
-				? { ...settings, serverAddress, serverPort, clientVersion: lockedClientVersion }
-				: { ...settings, clientVersion: lockedClientVersion }
+				? { ...settings, dedicated: false, serverAddress, serverPort, clientVersion: lockedClientVersion }
+				: { ...settings, dedicated: false, clientVersion: lockedClientVersion }
 		)
 
 	// engine / port settings changed, so any running server for this place is now

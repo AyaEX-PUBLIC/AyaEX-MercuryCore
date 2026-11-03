@@ -10,7 +10,6 @@
 	import PrivacyForm from "./Privacy.svelte"
 	import PrivatelinkForm from "./Privatelink.svelte"
 	import Store from "./Store.svelte"
-	import TicketForm from "./Ticket.svelte"
 	import ViewForm from "./View.svelte"
 
 	const { data } = $props()
@@ -68,10 +67,7 @@
 					<p class="grey-text text-sm">
 						Change the network configurations of your server.
 					</p>
-					<TicketForm {data} />
-					{#key data.serverTicket}
-						<NetworkForm {data} />
-					{/key}
+					<NetworkForm {data} />
 				</div>
 			</section>
 		</Tab>

@@ -10,7 +10,6 @@
 	import User from "$components/User.svelte"
 	import fade from "$lib/fade"
 	import { likeEnhance } from "$lib/like"
-	import Autopilot from "./Autopilot.svelte"
 	import customProtocol from "./customprotocol"
 	import Thumbnails from "./Thumbnails.svelte"
 
@@ -120,10 +119,6 @@
 			}
 		}
 
-	let loadCommand = $derived(
-		`dofile "http://${data.domain}/game/host?ticket=${place.serverTicket}"`
-	)
-
 	async function placeLauncher() {
 		current = "waiting"
 
@@ -149,17 +144,8 @@
 
 	const tabs = ["Description", "Servers", "Store", "Badges"]
 	const isOwner = data.place.ownerUser?.username === user.username
-	if (
-		(isOwner || user.permissionLevel === 5) &&
-		(data.hosting === "Selfhosted" || data.hosting === "Both")
-	)
-		tabs.push("Selfhosted")
 
 	let tabData = $state(TabData(data.url, tabs))
-	let tabData2 = $state(
-		TabData(data.url, ["Manual", "Autopilot"], undefined, "tab2")
-	)
-	let copiedSuccess = $state(false)
 
 	// Store tab: game passes bought here or in game
 	let gamePasses = $state(data.gamePasses)
@@ -496,71 +482,6 @@
 		{/if}
 	</Tab>
 
-	{#if tabs.includes("Selfhosted")}
-		<Tab bind:tabData>
-			<h3 class="pb-3">Hosting on {data.siteName}</h3>
-			<p class="grey-text max-w-200">
-				To begin hosting your map for everybody to play, you need to
-				make sure that you are forwarding the port you wish to run the
-				server on. If you are unsure on how to host, there are many
-				resources available online on how to port forward on your
-				router.
-			</p>
-			<p class="grey-text max-w-200">
-				If you have port forwarded already, it's time to get your server
-				running. Below are two methods of hosting &ndash; we recommend
-				using Autopilot to get started easily.
-			</p>
-			<div class="md:flex items-start gap-6 pt-2 mb-4">
-				<TabNav bind:tabData={tabData2} vertical class="md:w-40 shrink-0" />
-				<Tab bind:tabData={tabData2}>
-					<p>
-						You can host your server by opening your map in
-						<span class="px-1">
-							<button
-								class="btn btn-sm btn-tertiary"
-								onclick={beginJoining(
-									() => `${data.scheme}20131+launchmode:ide`
-								)}>
-								<fa fa-arrow-up-right-from-square></fa>
-								Studio
-							</button>
-						</span>
-						and then paste the following command into the command bar:
-					</p>
-					<div class="flex items-center gap-2">
-						<code class="break-all">{loadCommand}</code>
-						<button
-							onclick={() => {
-								navigator.clipboard.writeText(loadCommand)
-								copiedSuccess = true
-								setTimeout(() => (copiedSuccess = false), 4000)
-							}}
-							class="btn btn-sm btn-tertiary"
-							aria-label="Copy command to clipboard">
-							<fa fa-copy></fa>
-						</button>
-					</div>
-					{#if copiedSuccess}
-						<small
-							id="copiedSuccess"
-							transition:fade
-							class="block pt-2 text-amber-400">
-							Successfully copied command to clipboard
-						</small>
-					{/if}
-				</Tab>
-				<Tab bind:tabData={tabData2}>
-					<Autopilot
-						{beginJoining}
-						scheme={data.scheme}
-						serverTicket={place.serverTicket}
-						domain={data.domain}
-						siteName={data.siteName} />
-				</Tab>
-			</div>
-		</Tab>
-	{/if}
 </div>
 
 <div bind:this={popover} id="ready" popover="auto" class="launcher">

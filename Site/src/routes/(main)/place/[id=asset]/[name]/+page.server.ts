@@ -42,7 +42,6 @@ interface Place extends FoundPlace {
 		username: string
 	}[]
 	serverPing: number
-	serverTicket: string
 	updated: Date
 }
 
@@ -66,7 +65,6 @@ export async function load({ locals, params, url }) {
 	)
 		error(404, "Place not found")
 
-	if (!isOwner || user.permissionLevel !== 5) place.serverTicket = ""
 	// the private link is the owner's to share: others only get back the one
 	// they came with, and nobody gets it while the place is public
 	if (!isOwner) place.privateTicket = place.privateServer ? privateTicket || "" : ""
@@ -90,7 +88,6 @@ export async function load({ locals, params, url }) {
 		scheme: config.LauncherURI,
 		webPlayerURL: config.WebPlayerURL,
 		clientVersion: place.clientVersion,
-		hosting: config.Gameservers.Hosting,
 		orbiterURL: config.Orbiter.PublicURL,
 		slug,
 		place,

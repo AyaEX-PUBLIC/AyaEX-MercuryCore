@@ -12,7 +12,6 @@
 	let formData = $derived(superForm(data.networkForm))
 	let { form } = $derived(formData)
 
-	if (data.dedicated) $form.dedicated = data.dedicated
 	if (data.serverAddress) $form.serverAddress = data.serverAddress
 	if (data.serverPort) $form.serverPort = data.serverPort
 	if (data.maxPlayers) $form.maxPlayers = data.maxPlayers
@@ -22,21 +21,11 @@
 	{formData}
 	submit=" <fa fa-save></fa> Save changes"
 	action="?/network&tab=Network">
-	<Input
-		{formData}
-		name="dedicated"
-		label="Dedicated server"
-		type="checkbox" />
 	<!-- selfhosted server addresses are only relevant to administrators -->
 	{#if data.user.permissionLevel >= 5}
+		<Input {formData} name="serverAddress" label="Address" />
 		<Input
 			{formData}
-			disabled={$form.dedicated}
-			name="serverAddress"
-			label="Address" />
-		<Input
-			{formData}
-			disabled={$form.dedicated}
 			name="serverPort"
 			label="Port"
 			type="number"

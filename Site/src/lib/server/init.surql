@@ -239,6 +239,10 @@ DEFINE TABLE OVERWRITE playing SCHEMAFULL TYPE RELATION FROM user TO place ENFOR
 # finished ones, and this clears the old ones (nothing accepts them after 5m)
 DELETE playing WHERE ping < time::now() - 5m;
 
+# Places no longer choose a dedicated server: the hosting mode comes from the
+# Site config, and the option is gone from the settings UI
+UPDATE place SET dedicated = false WHERE dedicated = true;
+
 # One-time proof that the Site sent a player to a gameserver: issued with the
 # Aya join configuration, spent by the gameserver when the player arrives
 DEFINE TABLE OVERWRITE joinTicket SCHEMAFULL;
