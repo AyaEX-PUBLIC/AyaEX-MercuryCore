@@ -13,6 +13,17 @@ export type Channel = {
 	lastBy: string | null
 }
 
+/** The message a reply is to. A deleted one's text isn't sent any more. */
+export type ReplyTo =
+	| { id: string; deleted: false; author: string; body: string }
+	| { id: string; deleted: true }
+
+export type Reaction = {
+	emoji: string
+	/** Who reacted with it, in the order they did */
+	users: string[]
+}
+
 export type Shout = {
 	id: string
 	channel: string
@@ -20,4 +31,7 @@ export type Shout = {
 	body: string
 	created: number
 	edited: number | null
+	replyTo: ReplyTo | null
+	/** In the order each emoji was first used */
+	reactions: Reaction[]
 }

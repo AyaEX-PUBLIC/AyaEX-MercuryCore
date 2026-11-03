@@ -8,5 +8,7 @@ SELECT
 	edited,
 	deleted,
 	deletedBy.username AS deletedBy,
-	history
+	history,
+	replyTo.{ id: record::id(id), deleted, author: author.username, body } AS replyTo,
+	<-reacted.{ emoji, username: in.username, created } AS reactions
 FROM ONLY $shout;

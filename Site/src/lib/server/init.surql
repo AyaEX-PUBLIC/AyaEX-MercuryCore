@@ -347,7 +347,16 @@ DEFINE TABLE OVERWRITE shout SCHEMAFULL TYPE NORMAL;
 	DEFINE FIELD OVERWRITE deletedBy ON shout TYPE option<record<user>>;
 	DEFINE FIELD OVERWRITE edited ON shout TYPE option<datetime>;
 	DEFINE FIELD OVERWRITE history ON shout TYPE array<string> DEFAULT ALWAYS [];
+	# the message this one replies to, in the same channel
+	DEFINE FIELD OVERWRITE replyTo ON shout TYPE option<record<shout>>;
 	DEFINE INDEX OVERWRITE shoutChannelCreated ON shout FIELDS channel, created;
+
+# Emoji reactions to shoutbox messages: one per person and emoji, and at most
+# maxReactions (lib/shoutbox/limits.ts) different emoji on a message
+DEFINE TABLE OVERWRITE reacted SCHEMAFULL TYPE RELATION FROM user TO shout ENFORCED;
+	DEFINE FIELD OVERWRITE id ON reacted TYPE string;
+	DEFINE FIELD OVERWRITE created ON reacted TYPE datetime DEFAULT ALWAYS time::now();
+	DEFINE FIELD OVERWRITE emoji ON reacted TYPE string;
 
 # Shoutbox channels, managed by administrators. readLevel and writeLevel are the
 # lowest permission levels (lib/permissionLevels.ts) that can see and post in

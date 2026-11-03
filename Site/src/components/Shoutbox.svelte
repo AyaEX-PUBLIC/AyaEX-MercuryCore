@@ -5,20 +5,23 @@
 
 	import { onMount, tick, untrack } from "svelte"
 	import { replaceState } from "$app/navigation"
-	import { editWindow } from "$lib/shoutbox/limits"
+	import { editWindow, maxReactions } from "$lib/shoutbox/limits"
 	import { canModerate, canWrite } from "$lib/shoutbox/permissions"
 	import {
 		deleteShout,
 		editShout,
+		reactShout,
 		sendShout
 	} from "$lib/shoutbox/shoutbox.remote"
-	import type { Channel, Shout } from "$lib/shoutbox/types"
+	import type { Channel, Reaction, Shout } from "$lib/shoutbox/types"
+	import EmojiPicker from "./EmojiPicker.svelte"
 	import ShoutComposer from "./ShoutComposer.svelte"
 	import ShoutMessage from "./ShoutMessage.svelte"
 
 	type Event =
 		| { type: "new" | "edit"; channel: string; shout: Shout }
 		| { type: "delete"; channel: string; id: string }
+		| { type: "react"; channel: string; id: string; reactions: Reaction[] }
 		| { type: "channels" }
 
 	const {
@@ -60,6 +63,8 @@
 	let loading = $state(false)
 	let loadError = $state("")
 	let editing = $state("")
+	let replying: Shout | null = $state(null)
+	let flash = $state("")
 	let atBottom = $state(true)
 	let missed = $state(0)
 	let log: HTMLElement | undefined = $state()
@@ -99,6 +104,7 @@
 				// (days depend on the time zone, so they only count once mounted)
 				grouped:
 					!(mounted && newDay) &&
+					!shout.replyTo &&
 					!!previous &&
 					previous.author.username === shout.author.username &&
 					shout.created - previous.created < groupGap
@@ -164,6 +170,7 @@
 		if (id === active && current) return
 		active = id
 		editing = ""
+		replying = null
 		loadError = ""
 		replaceState(`?channel=${id}`, {})
 		if (!logs[id]) {
@@ -214,20 +221,46 @@
 		return true
 	}
 
+	/** Puts an edited message in place, along with replies quoting it */
+	function edited(shout: Shout) {
+		const entry = logs[shout.channel]
+		if (!entry) return
+		for (const [i, m] of entry.messages.entries())
+			if (m.id === shout.id)
+				// reactions come from their own changes, which may be newer
+				entry.messages[i] = { ...shout, reactions: m.reactions }
+			else if (m.replyTo?.id === shout.id)
+				m.replyTo = {
+					id: shout.id,
+					deleted: false,
+					author: shout.author.username,
+					body: shout.body
+				}
+	}
+
+	function reacted(channel: string, id: string, reactions: Reaction[]) {
+		const m = logs[channel]?.messages.find(m => m.id === id)
+		if (m) m.reactions = reactions
+	}
+
 	async function handle(event: Event) {
 		if (event.type === "channels") return reloadChannels()
 		const entry = logs[event.channel]
 
 		if (event.type === "delete") {
-			if (entry) entry.messages = entry.messages.filter(m => m.id !== event.id)
+			if (entry) {
+				entry.messages = entry.messages.filter(m => m.id !== event.id)
+				for (const m of entry.messages)
+					if (m.replyTo?.id === event.id)
+						m.replyTo = { id: event.id, deleted: true }
+			}
 			if (editing === event.id) editing = ""
+			if (replying?.id === event.id) replying = null
 			return
 		}
-		if (event.type === "edit") {
-			const i = entry?.messages.findIndex(m => m.id === event.shout.id) ?? -1
-			if (entry && i !== -1) entry.messages[i] = event.shout
-			return
-		}
+		if (event.type === "edit") return edited(event.shout)
+		if (event.type === "react")
+			return reacted(event.channel, event.id, event.reactions)
 
 		const shout = event.shout
 		const fresh = add(shout) || !entry
@@ -235,10 +268,15 @@
 			if (shout.channel === active) scrollToBottom()
 			return
 		}
-		const mention = new RegExp(
-			`(^|[^A-Za-z0-9_])@${user.username}(?![A-Za-z0-9_])`,
-			"i"
-		).test(shout.body)
+		// a reply to your message counts as a mention
+		const mention =
+			(shout.replyTo &&
+				!shout.replyTo.deleted &&
+				shout.replyTo.author === user.username) ||
+			new RegExp(
+				`(^|[^A-Za-z0-9_])@${user.username}(?![A-Za-z0-9_])`,
+				"i"
+			).test(shout.body)
 		if (shout.channel === active && !document.hidden) {
 			if (atBottom) return scrollToBottom()
 			missed++
@@ -365,7 +403,13 @@
 
 	async function send(body: string) {
 		try {
-			const shout = await sendShout({ channel: active, body })
+			// (replyTo is left out, not undefined, when it isn't a reply)
+			const shout = await sendShout({
+				channel: active,
+				body,
+				...(replying && { replyTo: replying.id })
+			})
+			replying = null
 			add(shout)
 			await scrollToBottom()
 		} catch (e) {
@@ -375,14 +419,87 @@
 
 	async function save(id: string, body: string) {
 		try {
-			const shout = await editShout({ id, body })
-			const entry = logs[shout.channel]
-			const i = entry?.messages.findIndex(m => m.id === id) ?? -1
-			if (entry && i !== -1) entry.messages[i] = shout
+			edited(await editShout({ id, body }))
 			editing = ""
 		} catch (e) {
 			return errorText(e)
 		}
+	}
+
+	async function react(shout: Shout, emoji: string, add: boolean) {
+		loadError = ""
+		const room =
+			shout.reactions.length < maxReactions ||
+			shout.reactions.some(r => r.emoji === emoji)
+		if (add && !room) {
+			loadError = `A message can have at most ${maxReactions} different reactions`
+			return
+		}
+		try {
+			reacted(shout.channel, shout.id, await reactShout({ id: shout.id, emoji, add }))
+		} catch (e) {
+			loadError = errorText(e)
+		}
+	}
+
+	// The emoji picker for reacting with a new emoji, by the button that opened
+	// it. It's a popover, so the log's scrolling can't cut it off.
+	let emoji: typeof import("$lib/shoutbox/emoji") | null = $state(null)
+	let picker: HTMLElement | undefined = $state()
+	let reactingTo: Shout | null = $state(null)
+	let pickerAt = $state({ left: 0, top: 0 })
+
+	async function pickReaction(shout: Shout, button: HTMLElement) {
+		emoji ||= await import("$lib/shoutbox/emoji")
+		reactingTo = shout
+		const box = button.getBoundingClientRect()
+		// about the picker's size; it goes above the button if there's no room below
+		const width = Math.min(320, innerWidth - 32)
+		const height = 330
+		pickerAt = {
+			left: Math.max(16, Math.min(box.right - width, innerWidth - width - 16)),
+			top:
+				box.bottom + height + 8 < innerHeight
+					? box.bottom + 4
+					: Math.max(8, box.top - height - 4)
+		}
+		await tick()
+		picker?.showPopover()
+	}
+
+	const closePicker = () => {
+		if (picker?.matches(":popover-open")) picker.hidePopover()
+	}
+
+	function picked(e: string, keepOpen: boolean) {
+		const shout = reactingTo
+		if (!keepOpen) closePicker()
+		if (!shout) return
+		const mine = shout.reactions.some(
+			r => r.emoji === e && r.users.includes(user.username)
+		)
+		react(shout, e, !mine)
+	}
+
+	/** Scrolls to a message and highlights it, if it's loaded */
+	function jumpTo(id: string) {
+		const target = log?.querySelector<HTMLElement>(`#shout-${CSS.escape(id)}`)
+		if (!target) return false
+		target.scrollIntoView({ block: "center", behavior: "smooth" })
+		// (cleared first, so jumping to the same message again flashes it again)
+		flash = ""
+		tick().then(() => {
+			flash = id
+			setTimeout(() => {
+				if (flash === id) flash = ""
+			}, 1600)
+		})
+		return true
+	}
+
+	function startReply(shout: Shout) {
+		replying = shout
+		editing = ""
 	}
 
 	async function remove(id: string) {
@@ -488,11 +605,18 @@
 					canEdit={mounted && editable(item.shout)}
 					canDelete={item.shout.author.username === user.username ||
 						canModerate(item.shout.author.level, user.permissionLevel)}
+					canReply={mounted && writable}
+					canReact={mounted}
 					editing={editing === item.shout.id}
+					flash={flash === item.shout.id}
 					onedit={() => (editing = item.shout.id)}
 					onsave={body => save(item.shout.id, body)}
 					oncancel={() => (editing = "")}
-					ondelete={() => remove(item.shout.id)} />
+					ondelete={() => remove(item.shout.id)}
+					onreply={() => startReply(item.shout)}
+					onreact={(e, add) => react(item.shout, e, add)}
+					onpickreaction={button => pickReaction(item.shout, button)}
+					onjump={jumpTo} />
 			{/if}
 		{:else}
 			<div class="empty m-4">
@@ -520,9 +644,28 @@
 		<ShoutComposer
 			channel={channel.name}
 			disabled={lockReason}
+			replyingTo={replying?.author.username || ""}
 			onsend={send}
-			oneditlast={editLast} />
+			oneditlast={editLast}
+			oncancelreply={() => (replying = null)}
+			onjumpreply={() => replying && jumpTo(replying.id)} />
 	{/if}
+
+	<div
+		bind:this={picker}
+		popover="auto"
+		class="react-picker"
+		style="left: {pickerAt.left}px; top: {pickerAt.top}px"
+		ontoggle={e => {
+			if ((e as ToggleEvent).newState === "closed") reactingTo = null
+		}}>
+		{#if emoji && reactingTo}
+			<EmojiPicker
+				categories={emoji.categories}
+				onpick={picked}
+				onclose={closePicker} />
+		{/if}
+	</div>
 </section>
 
 <style>
@@ -698,5 +841,21 @@
 		padding: 0.5rem 1rem 0;
 		font-size: 0.75rem;
 		color: var(--danger);
+	}
+
+	/* placed by pickReaction, next to the button that opened it */
+	.react-picker {
+		position: fixed;
+		inset: auto;
+		margin: 0;
+		padding: 0;
+		background: none;
+		border: 0;
+		box-shadow: 0 8px 24px rgb(0 0 0 / 0.4);
+		overflow: visible;
+		/* a small menu, not a dialog: the page stays as it is */
+		&::backdrop {
+			background: none;
+		}
 	}
 </style>

@@ -1,10 +1,16 @@
 <script lang="ts">
 	// A shoutbox message's text, with its markdown (lib/shoutbox/markdown.ts)
 	// rendered as elements. Nothing here is raw HTML, so messages can't inject any.
+	// As a preview (of the message a reply is to) it's one line with nothing to
+	// click inside, and spoilers stay hidden.
 
 	import parse, { type Node } from "$lib/shoutbox/markdown"
 
-	const { body, me = "" }: { body: string; me?: string } = $props()
+	const {
+		body,
+		me = "",
+		preview = false
+	}: { body: string; me?: string; preview?: boolean } = $props()
 
 	let blocks = $derived(parse(body))
 	let myName = $derived(me.toLowerCase())
@@ -23,9 +29,9 @@
 </script>
 
 <!-- whitespace in this snippet would show, since lines keep their breaks -->
-{#snippet nodes(list: Node[])}{#each list as node}{#if typeof node === "string"}{node}{:else if node.t === "b"}<strong>{@render nodes(node.c)}</strong>{:else if node.t === "i"}<em>{@render nodes(node.c)}</em>{:else if node.t === "u"}<u>{@render nodes(node.c)}</u>{:else if node.t === "s"}<s>{@render nodes(node.c)}</s>{:else if node.t === "spoiler"}<span class="spoiler" role="button" tabindex="0" title="Spoiler" onclick={reveal} onkeydown={revealKey}>{@render nodes(node.c)}</span>{:else if node.t === "code"}<code>{node.v}</code>{:else if node.t === "link"}<a href={node.href} target="_blank" rel="noopener noreferrer nofollow ugc" class="link">{node.v}</a>{:else if node.t === "mention"}<a href="/user/{node.v}" class={["mention", { me: node.v.toLowerCase() === myName }]}>@{node.v}</a>{/if}{/each}{/snippet}
+{#snippet nodes(list: Node[])}{#each list as node}{#if typeof node === "string"}{node}{:else if node.t === "b"}<strong>{@render nodes(node.c)}</strong>{:else if node.t === "i"}<em>{@render nodes(node.c)}</em>{:else if node.t === "u"}<u>{@render nodes(node.c)}</u>{:else if node.t === "s"}<s>{@render nodes(node.c)}</s>{:else if node.t === "spoiler" && preview}<span class="spoiler">{@render nodes(node.c)}</span>{:else if node.t === "spoiler"}<span class="spoiler" role="button" tabindex="0" title="Spoiler" onclick={reveal} onkeydown={revealKey}>{@render nodes(node.c)}</span>{:else if node.t === "code"}<code>{node.v}</code>{:else if node.t === "link" && preview}<span class="link">{node.v}</span>{:else if node.t === "link"}<a href={node.href} target="_blank" rel="noopener noreferrer nofollow ugc" class="link">{node.v}</a>{:else if node.t === "mention" && preview}<span class={["mention", { me: node.v.toLowerCase() === myName }]}>@{node.v}</span>{:else if node.t === "mention"}<a href="/user/{node.v}" class={["mention", { me: node.v.toLowerCase() === myName }]}>@{node.v}</a>{/if}{/each}{/snippet}
 
-<span class="text">{#each blocks as block}{#if block.quote}<span class="quote">{@render nodes(block.c)}</span>{:else}<span class="lines">{@render nodes(block.c)}</span>{/if}{/each}</span>
+<span class={["text", { preview }]}>{#each blocks as block}{#if block.quote}<span class="quote">{@render nodes(block.c)}</span>{:else}<span class="lines">{@render nodes(block.c)}</span>{/if}{/each}</span>
 
 <style>
 	.text {
@@ -41,6 +47,27 @@
 	.lines,
 	.quote {
 		display: block;
+	}
+
+	/* one line, cut off with an ellipsis */
+	.preview {
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		& .lines,
+		& .quote {
+			display: inline;
+		}
+		& :is(.lines, .quote) + :is(.lines, .quote) {
+			margin-left: 0.3em;
+		}
+		& .quote {
+			margin-top: 0;
+			margin-bottom: 0;
+			padding-left: 0.375rem;
+		}
+		& code {
+			white-space: nowrap;
+		}
 	}
 
 	.quote {

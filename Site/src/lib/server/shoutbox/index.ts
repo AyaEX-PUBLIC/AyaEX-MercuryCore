@@ -1,24 +1,27 @@
 // The shoutbox: chat channels on the home page. Channels are managed by
 // administrators (routes/(main)/admin/shoutbox), and each has the lowest
-// permission levels that can read and post in it. Messages are checked and
-// cleaned here, whichever route they come from, and changes go out live
-// through ./live.ts.
+// permission levels that can read and post in it. Messages (and replies, and
+// emoji reactions to them) are checked and cleaned here, whichever route they
+// come from, and changes go out live through ./live.ts.
 
 import { error } from "@sveltejs/kit"
+import oneAtATime from "$lib/server/oneAtATime"
 import { db, Record } from "$lib/server/surreal"
-import { editWindow } from "$lib/shoutbox/limits"
+import { reactable } from "$lib/shoutbox/emoji"
+import { editWindow, maxReactions } from "$lib/shoutbox/limits"
 import {
 	canModerate,
 	canRead,
 	canWrite,
 	staffLevel,
 } from "$lib/shoutbox/permissions"
-import type { Channel, Shout } from "$lib/shoutbox/types"
+import type { Channel, Reaction, Shout } from "$lib/shoutbox/types"
 import channelsQuery from "./channels.surql"
 import clean from "./clean"
 import editQuery from "./edit.surql"
 import { publish } from "./live"
 import messagesQuery from "./messages.surql"
+import reactQuery from "./react.surql"
 import sendQuery from "./send.surql"
 import shoutQuery from "./shout.surql"
 
@@ -35,13 +38,49 @@ type Row<T> = Omit<T, "created" | "edited" | "last"> & {
 	last?: Date | null
 }
 
-const toShout = (row: Row<Shout>): Shout => ({
+type ReactionRow = { emoji: string; username?: string | null; created: Date }
+
+type ShoutRow = Omit<Row<Shout>, "replyTo" | "reactions"> & {
+	replyTo: {
+		id: string
+		deleted: boolean
+		author?: string | null
+		body: string
+	} | null
+	reactions: ReactionRow[]
+}
+
+/** Reactions grouped by emoji, each in the order it was first used */
+function toReactions(rows: ReactionRow[]) {
+	const reactions: Reaction[] = []
+	for (const row of rows.toSorted((a, b) => +a.created - +b.created)) {
+		if (!row.username) continue // a deleted account
+		const reaction = reactions.find(r => r.emoji === row.emoji)
+		if (reaction) reaction.users.push(row.username)
+		else reactions.push({ emoji: row.emoji, users: [row.username] })
+	}
+	return reactions
+}
+
+const toShout = ({ replyTo, ...row }: ShoutRow): Shout => ({
 	id: row.id,
 	channel: row.channel,
 	author: row.author,
 	body: row.body,
 	created: row.created.getTime(),
 	edited: row.edited?.getTime() || null,
+	// what a deleted message said is only for moderators, replies included
+	replyTo: !replyTo
+		? null
+		: replyTo.deleted || !replyTo.author
+			? { id: replyTo.id, deleted: true }
+			: {
+					id: replyTo.id,
+					deleted: false,
+					author: replyTo.author,
+					body: replyTo.body,
+				},
+	reactions: toReactions(row.reactions),
 })
 
 let channels: Channel[] = []
@@ -97,7 +136,7 @@ async function readable(id: string, user: User) {
 
 export async function messages(channel: string, user: User, before?: number) {
 	const c = await readable(channel, user)
-	const [rows] = await db.query<Row<Shout>[][]>(messagesQuery, {
+	const [rows] = await db.query<ShoutRow[][]>(messagesQuery, {
 		channel: Record("shoutChannel", c.id),
 		before: before ? new Date(before) : null,
 		limit: pageSize,
@@ -105,7 +144,7 @@ export async function messages(channel: string, user: User, before?: number) {
 	return rows.map(toShout).reverse()
 }
 
-type FullShout = Row<Shout> & {
+type FullShout = ShoutRow & {
 	authorId: string
 	deleted: boolean
 	deletedBy: string | null
@@ -137,7 +176,10 @@ export async function getShout(id: string, user: User) {
 // in a channel and posting during its slow mode are refused too.
 const buckets = new Map<string, { tokens: number; at: number }>()
 // by user and channel
-const lastSent = new Map<string, { body: string; at: number }>()
+const lastSent = new Map<
+	string,
+	{ body: string; replyTo?: string; at: number }
+>()
 
 function limit(key: string, burst: number, refill: number, message: string) {
 	const now = Date.now()
@@ -158,6 +200,10 @@ function limit(key: string, burst: number, refill: number, message: string) {
 const spend = (user: string) =>
 	limit(`send:${user}`, 5, 2e3, "You're sending messages too fast")
 
+/** Reacting: a burst of 10, then one a second */
+const reactLimit = (user: string) =>
+	limit(`react:${user}`, 10, 1e3, "You're reacting too fast")
+
 /** Loading older messages: a burst of 20 pages, then two a second */
 export const historyLimit = (user: string) =>
 	limit(`history:${user}`, 20, 500, "Too many requests")
@@ -177,17 +223,32 @@ function cleaned(input: string) {
 	return result.text
 }
 
-export async function send(channel: string, input: string, user: User) {
+export async function send(
+	channel: string,
+	input: string,
+	user: User,
+	replyTo?: string
+) {
 	const c = await readable(channel, user)
 	if (!canWrite(c, user.permissionLevel))
 		error(403, "You can't post in this channel")
 	const body = cleaned(input)
+	if (replyTo) {
+		const parent = await getShout(replyTo, user)
+		if (!parent || parent.deleted || parent.channel.id !== c.id)
+			error(400, "The message you're replying to was deleted")
+	}
 
 	const now = Date.now()
 	const key = `${user.id}:${c.id}`
 	const last = lastSent.get(key)
 	if (last) {
-		if (last.body === body && now - last.at < 30e3)
+		// (the same reply to two messages is fine)
+		if (
+			last.body === body &&
+			last.replyTo === replyTo &&
+			now - last.at < 30e3
+		)
 			error(429, "You just sent that")
 		const wait = c.slowmode * 1e3 - (now - last.at)
 		if (wait > 0 && user.permissionLevel < staffLevel)
@@ -196,12 +257,13 @@ export async function send(channel: string, input: string, user: User) {
 	spend(user.id)
 	await checkModeration(user)
 
-	const [, row] = await db.query<Row<Shout>[]>(sendQuery, {
+	const [, row] = await db.query<ShoutRow[]>(sendQuery, {
 		user: Record("user", user.id),
 		body,
 		channel: Record("shoutChannel", c.id),
+		replyTo: replyTo ? Record("shout", replyTo) : undefined,
 	})
-	lastSent.set(key, { body, at: now })
+	lastSent.set(key, { body, replyTo, at: now })
 
 	const shout = toShout(row)
 	c.last = shout.created
@@ -227,7 +289,7 @@ export async function edit(id: string, input: string, user: User) {
 	spend(user.id)
 	await checkModeration(user)
 
-	const [, row] = await db.query<Row<Shout>[]>(editQuery, {
+	const [, row] = await db.query<ShoutRow[]>(editQuery, {
 		shout: Record("shout", id),
 		body,
 	})
@@ -259,4 +321,53 @@ export async function remove(id: string, user: User) {
 		}
 	)
 	publish({ type: "delete", channel: channel.id, id })
+}
+
+/**
+ * Adds or removes the user's reaction to a message.
+ * @returns Everyone's reactions to it now.
+ */
+export async function react(
+	id: string,
+	emoji: string,
+	add: boolean,
+	user: User
+) {
+	if (!reactable.has(emoji)) error(400, "You can't react with that")
+	// reading a channel is enough to react in it, as in announcement channels
+	const found = await getShout(id, user)
+	if (!found || found.deleted) error(404, "Message not found")
+	reactLimit(user.id)
+	await checkModeration(user)
+
+	const shout = Record("shout", id)
+	const me = Record("user", user.id)
+	// one change to a message at a time, so that two people can't both add
+	// the last emoji there's room for, and live updates go out in order
+	return await oneAtATime(`shoutReaction:${id}`, async () => {
+		const [current] = await db.query<(ReactionRow & { user: string })[][]>(
+			"RETURN $shout<-reacted.{ emoji, user: record::id(in), username: in.username, created }",
+			{ shout }
+		)
+		const mine = current.some(r => r.emoji === emoji && r.user === user.id)
+		if (add === mine) return toReactions(current) // e.g. a double click
+		const emojis = new Set(current.map(r => r.emoji))
+		if (add && !emojis.has(emoji) && emojis.size >= maxReactions)
+			error(400, `A message can have at most ${maxReactions} different reactions`)
+
+		const [, rows] = await db.query<[unknown, ReactionRow[]]>(reactQuery, {
+			shout,
+			user: me,
+			emoji,
+			add,
+		})
+		const reactions = toReactions(rows)
+		publish({
+			type: "react",
+			channel: found.channel.id,
+			id,
+			reactions,
+		})
+		return reactions
+	})
 }

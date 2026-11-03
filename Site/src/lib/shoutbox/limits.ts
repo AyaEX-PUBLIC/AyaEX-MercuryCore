@@ -7,6 +7,8 @@ export const maxLength = 500
 export const maxLines = 6
 /** Most emoji in one message */
 export const maxEmoji = 20
+/** Most different emoji people can react to one message with */
+export const maxReactions = 5
 /** How long after sending a message its author can still edit it */
 export const editWindow = 15 * 60e3
 

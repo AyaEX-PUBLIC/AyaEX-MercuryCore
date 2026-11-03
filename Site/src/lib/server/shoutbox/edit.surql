@@ -6,5 +6,7 @@ SELECT
 	{ username: author.username, level: author.permissionLevel } AS author,
 	body,
 	created,
-	edited
+	edited,
+	replyTo.{ id: record::id(id), deleted, author: author.username, body } AS replyTo,
+	<-reacted.{ emoji, username: in.username, created } AS reactions
 FROM ONLY $shout;

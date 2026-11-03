@@ -47,6 +47,11 @@ export const shortcodes = new Map(
 	)
 )
 
+/** The emoji people can react with: the ones in the picker */
+export const reactable = new Set(
+	categories.flatMap(c => c.emoji.map(e => e.emoji))
+)
+
 /** Emoji whose names start with (or else contain) the text typed after a colon */
 export function search(query: string, limit = 8) {
 	const q = query.toLowerCase()

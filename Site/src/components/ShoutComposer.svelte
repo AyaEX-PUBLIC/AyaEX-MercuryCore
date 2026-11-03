@@ -1,8 +1,8 @@
 <script lang="ts">
 	// The shoutbox message box: Enter sends, Shift+Enter starts a new line,
-	// :name completes emoji, and Up edits your last message
+	// :name completes emoji, Up edits your last message, and Esc stops replying
 
-	import { tick } from "svelte"
+	import { tick, untrack } from "svelte"
 	import type { Emoji } from "$lib/shoutbox/emoji"
 	import { graphemes, maxLength } from "$lib/shoutbox/limits"
 	import EmojiPicker from "./EmojiPicker.svelte"
@@ -10,15 +10,23 @@
 	const {
 		channel,
 		disabled = "",
+		replyingTo = "",
 		onsend,
-		oneditlast
+		oneditlast,
+		oncancelreply,
+		onjumpreply
 	}: {
 		channel: string
 		/** Why the user can't post here, if they can't */
 		disabled?: string
+		/** Whose message the next one replies to, if any */
+		replyingTo?: string
 		/** Sends a message, returning an error to show if it failed */
 		onsend: (text: string) => Promise<string | void>
 		oneditlast: () => void
+		oncancelreply?: () => void
+		/** Scrolls to the message being replied to */
+		onjumpreply?: () => void
 	} = $props()
 
 	let text = $state("")
@@ -33,6 +41,11 @@
 		(emoji ||= await import("$lib/shoutbox/emoji"))
 
 	let length = $derived(graphemes(text.trim()).length)
+
+	// starting a reply puts you in the box
+	$effect(() => {
+		if (replyingTo) untrack(() => textarea?.focus())
+	})
 
 	// :partial emoji name before the cursor
 	let suggestions: Emoji[] = $state([])
@@ -122,7 +135,10 @@
 		} else if (e.key === "ArrowUp" && !text) {
 			e.preventDefault()
 			oneditlast()
-		} else if (e.key === "Escape") pickerOpen = false
+		} else if (e.key === "Escape") {
+			if (pickerOpen) pickerOpen = false
+			else oncancelreply?.()
+		}
 	}
 
 	async function togglePicker() {
@@ -171,14 +187,32 @@
 			{disabled}
 		</p>
 	{:else}
+		{#if replyingTo}
+			<div class="replying">
+				<button type="button" class="to" title="Go to the message" onclick={onjumpreply}>
+					Replying to <b>@{replyingTo}</b>
+				</button>
+				<button
+					type="button"
+					class="cancel"
+					title="Stop replying (Esc)"
+					aria-label="Stop replying"
+					onclick={() => {
+						oncancelreply?.()
+						textarea?.focus()
+					}}>
+					<fa fa-xmark-large></fa>
+				</button>
+			</div>
+		{/if}
 		<div class="row">
 			<textarea
 				bind:this={textarea}
 				bind:value={text}
 				rows="1"
 				maxlength="4000"
-				placeholder="Message #{channel}"
-				aria-label="Message #{channel}"
+				placeholder={replyingTo ? `Reply to @${replyingTo}` : `Message #${channel}`}
+				aria-label={replyingTo ? `Reply to @${replyingTo}` : `Message #${channel}`}
 				oninput={() => {
 					resize()
 					suggest()
@@ -312,6 +346,48 @@
 			filter: grayscale(1);
 			opacity: 0.65;
 			transition: opacity 0.15s;
+		}
+	}
+
+	/* sits on the box, as part of it */
+	.replying {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 1.875rem;
+		font-size: 0.75rem;
+		color: var(--grey-text);
+		background: var(--accent);
+		border: 1px solid var(--accent2);
+		border-bottom: 0;
+		& button {
+			height: 100%;
+			padding: 0 0.75rem;
+			font: inherit;
+			color: inherit;
+			background: none;
+			border: 0;
+			cursor: pointer;
+			&:hover {
+				color: var(--light-text);
+			}
+		}
+		& .to {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			& b {
+				font-weight: 600;
+				color: var(--light-text);
+			}
+		}
+		& .cancel {
+			flex-shrink: 0;
+			font-size: 0.6875rem;
+			&:hover {
+				background: var(--accent2);
+			}
 		}
 	}
 

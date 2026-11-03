@@ -125,6 +125,7 @@ type RecordIdTypes = {
 	place: number
 	playing: string
 	posted: string
+	reacted: string
 	recentlyWorn: string
 	regKey: string
 	render: string
