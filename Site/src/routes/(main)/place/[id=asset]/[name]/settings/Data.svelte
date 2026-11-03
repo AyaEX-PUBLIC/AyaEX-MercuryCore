@@ -56,7 +56,11 @@
 		<small class="formhelp">Up to 100MB. Running servers keep the version they loaded.</small>
 	</div>
 	<button class="btn btn-primary" disabled={busy || !file}>
-		{busy ? "Uploading..." : "<fa fa-save></fa> Save changes"}
+		{#if busy}
+			Uploading...
+		{:else}
+			<fa fa-save></fa> Save changes
+		{/if}
 	</button>
 </form>
 
