@@ -92,7 +92,6 @@ export async function load({ locals, params }) {
 			arktype(viewSchema)
 		),
 		networkForm: await superValidate(arktype(networkSchema)),
-		ticketForm: await superValidate(arktype(ticketSchema)), // lmaooo it works
 		avatarForm: await superValidate(
 			{ rigType: getPlace.rigType },
 			arktype(avatarSchema)
