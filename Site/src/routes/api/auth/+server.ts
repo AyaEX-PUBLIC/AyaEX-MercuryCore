@@ -16,7 +16,9 @@
 
 import { error, json } from "@sveltejs/kit"
 import type { Purpose } from "$lib/phrase"
+import { readText } from "$lib/server/body"
 import { cookieName, cookieOptions, createSession } from "$lib/server/auth"
+import { rateLimit } from "$lib/server/requestRateLimit"
 import {
 	type Answer,
 	challenge,
@@ -59,13 +61,25 @@ const detailsOf = (data: Record<string, unknown>): Details => ({
 const failed = () =>
 	error(401, "That didn't work. Check your phrase and try again.")
 
-export async function POST({ request, locals, cookies, url, fetch }) {
+const maxAuthBody = 8 * 1024
+
+export async function POST(event) {
+	const { request, locals, cookies, url, fetch } = event
+	// Edge rate limits are in Caddyfile.aya; this one still applies when
+	// the Site is reached directly or through another proxy
+	rateLimit(event, "auth", {
+		burst: 30,
+		perSecond: 0.5,
+		siteBurst: 200,
+		sitePerSecond: 5,
+	})
+
 	const origin = request.headers.get("origin")
 	if (origin && origin !== url.origin) error(403, "Invalid origin")
 	if (!request.headers.get("content-type")?.startsWith("application/json"))
 		error(415, "Expected JSON")
-	const raw = await request.text()
-	if (raw.length > 8192) error(413, "Request too large")
+	// count bytes from the stream: Content-Length can be missing or false
+	const raw = await readText(request, maxAuthBody)
 	let data: Record<string, unknown>
 	try {
 		data = JSON.parse(raw)

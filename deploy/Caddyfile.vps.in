@@ -11,6 +11,18 @@ import /etc/caddy/Caddyfile.aya
 __DOMAIN__ {
 	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
 __AUTH__
+	# The :8010 site enforces the real per-route limits; this is a hard outer
+	# bound so no upload can reach the Site unbounded, and keeps stalled
+	# uploads/downloads from holding a connection forever. It applies to both
+	# the live Site and the maintenance page below.
+	request_body {
+		max_size 101MB
+	}
+	timeouts {
+		read_timeout 2m 1024
+		write_timeout 2m
+	}
+
 	# deploy/maintenance.sh on|off: a static page instead of the Site, without
 	# a Caddy restart. data/maintenance/live exists whenever the Site should
 	# be shown (data/ is untouched by deploy.sh, so this state outlives a
@@ -24,6 +36,13 @@ __AUTH__
 	handle @live {
 		reverse_proxy 127.0.0.1:8010 {
 			flush_interval -1
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+				read_timeout 2m
+				write_timeout 2m
+				max_conns_per_host 200
+			}
 		}
 	}
 	handle {
@@ -51,6 +70,13 @@ http://__DOMAIN__ {
 	handle @vps {
 		reverse_proxy 127.0.0.1:8010 {
 			flush_interval -1
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+				read_timeout 2m
+				write_timeout 2m
+				max_conns_per_host 200
+			}
 		}
 	}
 	handle {

@@ -1,8 +1,10 @@
+import { unlink } from "node:fs/promises"
 import { error, json } from "@sveltejs/kit"
+import { streamToTempFile } from "$lib/server/body"
 import {
-	isPlaceFile,
+	isPlaceFileAtPath,
 	maxPlaceFileSize,
-	writePlaceFile,
+	writePlaceFileFromTemp,
 } from "$lib/server/places"
 import ratelimit from "$lib/server/ratelimit"
 import { studioPlace, studioPlaceInfo, studioUser } from "$lib/server/studioApi"
@@ -13,17 +15,28 @@ export async function PUT({ locals, params, request }) {
 	const user = studioUser(locals, request)
 	const id = await studioPlace(user, params.id)
 
-	if (Number(request.headers.get("content-length")) > maxPlaceFileSize)
-		error(413, "Places must be less than 100MB in size")
 	if (ratelimit(null, "studioPublish", user.id, 5))
 		error(429, "Publishing too often, try again in a few seconds")
 
-	const data = new Uint8Array(await request.arrayBuffer())
-	if (data.byteLength > maxPlaceFileSize)
-		error(413, "Places must be less than 100MB in size")
-	if (!isPlaceFile(data)) error(400, "That isn't a place file")
+	// counts bytes while writing, so Content-Length can't be omitted to make
+	// the server buffer an endless upload
+	const upload = await streamToTempFile(
+		request,
+		maxPlaceFileSize,
+		"../data/places",
+		`studio-${id}`
+	)
 
-	await writePlaceFile(id, data)
+	try {
+		if (upload.size === 0) error(400, "That isn't a place file")
+		if (!(await isPlaceFileAtPath(upload.path)))
+			error(400, "That isn't a place file")
+		await writePlaceFileFromTemp(id, upload.path)
+	} catch (e) {
+		await unlink(upload.path).catch(() => {})
+		throw e
+	}
+
 	return json(await studioPlaceInfo(id), {
 		headers: { "Cache-Control": "no-store" },
 	})

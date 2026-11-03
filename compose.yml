@@ -5,6 +5,27 @@
 # the natively running Orbiter (64991/64992) and RCC proxy (64990), which
 # manage native Aya.Server gameservers. See aya/README.md.
 
+# The Site listens twice: the public instance on 4443 has a 1MB body limit,
+# and the upload-only instance on 4445 accepts the larger place/asset bodies.
+# Caddy routes only the upload paths to 4445; both instances share the data
+# volume and database. See Site/src/lib/server/requestLimits.ts.
+x-site: &site
+    build: .
+    image: mercurycore-site
+    network_mode: host
+    user: ${AYA_DATA_UID:-1000}:${AYA_DATA_GID:-1000}
+    restart: unless-stopped
+    # PORT and ORIGIN are read at runtime, not only at build time
+    env_file: Site/.env
+    volumes:
+        # the Site reads ../data relative to /app/Site
+        - ./data:/app/data
+        # Aya's local asset library, a fallback for assets Mercury doesn't have
+        - ${AYA_ASSETS_HOST_DIR:-../aya-dev/assets}:/aya-assets:ro
+    depends_on:
+        - database # will keep retrying until database is ready
+        - economy
+
 services:
     database:
         # not :nightly because doing that once caused failures when graph linking
@@ -36,19 +57,12 @@ services:
             - ./data/economy:/data/economy
 
     site:
-        build: .
-        image: mercurycore-site
-        network_mode: host
-        user: ${AYA_DATA_UID:-1000}:${AYA_DATA_GID:-1000}
-        restart: unless-stopped
-        # PORT and ORIGIN are read at runtime, not only at build time
-        env_file: Site/.env
-        volumes:
-            # the Site reads ../data relative to /app/Site
-            - ./data:/app/data
-            # Aya's local asset library, a fallback for assets Mercury doesn't have
-            - ${AYA_ASSETS_HOST_DIR:-../aya-dev/assets}:/aya-assets:ro
+        <<: *site
         environment:
+            # Keep this in step with Site/.env.example. Env vars from the
+            # compose file override Site/.env, so an old 1G value can't sneak
+            # back in after an upgrade.
+            BODY_SIZE_LIMIT: 1M
             AYA_ASSETS_DIR: /aya-assets
             # the Aya API (aya-dev compose) fetches Roblox assets Mercury and the
             # local library don't have; set empty to disable
@@ -56,12 +70,26 @@ services:
             # the StreamingFrame signaling relay (Site lib/server/streaming.ts),
             # on 127.0.0.1; Caddyfile.aya proxies /streaming/ws to it
             STREAMING_PORT: 4444
-        depends_on:
-            - database # will keep retrying until database is ready
-            - economy
+
+    site-uploads:
+        <<: *site
+        environment:
+            # Caddy is the only way in; it routes the upload paths here
+            PORT: 4445
+            UPLOAD_ONLY: "1"
+            BODY_SIZE_LIMIT: 101M
+            AYA_ASSETS_DIR: /aya-assets
+            AYA_ASSET_FALLBACK_URL: ${AYA_ASSET_FALLBACK_URL-http://localhost:8005}
+            # this instance doesn't start the relay
+            STREAMING_PORT: 4444
 
     caddy:
-        image: caddy:2
+        # Standard Caddy plus the rate-limit module (deploy/Caddy.Dockerfile);
+        # the edge limits live in Caddyfile.aya.
+        build:
+            context: .
+            dockerfile: deploy/Caddy.Dockerfile
+        image: mercurycore-caddy
         network_mode: host
         restart: unless-stopped
         volumes:
@@ -73,6 +101,7 @@ services:
             - ./data/runtime:/srv/runtime-channels:ro
         depends_on:
             - site
+            - site-uploads
 
     # Discord bot handing out registration keys (DiscordBot/README.md).
     # Fill in DiscordBot/.env, then: docker compose --profile discord up -d --build discordbot

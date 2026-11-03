@@ -1,10 +1,15 @@
 import { createHash } from "node:crypto"
 import { readdirSync } from "node:fs"
-import { readdir, stat, unlink } from "node:fs/promises"
+import { mkdir, readdir, rename, stat, unlink } from "node:fs/promises"
 import { env } from "$env/dynamic/private"
-import { error } from "@sveltejs/kit"
+import { error, isHttpError } from "@sveltejs/kit"
 import { OPEN_CLOUD_KEY } from "$env/static/private"
 import { intRegex } from "$lib/paramTests"
+import {
+	fileHead,
+	hashFile,
+	streamResponseToTempFile,
+} from "$lib/server/body"
 import config from "$lib/server/config"
 import { db, Record } from "$lib/server/surreal"
 import { isXML } from "$lib/server/xml"
@@ -14,15 +19,50 @@ import {
 	requirePlaceFileAccess,
 } from "$lib/server/assetAuth"
 
-const headers = (file: string | Uint8Array) => ({
+const MB = 1_000_000
+/** An upstream object is refused before it can become an unbounded file. */
+const maxUpstreamAssetSize = 100 * MB
+
+const headers = (hash: string) => ({
 	"Content-Type": "binary/octet-stream",
-	"Content-Disposition": `attachment; filename="${createHash("md5")
-		.update(file)
-		.digest("hex")}"`,
+	"Content-Disposition": `attachment; filename="${hash}"`,
 })
 
-const response = (file: string | Uint8Array<ArrayBuffer>) =>
-	new Response(file, { headers: headers(file) })
+const hashBytes = (file: string | Uint8Array) =>
+	createHash("md5").update(file).digest("hex")
+
+// Content-Disposition needs the object's md5 before the body is streamed.
+// Hashing a large cached file on every request would read it twice; remember
+// the hash until the file's size or mtime changes.
+const fileHashes = new Map<
+	string,
+	{ size: number; mtime: number; hash: string }
+>()
+
+async function fileHash(path: string) {
+	const s = await stat(path)
+	const known = fileHashes.get(path)
+	if (known && known.size === s.size && known.mtime === s.mtimeMs)
+		return known.hash
+
+	const hash = await hashFile(path)
+	fileHashes.set(path, { size: s.size, mtime: s.mtimeMs, hash })
+	if (fileHashes.size > 10_000) {
+		const oldest = fileHashes.keys().next().value
+		if (oldest) fileHashes.delete(oldest)
+	}
+	return hash
+}
+
+/** Serve a file without reading it into memory. */
+async function fileResponse(path: string) {
+	return new Response(Bun.file(path), {
+		headers: headers(await fileHash(path)),
+	})
+}
+
+const bytesResponse = (file: string) =>
+	new Response(file, { headers: headers(hashBytes(file)) })
 
 type FoundAsset = {
 	id: number
@@ -30,31 +70,33 @@ type FoundAsset = {
 	visibility: string
 }
 
-// Only substitute if it's an XML file (re-encoding image files tends to corrupt them)
-async function substituteURLs(file: Bun.BunFile | Response) {
-	const buf = await file.arrayBuffer()
-	if (!isXML(buf)) return new Uint8Array(buf)
+const substitute = (text: string) =>
+	text
+		.replaceAll("www.roblox.com/asset", `${config.Domain}/asset`)
+		.replaceAll("roblox.com/asset", `${config.Domain}/asset`)
 
-	const rep = `${config.Domain}/asset`
-	return new TextDecoder()
-		.decode(buf)
-		.replaceAll("www.roblox.com/asset", rep)
-		.replaceAll("roblox.com/asset", rep)
+// Only substitute if it's an XML file (re-encoding image files tends to corrupt them)
+async function substituteURLs(path: string) {
+	const head = await fileHead(path, 8)
+	if (!isXML(head)) return await fileResponse(path)
+
+	const text = substitute(await Bun.file(path).text())
+	return bytesResponse(text)
 }
 
 async function loadPrivilegedAsset(id: number) {
-	const file = Bun.file(`../data/server/assets/${id}`)
-	if (!(await file.exists())) return
+	const path = `../data/server/assets/${id}`
+	if (!(await Bun.file(path).exists())) return
 
 	// Privileged assets don't need their URLs substituted
 
 	console.log("Serving privileged", id)
-	return response(new Uint8Array(await file.arrayBuffer()))
+	return await fileResponse(path)
 }
 
 async function loadUserAsset(id: number) {
-	const file = Bun.file(`../data/assets/${id}`)
-	if (!(await file.exists())) return
+	const path = `../data/assets/${id}`
+	if (!(await Bun.file(path).exists())) return
 
 	const [[asset]] = await db.query<FoundAsset[][]>(assetQuery, {
 		asset: Record("asset", id),
@@ -63,10 +105,10 @@ async function loadUserAsset(id: number) {
 
 	// The asset is visible or pending
 	// (allow pending assets to be shown through the api)
-	const script = await substituteURLs(file)
+	const script = await substituteURLs(path)
 
 	console.log("Serving user", id)
-	return response(script)
+	return script
 }
 
 async function loadPlaceAsset(
@@ -77,14 +119,14 @@ async function loadPlaceAsset(
 ) {
 	// places are stored separately (see the dedicated gameserver flow's placeFile
 	// check), and RCC hosting loads them via /asset/?id= (gameserver.txt convention)
-	const file = Bun.file(`../data/places/${id}`)
-	if (!(await file.exists())) return
+	const path = `../data/places/${id}`
+	if (!(await Bun.file(path).exists())) return
 	await requirePlaceFileAccess(locals, request, id, token)
 
-	const script = await substituteURLs(file)
+	const script = await substituteURLs(path)
 
 	console.log("Serving place", id)
-	return response(script)
+	return script
 }
 
 // Aya's local asset library (files named <id> or <id>.<ext>, as served by the
@@ -114,7 +156,7 @@ async function loadAyaAsset(id: number) {
 	if (!path) return
 
 	console.log("Serving Aya library", id)
-	return response(await substituteURLs(Bun.file(path)))
+	return await substituteURLs(path)
 }
 
 // Assets fetched from the Aya API, Roblox or Open Cloud are cached here, up to
@@ -127,50 +169,80 @@ let evicting = false
 async function cacheFiles() {
 	const names = await readdir(cacheDir).catch(() => [] as string[])
 	return Promise.all(
-		names.map(async name => {
-			const path = `${cacheDir}/${name}`
-			const s = await stat(path).catch(() => null)
-			return { path, size: s?.size ?? 0, mtime: s?.mtimeMs ?? 0 }
-		})
+		names
+			.filter(name => !name.startsWith("."))
+			.map(async name => {
+				const path = `${cacheDir}/${name}`
+				const s = await stat(path).catch(() => null)
+				return { path, size: s?.size ?? 0, mtime: s?.mtimeMs ?? 0 }
+			})
 	)
 }
 
-async function cacheAsset(id: number, asset: string | Uint8Array) {
-	const bytes = await Bun.write(`${cacheDir}/${id}`, asset)
+async function cacheAsset(id: number, path: string) {
+	await mkdir(cacheDir, { recursive: true })
+	const dest = `${cacheDir}/${id}`
+	const old = await stat(dest).catch(() => null)
+
+	if (path !== dest) {
+		try {
+			await rename(path, dest)
+		} catch {
+			// a different filesystem (or a pre-existing path): copy, then drop
+			// the temporary file
+			await Bun.write(dest, Bun.file(path))
+			await unlink(path).catch(() => {})
+		}
+	}
+	const bytes = (await stat(dest)).size
 	if (cacheSize === undefined)
 		cacheSize = (await cacheFiles()).reduce((n, f) => n + f.size, 0)
-	else cacheSize += bytes
-	if (cacheSize <= cacheMax() || evicting) return
+	else cacheSize += bytes - (old?.size ?? 0)
+	if (cacheSize <= cacheMax() || evicting) return dest
 
-	// drop the oldest files until the cache is 10% under the limit
+	// drop the oldest files until the cache is 10% under the limit, keeping
+	// the object we just wrote even if it alone is over the budget
 	evicting = true
 	try {
 		const files = (await cacheFiles()).sort((a, b) => a.mtime - b.mtime)
 		cacheSize = files.reduce((n, f) => n + f.size, 0)
 		for (const f of files) {
 			if (cacheSize <= cacheMax() * 0.9) break
+			if (f.path === dest) continue
 			await unlink(f.path).catch(() => {})
 			cacheSize -= f.size
 		}
 	} finally {
 		evicting = false
 	}
+	return dest
 }
 
 async function loadCachedAsset(id: number) {
-	const file = Bun.file(`${cacheDir}/${id}`)
-	if (!(await file.exists())) return
+	const path = `${cacheDir}/${id}`
+	if (!(await Bun.file(path).exists())) return
 
 	console.log("Serving cached", id)
-	return response(new Uint8Array(await file.arrayBuffer()))
+	return await fileResponse(path)
 }
 
 // Each new asset from upstream spends the operator's Roblox credentials, so
-// every principal has a budget of them (a burst, refilled each second), and
-// so does the whole site
+// every principal has a small budget (a burst, refilled each second), and so
+// does the whole site. Upstream downloads also have per-principal and site
+// concurrency caps, so a few clients can't fill the disk cache at once.
 type Budget = { tokens: number; at: number }
+
+const perUserBurst = 50
+const perUserPerSecond = 1
+const siteBurst = 250
+const sitePerSecond = 5
+const perUserConcurrency = 3
+const siteConcurrency = 25
+
 const budgets = new Map<string, Budget>()
-const siteBudget: Budget = { tokens: 5000, at: Date.now() }
+const siteBudget: Budget = { tokens: siteBurst, at: Date.now() }
+const inFlight = new Map<string, number>()
+let siteInFlight = 0
 
 function refill(b: Budget, burst: number, perSecond: number, now: number) {
 	b.tokens = Math.min(burst, b.tokens + ((now - b.at) / 1000) * perSecond)
@@ -178,22 +250,68 @@ function refill(b: Budget, burst: number, perSecond: number, now: number) {
 }
 
 function takeUpstreamFetch(principal: string) {
+	if (
+		(inFlight.get(principal) ?? 0) >= perUserConcurrency ||
+		siteInFlight >= siteConcurrency
+	)
+		error(429, "Too many new assets requested, try again shortly")
+
 	const now = Date.now()
-	const own = budgets.get(principal) ?? { tokens: 1000, at: now }
-	refill(own, 1000, 2, now)
-	refill(siteBudget, 5000, 10, now)
+	const own = budgets.get(principal) ?? { tokens: perUserBurst, at: now }
+	refill(own, perUserBurst, perUserPerSecond, now)
+	refill(siteBudget, siteBurst, sitePerSecond, now)
 	if (own.tokens < 1 || siteBudget.tokens < 1)
 		error(429, "Too many new assets requested, try again shortly")
 	own.tokens--
 	siteBudget.tokens--
 	budgets.set(principal, own)
 
+	const ownInFlight = (inFlight.get(principal) ?? 0) + 1
+	inFlight.set(principal, ownInFlight)
+	siteInFlight++
+
 	// forget principals whose budget has filled up again
 	if (budgets.size > 10_000)
 		for (const [p, b] of budgets) {
-			refill(b, 1000, 2, now)
-			if (b.tokens >= 1000) budgets.delete(p)
+			refill(b, perUserBurst, perUserPerSecond, now)
+			if (b.tokens >= perUserBurst) budgets.delete(p)
 		}
+
+	let released = false
+	return () => {
+		if (released) return
+		released = true
+		siteInFlight--
+		const left = (inFlight.get(principal) ?? 1) - 1
+		if (left > 0) inFlight.set(principal, left)
+		else inFlight.delete(principal)
+	}
+}
+
+/** How the Aya API, Roblox and Open Cloud bodies become cache files. */
+async function cacheUpstream(id: number, res: Response, label: string) {
+	const download = await streamResponseToTempFile(
+		res,
+		maxUpstreamAssetSize,
+		cacheDir,
+		`asset-${id}`
+	)
+
+	try {
+		// XML asset URLs are rewritten for the local site; binary objects
+		// (images, meshes, place files) are left alone
+		if (isXML(await fileHead(download.path, 8))) {
+			const text = substitute(await Bun.file(download.path).text())
+			await Bun.write(download.path, text)
+		}
+
+		const cached = await cacheAsset(id, download.path)
+		console.log(`Serving ${label}`, id)
+		return await fileResponse(cached)
+	} catch (e) {
+		await unlink(download.path).catch(() => {})
+		throw e
+	}
 }
 
 // The Aya compatibility API (AYA_ASSET_FALLBACK_URL) serves Roblox assets
@@ -205,13 +323,9 @@ async function loadAyaApiAsset(id: number) {
 	try {
 		const res = await fetch(`${base}/asset/?id=${id}`)
 		if (!res.ok) return
-
-		const asset = await substituteURLs(res)
-		await cacheAsset(id, asset)
-
-		console.log("Serving Aya API", id)
-		return response(asset)
+		return await cacheUpstream(id, res, "Aya API")
 	} catch (e) {
+		if (isHttpError(e)) throw e
 		console.error("Aya API asset fallback failed", e)
 	}
 }
@@ -247,12 +361,9 @@ async function loadRobloxAsset(id: number) {
 			)
 		if (!res.ok) return
 
-		const asset = await substituteURLs(res)
-		await cacheAsset(id, asset)
-
-		console.log("Serving Roblox", id)
-		return response(asset)
+		return await cacheUpstream(id, res, "Roblox")
 	} catch (e) {
+		if (isHttpError(e)) throw e
 		console.error("Roblox asset delivery failed", e)
 	}
 }
@@ -272,12 +383,9 @@ async function loadOpenCloudAsset(f: typeof globalThis.fetch, id: number) {
 		const res = await f(location)
 		if (!res.ok) return
 
-		const script = await substituteURLs(res)
-		await cacheAsset(id, script)
-
-		console.log("Serving Open Cloud", id)
-		return response(script)
+		return await cacheUpstream(id, res, "Open Cloud")
 	} catch (e) {
+		if (isHttpError(e)) throw e
 		console.error(e)
 		error(500, "Failed to fetch Open Cloud asset")
 	}
@@ -333,26 +441,29 @@ export async function GET({ fetch: f, url, locals, request }) {
 
 	// past here the asset comes from upstream: a user's budget, or for
 	// gameservers the place they say they host (InsertService sends it)
-	takeUpstreamFetch(
-		locals.user
-			? `user:${locals.user.id}`
-			: `server:${url.searchParams.get("serverplaceid") ?? ""}`
-	)
-
-	const resultAyaApi = await loadAyaApiAsset(id)
-	if (resultAyaApi) return resultAyaApi
-
-	const resultRoblox = await loadRobloxAsset(id)
-	if (resultRoblox) return resultRoblox
+	const principal = locals.user
+		? `user:${locals.user.id}`
+		: `server:${url.searchParams.get("serverplaceid") ?? ""}`
+	const release = takeUpstreamFetch(principal)
 
 	try {
-		const result3 = await loadOpenCloudAsset(f, id)
-		if (result3) return result3
-	} catch (e) {
-		rememberMissing(id)
-		throw e
-	}
+		const resultAyaApi = await loadAyaApiAsset(id)
+		if (resultAyaApi) return resultAyaApi
 
-	rememberMissing(id)
-	error(404, "Not Found")
+		const resultRoblox = await loadRobloxAsset(id)
+		if (resultRoblox) return resultRoblox
+
+		try {
+			const result3 = await loadOpenCloudAsset(f, id)
+			if (result3) return result3
+		} catch (e) {
+			rememberMissing(id)
+			throw e
+		}
+
+		rememberMissing(id)
+		error(404, "Not Found")
+	} finally {
+		release()
+	}
 }

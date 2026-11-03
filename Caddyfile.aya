@@ -3,6 +3,15 @@
 # works over plain HTTP. For a public deployment, use an HTTPS site address and
 # set ORIGIN/Domain to match.
 
+# Trust the local Caddy/loopback proxy in front of the Site (the VPS Caddy
+# imports this file), so {client_ip} below is the visitor's address rather than
+# 127.0.0.1 for every request. Direct visitors to :8010 are not trusted.
+{
+	servers {
+		trusted_proxies static 127.0.0.1 ::1
+	}
+}
+
 # Only signed-in players can load the Aya runtime: the Site checks the
 # session (and moderation, and the recovery phrase) for every /runtime
 # request, and turns away or redirects anyone else
@@ -80,8 +89,75 @@
 		}
 	}
 
+	# Large uploads go to the upload-only Site instance, whose adapter body
+	# limit is 101MB. Everything else is held to 1MB below. The regexp mirrors
+	# Site/src/lib/server/requestLimits.ts.
+	@uploads {
+		method POST PUT PATCH
+		path_regexp upload ^/(?:place/[0-9]+/[^/]+/settings(?:/|$)|studio/api/places/[0-9]+/file$|develop/create$|admin/(?:create|news)$)
+	}
+	handle @uploads {
+		request_body {
+			max_size 101MB
+		}
+		timeouts {
+			read_timeout 2m 1024
+			write_timeout 2m
+		}
+		reverse_proxy 127.0.0.1:4445 {
+			flush_interval -1
+			# passive health check doubles as a concurrency cap: past this many
+			# simultaneous uploads the backend is treated as overloaded
+			fail_duration 10s
+			unhealthy_request_count 8
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+				read_timeout 2m
+				write_timeout 2m
+				max_conns_per_host 8
+			}
+		}
+	}
+
 	# Mercury Core Site, with the client compatibility rewrites from Site/Caddyfile
 	handle {
+		# Edge limits for the public, unauthenticated endpoints. The Site has
+		# its own token buckets too (lib/server/requestRateLimit.ts), so neither layer
+		# is the only protection.
+		rate_limit {
+			zone auth_ip {
+				match {
+					method POST
+					path /api/auth* /api/switch* /login* /register* /recover* /device*
+				}
+				key {client_ip}
+				events 30
+				window 1m
+				ipv6_prefix 64
+			}
+			zone apply_ip {
+				match {
+					method POST
+					path /apply* /api/apply*
+				}
+				key {client_ip}
+				events 10
+				window 10m
+				ipv6_prefix 64
+			}
+		}
+
+		# The public instance only ever needs small bodies; uploads take the
+		# @uploads route above. Counted by Caddy while streaming.
+		request_body {
+			max_size 1MB
+		}
+		timeouts {
+			read_timeout 30s 1024
+			write_timeout 2m
+		}
+
 		rewrite /Asset /asset
 		rewrite /Asset/ /asset
 		rewrite /Asset/Default.ashx /asset
@@ -166,6 +242,19 @@
 		}
 		request_header @untypedBody Content-Type application/octet-stream
 
-		reverse_proxy 127.0.0.1:4443
+		reverse_proxy 127.0.0.1:4443 {
+			flush_interval -1
+			# a hard backstop against connection floods reaching the Site; the
+			# application rate limits are the primary limit
+			fail_duration 10s
+			unhealthy_request_count 200
+			transport http {
+				dial_timeout 5s
+				response_header_timeout 30s
+				read_timeout 2m
+				write_timeout 2m
+				max_conns_per_host 200
+			}
+		}
 	}
 }

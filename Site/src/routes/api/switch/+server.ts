@@ -1,7 +1,9 @@
 import { error, json } from "@sveltejs/kit"
 import sharp from "sharp"
 import config from "$lib/server/config"
+import { readText } from "$lib/server/body"
 import { cookieName, cookieOptions, createSession, invalidateSession } from "$lib/server/auth"
+import { rateLimit } from "$lib/server/requestRateLimit"
 import { db, Record, type RecordId } from "$lib/server/surreal"
 import { engineUserId } from "$lib/server/engineUser"
 import { siteOrigin } from "$lib/server/origin"
@@ -100,12 +102,17 @@ export const GET: RequestHandler = async (event) => {
 
 export const POST: RequestHandler = async (event) => {
 	const { request, locals, cookies } = event
+	rateLimit(event, "switch", {
+		burst: 30,
+		perSecond: 1,
+		siteBurst: 200,
+		sitePerSecond: 5,
+	})
 	const origin = request.headers.get("origin")
 	if (origin && origin !== siteOrigin()) error(403, "Invalid origin")
 	if (!request.headers.get("content-type")?.startsWith("application/json"))
 		error(415, "Expected JSON")
-	const raw = await request.text()
-	if (raw.length > 8192) error(413, "Request too large")
+	const raw = await readText(request, 8 * 1024)
 	let data: Record<string, any>
 	try { data = JSON.parse(raw) } catch { error(400, "Invalid JSON") }
 	if (!data || typeof data !== "object" || Array.isArray(data)) error(400, "Invalid request")

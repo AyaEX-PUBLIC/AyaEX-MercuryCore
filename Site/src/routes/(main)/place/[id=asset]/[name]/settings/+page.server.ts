@@ -9,9 +9,7 @@ import formError from "$lib/server/formError"
 import { closeGameserver } from "$lib/server/orbiter"
 import {
 	lockedClientVersion,
-	maxPlaceFileSize,
 	setPlacePrivacy,
-	writePlaceFile,
 } from "$lib/server/places"
 import {
 	BADGE,
@@ -56,9 +54,6 @@ const avatarSchema = type({
 	rigType: type.enumerated(...placeRigTypes),
 })
 const privatelinkSchema = type({} as never)
-const dataSchema = type({
-	file: "File",
-})
 
 type Place = {
 	created: string
@@ -109,7 +104,6 @@ export async function load({ locals, params }) {
 		),
 		privacyForm: await superValidate(arktype(privacySchema)),
 		privatelinkForm: await superValidate(arktype(privatelinkSchema)),
-		dataForm: await superValidate(arktype(dataSchema)),
 		gamePasses: await placeItems(+params.id, GAME_PASS),
 		devProducts: await placeProducts(+params.id),
 		badges: await placeItems(+params.id, BADGE),
@@ -249,24 +243,6 @@ actions.privatelink = async e => {
 		await superValidate(e.request, arktype(privatelinkSchema)),
 		"Regenerated!"
 	)
-}
-actions.data = async e => {
-	const id = await getData(e)
-	const formData = await e.request.formData()
-	const form = await superValidate(formData, arktype(dataSchema))
-	if (!form.valid) return formError(form)
-
-	const { file } = form.data
-	form.data.file = undefined as unknown as File
-	if (file.size > maxPlaceFileSize)
-		return formError(
-			form,
-			["file"],
-			["File must be less than 100MB in size"]
-		)
-
-	await writePlaceFile(id, file)
-	return message(form, "Place data updated successfully!")
 }
 
 // --- Store: game passes, developer products and badges ---

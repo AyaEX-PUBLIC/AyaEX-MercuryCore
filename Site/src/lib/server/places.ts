@@ -1,5 +1,9 @@
 // Place changes shared by the site's forms and Studio's (routes/(rbxclient)/studio/api)
 
+import { rename } from "node:fs/promises"
+import { error } from "@sveltejs/kit"
+import { authorise } from "$lib/server/auth"
+import { fileHead } from "$lib/server/body"
 import createQuery from "$lib/server/createPlace.surql"
 import filter from "$lib/server/filter"
 import { randomAssetId } from "$lib/server/id"
@@ -83,6 +87,20 @@ export async function canManagePlace(user: User, place: number) {
 	return owner === user.id
 }
 
+/** The signed-in user, if they may change this place; 404s unknown places. */
+export async function requireManagePlace(locals: App.Locals, place: number) {
+	const { user } = await authorise(locals)
+	const [found] = await db.query<({ id: unknown } | null)[]>(
+		"SELECT id FROM ONLY $place",
+		{ place: Record("place", place) }
+	)
+	if (!found) error(404, "Place not found")
+	if (!(await canManagePlace(user, place)))
+		error(403, "You do not have permission to update this place.")
+
+	return user
+}
+
 export async function setPlacePrivacy(id: number, privateServer: boolean) {
 	const place = Record("place", id)
 	const [[wasPrivate]] = await db.query<boolean[][]>(
@@ -109,6 +127,17 @@ export async function writePlaceFile(id: number, file: Blob | Uint8Array) {
 	})
 }
 
+/**
+ * Saves a place file that was streamed into a temporary file. Renaming inside
+ * ../data/places is atomic, so a failed upload never replaces the old file.
+ */
+export async function writePlaceFileFromTemp(id: number, path: string) {
+	await rename(path, `../data/places/${id}`)
+	await db.query("UPDATE $place SET updated = time::now()", {
+		place: Record("place", id),
+	})
+}
+
 /** Does this look like a Roblox place file, binary or XML? */
 export function isPlaceFile(data: Uint8Array) {
 	const head = new TextDecoder().decode(data.subarray(0, 256)).trimStart()
@@ -116,4 +145,9 @@ export function isPlaceFile(data: Uint8Array) {
 		head.startsWith("<roblox") ||
 		(head.startsWith("<?xml") && head.includes("<roblox"))
 	)
+}
+
+/** The same check, without reading a whole uploaded place into memory. */
+export async function isPlaceFileAtPath(path: string) {
+	return isPlaceFile(await fileHead(path, 256))
 }

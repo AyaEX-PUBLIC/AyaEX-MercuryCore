@@ -16,8 +16,9 @@ context, so the multithreaded Player works over plain HTTP.
 | Port | Service |
 | --- | --- |
 | 8010 | Caddy (`Caddyfile.aya`): Site, `/runtime`, `/gameserver/{placeId}` (WebSocket), `/orbiter/{placeId}` (SSE), `/streaming/ws` (WebSocket) |
-| 4443 | Site (docker, host network) |
+| 4443 | Site (docker, host network), public requests with a 1MB body limit |
 | 4444 | StreamingFrame signaling relay, in the Site process (127.0.0.1 only) |
+| 4445 | Upload-only Site instance (docker, host network), reached only through Caddy's upload routes |
 | 8000, 2009 | SurrealDB, Economy (docker, bound to 127.0.0.1; the Economy only takes the Site's key) |
 | 64990 | RCC proxy (native, `../MercuryRCC/Proxy`) |
 | 64991, 64992 | Orbiter private and public APIs (native, `../MercuryRCC/Orbiter`) |
@@ -28,7 +29,7 @@ context, so the multithreaded Player works over plain HTTP.
 
 ```bash
 aya/setup-data.sh                    # loadscripts, render scripts, signing key, stable client into data/
-docker compose up -d --build         # database, economy, site, caddy
+docker compose up -d --build         # database, economy, site, site-uploads, caddy
 ../MercuryRCC/run.sh                 # RCC proxy + Orbiter (run from a desktop session)
 ../MercuryRCC/stop.sh                # stop them and their Aya.Server processes
 ```
@@ -253,9 +254,18 @@ they join, so changing it doesn't restart a running server.
   Site's environment) or Open Cloud, which use the operator's Roblox
   credentials. Those are cached in `data/assetcache`, up to `ASSET_CACHE_MAX_MB`
   (2 GiB by default; the oldest files go first). Each user, and each gameserver
-  by the place it hosts, may fetch 1000 new assets at once and then 2 a second;
-  the whole site 5000 and then 10 a second. Ids no upstream has are remembered
+  by the place it hosts, may fetch 50 new assets at once and then 1 a second,
+  with 3 upstream downloads in flight; the whole site 250 and then 5 a second,
+  with 25 in flight. Upstream bodies are capped at 100MB and streamed into a
+  temporary file before they are cached. Ids no upstream has are remembered
   for 10 minutes.
+- The public Site accepts request bodies up to 1MB (`BODY_SIZE_LIMIT`); Caddy
+  enforces the same edge limit. Place files and developer assets go to the
+  upload-only Site instance (`site-uploads`, port 4445) through dedicated
+  routes that count bytes while streaming, so a missing or false
+  `Content-Length` can't make a handler buffer an unbounded body. Caddy also
+  applies read/write timeouts, per-client rate limits on authentication and
+  applications, and a concurrency backstop to both instances.
 - Place files are only served to the gameserver hosting the place (`ASSET_KEY`
   plus the `token` in its map URL), the place's owner and moderators. The host
   script from `/game/{id}/serve` carries the place's server ticket and that

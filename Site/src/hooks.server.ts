@@ -1,7 +1,13 @@
 // "'Hooks' are app-wide functions you declare that SvelteKit will call in response to specific events, giving you fine-grained control over the framework's behaviour."
 // See https://kit.svelte.dev/docs/hooks/ for more info.
 
-import { type Handle, type RequestEvent, redirect } from "@sveltejs/kit"
+import {
+	type Handle,
+	type HandleServerError,
+	type RequestEvent,
+	error,
+	redirect,
+} from "@sveltejs/kit"
 import { dev } from "$app/environment"
 import pc from "picocolors"
 import {
@@ -9,12 +15,19 @@ import {
 	cookieOptions,
 	validateSessionToken,
 } from "$lib/server/auth"
+import { readBody, rejectDeclaredBodyOver } from "$lib/server/body"
 import {
 	clientChannelCookie,
 	defaultClientChannel,
 } from "$lib/clientChannels"
 import config from "$lib/server/config"
 import { stipend } from "$lib/server/economy"
+import {
+	bodyLimitFor,
+	isUploadPath,
+	streamsItself,
+	uploadOnly,
+} from "$lib/server/requestLimits"
 import { startStreamingRelay } from "$lib/server/streaming"
 import { db, Record } from "$lib/server/surreal"
 import moderatedQuery from "./moderated.surql"
@@ -145,7 +158,9 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 
 // Ran once when the server starts
 export function init() {
-	startStreamingRelay()
+	// the upload-only instance shares the Site image but must not try to bind
+	// the StreamingFrame relay's port a second time
+	if (!uploadOnly) startStreamingRelay()
 }
 
 // (main) pages need a signed-in user. Their layout load redirects, but
@@ -154,10 +169,47 @@ export function init() {
 const signedOutData = (event: RequestEvent) =>
 	event.isDataRequest && !!event.route.id?.startsWith("/(main)")
 
+/**
+ * Enforces the route's body limit before a handler parses anything. Small
+ * multipart forms are read here once, under the limit, so `formData()` can
+ * never buffer more than the route allows. The two place uploads stream to
+ * disk themselves, so this only rejects their declared length early.
+ */
+const maxBufferedUploads = 4
+let bufferedUploads = 0
+
+async function limitRequestBody(event: RequestEvent) {
+	const { pathname } = event.url
+	if (uploadOnly && !isUploadPath(pathname))
+		error(404, "This instance only accepts uploads")
+
+	const limit = bodyLimitFor(pathname)
+	rejectDeclaredBodyOver(event.request, limit)
+
+	if (!isUploadPath(pathname) || streamsItself(pathname)) return
+	if (!event.request.body) return
+
+	// Bound how many of the large (but not disk-streamed) forms can be in
+	// memory at once; 4 x 21MB is the worst case.
+	if (bufferedUploads >= maxBufferedUploads)
+		error(503, "Too many uploads, try again shortly")
+	bufferedUploads++
+	try {
+		const body = await readBody(event.request, limit)
+		const headers = new Headers(event.request.headers)
+		headers.delete("transfer-encoding")
+		headers.set("content-length", String(body.byteLength))
+		event.request = new Request(event.request, { body, headers })
+	} finally {
+		bufferedUploads--
+	}
+}
+
 // Ran every time a dynamic request is made.
 // Requests for prerendered pages do not trigger this hook.
-export async function handle(e) {
+export async function handle(e: Parameters<Handle>[0]) {
 	const { event } = e
+	await limitRequestBody(event)
 
 	const token = event.cookies.get(cookieName)
 	if (!token) {
@@ -228,7 +280,9 @@ export async function handle(e) {
 	return await finish(e)
 }
 
-export async function handleError({ error }) {
+export async function handleError({
+	error,
+}: Parameters<HandleServerError>[0]) {
 	if (typeof error === "object" && error != null) {
 		const status = (error as { status?: number }).status
 		if (status) {
