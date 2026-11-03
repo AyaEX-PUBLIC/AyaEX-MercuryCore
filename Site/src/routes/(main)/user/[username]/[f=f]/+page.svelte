@@ -1,9 +1,11 @@
 <script lang="ts">
 	// The friends, followers, and following pages for a user.
 
+	import { page } from "$app/state"
 	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import FriendsNav from "$components/FriendsNav.svelte"
 	import Head from "$components/Head.svelte"
+	import Pagination from "$components/Pagination.svelte"
 	import UserCard from "$components/UserCard.svelte"
 
 	const { data } = $props()
@@ -38,6 +40,9 @@
 				<UserCard {user} {num} total={data.users.length} />
 			{/each}
 		</div>
+		{#key page.url}
+			<Pagination totalPages={data.pages} />
+		{/key}
 	{:else}
 		<div class="empty">
 			<b>Nobody here yet</b>

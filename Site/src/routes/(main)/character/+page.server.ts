@@ -1,8 +1,10 @@
 import { error, fail } from "@sveltejs/kit"
+import { bodyPartTypes } from "$lib/assetTypes"
 import { brickColours } from "$lib/brickColours"
 import { assetRegex } from "$lib/paramTests"
 import { avatarRigs } from "$lib/rigTypes"
 import { authorise } from "$lib/server/auth"
+import pageQuery from "$lib/server/pageQuery"
 import ratelimit from "$lib/server/ratelimit"
 import requestRender from "$lib/server/requestRender"
 import { db, Record } from "$lib/server/surreal"
@@ -17,6 +19,20 @@ import unequipQuery from "./unequip.surql"
 // (plus Heads, Gear and Hats)
 const oneEquippable = Object.freeze([2, 11, 12, 18, 27, 28, 29, 30, 31])
 const allowedTypes = Object.freeze(oneEquippable.concat([8, 17, 19]))
+
+// The item tabs and the types each lists; each is paged on its own (?tab=,
+// kept in the URL by the page)
+const tabTypes: { [tab: string]: readonly number[] } = Object.freeze({
+	Recent: allowedTypes, // everything, newest first
+	Hats: [8],
+	Heads: [17],
+	Faces: [18],
+	"T-Shirts": [2],
+	Shirts: [11],
+	Pants: [12],
+	"Body Parts": bodyPartTypes,
+	Gear: [19],
+})
 const bodyParts = Object.freeze([
 	"Head",
 	"LeftArm",
@@ -40,14 +56,20 @@ type AssetData = {
 	visibility: string
 }
 
-export async function load({ locals }) {
+export async function load({ locals, url }) {
 	const { user } = await authorise(locals)
+	const { page, checkPages } = pageQuery(url)
 
-	const [assets] = await db.query<Asset[][]>(assetsQuery, {
+	const tab = url.searchParams.get("tab")
+	const types = tabTypes[tab && Object.hasOwn(tabTypes, tab) ? tab : "Recent"]
+	const [assets, pages] = await db.query<[Asset[], number]>(assetsQuery, {
 		user: Record("user", user.id),
-		allowedTypes,
+		types,
+		page,
 	})
-	return { assets }
+	checkPages(pages)
+
+	return { assets, pages, tabs: Object.keys(tabTypes) }
 }
 
 async function getEquipData(e: RequestEvent) {

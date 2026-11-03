@@ -12,11 +12,26 @@ type Notification = {
 	link?: string
 }
 
-export default async function (user: User | null) {
-	if (!user) return []
-	const [notifications] = await db.query<Notification[][]>(
+/**
+ * A page of the user's notifications, newest first, with links to what they're about.
+ * @param options.unreadOnly Only unread ones
+ * @param options.size How many on a page
+ * @param options.page Which page (from 1)
+ * @returns The notifications, and how many there are in all.
+ */
+export default async function (
+	user: User | null,
+	{ unreadOnly = false, size = 30, page = 1 } = {}
+) {
+	if (!user) return { notifications: [], count: 0 }
+	const [notifications, count] = await db.query<[Notification[], number]>(
 		notificationsQuery,
-		{ user: Record("user", user.id) }
+		{
+			user: Record("user", user.id),
+			unreadOnly,
+			size,
+			start: (page - 1) * size,
+		}
 	)
 
 	for (const i of notifications)
@@ -44,8 +59,11 @@ export default async function (user: User | null) {
 				i.link = ""
 		}
 
-	return notifications.map(n => {
-		n.relativeId = undefined
-		return n
-	})
+	return {
+		notifications: notifications.map(n => {
+			n.relativeId = undefined
+			return n
+		}),
+		count,
+	}
 }

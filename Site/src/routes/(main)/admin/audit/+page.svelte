@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { page } from "$app/state"
 	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
+	import Pagination from "$components/Pagination.svelte"
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import TabData from "$components/TabData"
 	import User from "$components/User.svelte"
@@ -49,5 +51,8 @@
 			{/each}
 		</tbody>
 	</table>
+	{#key page.url}
+		<Pagination totalPages={data.pages} />
+	{/key}
 </SidebarShell>
 

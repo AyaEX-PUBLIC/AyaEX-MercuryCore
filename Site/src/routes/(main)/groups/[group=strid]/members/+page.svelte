@@ -2,6 +2,7 @@
 	import { page } from "$app/state"
 	import Breadcrumbs from "$components/Breadcrumbs.svelte"
 	import Head from "$components/Head.svelte"
+	import Pagination from "$components/Pagination.svelte"
 	import UserCard from "$components/UserCard.svelte"
 
 	const { data } = $props()
@@ -24,8 +25,11 @@
 	</h1>
 
 	<div class="tiles grid sm:grid-cols-2 lg:grid-cols-3">
-		{#each data.members as user, num}
+		{#each data.members as user, num (user.username)}
 			<UserCard {user} {num} total={data.members.length} />
 		{/each}
 	</div>
+	{#key page.url}
+		<Pagination totalPages={data.pages} />
+	{/key}
 </div>

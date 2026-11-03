@@ -143,9 +143,9 @@
 				</a>
 			</div>
 		{/each}
-		{#if notifications.length > maxToasts}
+		{#if data.unreadCount > maxToasts}
 			<a href="/notifications" class="toast more">
-				{notifications.length - maxToasts} more unread
+				{data.unreadCount - maxToasts} more unread
 				<fa fa-arrow-right></fa>
 			</a>
 		{/if}

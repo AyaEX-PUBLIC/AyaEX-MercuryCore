@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { page } from "$app/state"
 	import Asset from "$components/Asset.svelte"
 	import Group from "$components/Group.svelte"
 	import Head from "$components/Head.svelte"
+	import Pagination from "$components/Pagination.svelte"
 	import Place from "$components/Place.svelte"
 	import UserCard from "$components/UserCard.svelte"
 
@@ -83,6 +85,10 @@
 	{:else}
 		{@render nothing()}
 	{/if}
+
+	{#key page.url}
+		<Pagination totalPages={data.totalPages || 1} />
+	{/key}
 </div>
 
 {#snippet nothing()}

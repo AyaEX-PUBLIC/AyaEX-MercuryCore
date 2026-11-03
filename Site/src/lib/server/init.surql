@@ -449,8 +449,9 @@ DEFINE FUNCTION OVERWRITE fn::auditLog($action: string, $note: string, $user: re
 	};
 };
 
-DEFINE FUNCTION OVERWRITE fn::clampPages($count: number, $pages: number) {
-	RETURN math::max([math::ceil(<float> $count / 50), 1]);
+# how many pages $count things fill, $size to a page (at least one)
+DEFINE FUNCTION OVERWRITE fn::clampPages($count: number, $size: number) {
+	RETURN math::max([math::ceil(<float> $count / $size), 1]);
 };
 
 DEFINE FUNCTION OVERWRITE fn::currentContent($thing: array) {

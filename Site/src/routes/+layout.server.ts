@@ -20,11 +20,15 @@ export async function load({ fetch: f, locals, request }) {
 	const [banners] = await db.query<Banner[][]>(bannersQuery)
 	// shown in the top bar; null if logged out or the Economy service is down
 	const balance = user ? await getBalance(f, user.id) : undefined
+	// the newest unread ones pop up on every page, and the bell counts them all
+	// (/notifications loads its own pages)
+	const unread = await getNotifications(user, { unreadOnly: true, size: 10 })
 	return {
 		balance: balance?.ok ? Number(balance.value) : null,
 		banners,
 		user,
-		notifications: await getNotifications(user),
+		notifications: unread.notifications,
+		unreadCount: unread.count,
 		url: request.url,
 		domain: config.Domain,
 		currencySymbol: config.CurrencySymbol,

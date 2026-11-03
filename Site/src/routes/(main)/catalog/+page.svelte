@@ -1,10 +1,8 @@
 <script lang="ts">
-	import { untrack } from "svelte"
-	import { goto } from "$app/navigation"
-	import { page } from "$app/state"
 	import Head from "$components/Head.svelte"
 	import TabData from "$components/TabData"
 	import TabNav from "$components/TabNav.svelte"
+	import tabInUrl from "$lib/tabInUrl.svelte"
 	import Assets from "./Assets.svelte"
 
 	const tabTypes = Object.freeze({
@@ -22,23 +20,7 @@
 	const { data } = $props()
 
 	let tabData = $state(TabData(data.url, Object.keys(tabTypes)))
-
-	// Keep the tab in the URL and start each tab on page 1, so pagination
-	// links (and reloads) stay on the tab being viewed
-	let shownTab = tabData.currentTab
-	$effect(() => {
-		const tab = tabData.currentTab
-		if (tab === shownTab) return
-		shownTab = tab
-		const url = new URL(untrack(() => page.url))
-		url.searchParams.set(tabData.name, tab)
-		url.searchParams.delete("p")
-		goto(url.pathname + url.search, {
-			replaceState: true,
-			noScroll: true,
-			keepFocus: true
-		})
-	})
+	tabInUrl(tabData)
 </script>
 
 <Head name={data.siteName} title="Catalog" />

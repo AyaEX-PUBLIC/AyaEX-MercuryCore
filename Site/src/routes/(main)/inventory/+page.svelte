@@ -5,23 +5,15 @@
 	import Pagination from "$components/Pagination.svelte"
 	import SidebarShell from "$components/SidebarShell.svelte"
 	import TabData from "$components/TabData"
+	import tabInUrl from "$lib/tabInUrl.svelte"
 
 	const { data } = $props()
 
-	const tabTypes: { [_: string]: number } = Object.freeze({
-		Hats: 8,
-		"T-Shirts": 2,
-		Shirts: 11,
-		Pants: 12,
-		Decals: 13,
-		Faces: 18
-	})
+	// the server loads one page of the tab in the URL (tabs.ts)
+	let tabData = $state(TabData(data.url, data.tabs))
+	tabInUrl(tabData)
 
-	let tabData = $state(TabData(data.url, Object.keys(tabTypes)))
-
-	let assets = $derived(
-		data.assets.filter(a => a.type === tabTypes[tabData.currentTab])
-	)
+	let assets = $derived(data.assets)
 </script>
 
 <Head name={data.siteName} title="Inventory" />
@@ -58,10 +50,6 @@
 	{:else}
 		<div class="empty">
 			<b>You don't have any {tabData.currentTab} yet</b>
-			<!--
-				?tab= works questionably due to url/local state mismatch...
-				eh, I signed up for that
-			-->
 			<p>Head to the <a href="/catalog?tab={tabData.currentTab}">catalog</a> to get some!</p>
 		</div>
 	{/if}

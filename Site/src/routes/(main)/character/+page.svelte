@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { applyAction, enhance } from "$app/forms"
 	import { invalidateAll } from "$app/navigation"
+	import { page } from "$app/state"
 	import Head from "$components/Head.svelte"
+	import Pagination from "$components/Pagination.svelte"
 	import TabData from "$components/TabData"
 	import TabNav from "$components/TabNav.svelte"
 	import { brickColours, brickToHex } from "$lib/brickColours"
 	import { avatarRigs } from "$lib/rigTypes"
+	import tabInUrl from "$lib/tabInUrl.svelte"
 	import AvatarItem from "./AvatarItem.svelte"
 
 	const { data, form } = $props()
@@ -24,18 +27,9 @@
 		}
 	}
 
-	const tabTypes: { [_: string]: number } = Object.freeze({
-		Recent: 0,
-		Hats: 8,
-		Heads: 17,
-		Faces: 18,
-		"T-Shirts": 2,
-		Shirts: 11,
-		Pants: 12,
-		"Body Parts": 27,
-		Gear: 19
-	})
-	let tabData = $state(TabData(data.url, Object.keys(tabTypes)))
+	// the server loads one page of the tab in the URL
+	let tabData = $state(TabData(data.url, data.tabs))
+	tabInUrl(tabData)
 
 	const bodyParts: { [_: string]: number } = $state({
 		Head: user.bodyColours.Head,
@@ -55,15 +49,7 @@
 		RightLeg: "left-23.5 top-36 h-22 w-10.5"
 	})
 
-	let assets = $derived(
-		data.assets.filter(a =>
-			tabData.currentTab === "Recent"
-				? true
-				: tabTypes[tabData.currentTab] === 27
-					? a.type >= 27 && a.type <= 31 // all body part slots
-					: a.type === tabTypes[tabData.currentTab]
-		)
-	)
+	let assets = $derived(data.assets)
 </script>
 
 <Head name={data.siteName} title="Character" />
@@ -144,19 +130,24 @@
 			<TabNav bind:tabData />
 			{#if assets.length > 0}
 				<div class="tiles grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
-					{#each assets || [] as asset, num}
+					{#each assets as asset, num (asset.id)}
 						<AvatarItem
 							{asset}
 							{num}
-							total={(assets || []).length}
+							total={assets.length}
 							currentTab={tabData.currentTab}
 							{enhanceRegen} />
 					{/each}
 				</div>
+				{#key page.url}
+					<Pagination totalPages={data.pages} />
+				{/key}
 			{:else if tabData.currentTab === "Recent"}
 				<div class="empty">
-					<b>No recently worn items</b>
-					<p>Items you wear will show up here.</p>
+					<b>You don't have any items yet</b>
+					<p>
+						Head to the <a href="/catalog">catalog</a> to get some!
+					</p>
 				</div>
 			{:else}
 				<div class="empty">

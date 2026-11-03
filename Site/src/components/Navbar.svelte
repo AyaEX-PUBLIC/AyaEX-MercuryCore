@@ -83,7 +83,7 @@
 		return best
 	})
 
-	let unread = $derived(data.notifications.filter(n => !n.read).length)
+	let unread = $derived(data.unreadCount)
 
 	let menu = $state<HTMLElement>()
 	afterNavigate(() => menu?.hidePopover())

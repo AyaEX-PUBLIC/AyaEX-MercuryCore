@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { page } from "$app/state"
 	import Head from "$components/Head.svelte"
+	import Pagination from "$components/Pagination.svelte"
 	import User from "$components/User.svelte"
 
 	const { data } = $props()
@@ -29,8 +31,8 @@
 			<div class="eyebrow">You</div>
 			<h1>Notifications</h1>
 			<p>
-				{data.notifications.length > 0
-					? `${data.notifications.length} notification${data.notifications.length === 1 ? "" : "s"}. Opening this page marks them all as read.`
+				{data.count > 0
+					? `${data.count} notification${data.count === 1 ? "" : "s"}. Opening this page marks them all as read.`
 					: "Friend requests, replies and more will show up here."}
 			</p>
 		</div>
@@ -38,7 +40,7 @@
 
 	{#if data.notifications.length > 0}
 		<div class="panel">
-			{#each data.notifications as notification}
+			{#each data.notifications as notification (notification.id)}
 				<div class={["notification", { unread: !notification.read }]}>
 					<User user={notification.sender} size="2.75rem" bg="accent" class="self-start" />
 					<div class="min-w-0 flex-1">
@@ -61,6 +63,9 @@
 				</div>
 			{/each}
 		</div>
+		{#key page.url}
+			<Pagination totalPages={data.pages} />
+		{/key}
 	{:else}
 		<div class="empty">
 			<b>No notifications yet</b>
