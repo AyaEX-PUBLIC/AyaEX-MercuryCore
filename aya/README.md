@@ -158,6 +158,15 @@ nothing. Both archives unpack into an `aya-dev/` folder laid out like the
 client's build tree. The server archive has the same files as a VPS release.
 The web archive leaves out `Aya.App.js.symbols`.
 
+To publish, after a secret scan of what's new since the last time:
+
+- Mirror the code: in MercuryCore and MercuryRCC, run
+  `git fetch origin && git push public origin/main:refs/heads/main <tags>`.
+  The `public` remote is the GitHub repository. Pushing `origin/main` sends
+  what's on Gitea, whatever the local branch is at.
+- Add the release notes as `releases/<tag>.md` in the AyaEX repository, push
+  it, and make a GitHub release `<tag>` with those notes and the files.
+
 ## Client channels
 
 Players choose a client channel in **Settings → Client**: `stable` (the
