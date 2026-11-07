@@ -2,11 +2,14 @@
 	let {
 		name,
 		title,
+		exact = false,
 		description = "",
 		ogImage = ""
 	}: {
 		name: string
 		title?: string
+		/** Use the title as the whole tab title, without " - {name}" */
+		exact?: boolean
 		description?: string
 		ogImage?: string
 	} = $props()
@@ -15,7 +18,7 @@
 </script>
 
 <svelte:head>
-	<title>{t} - {name}</title>
+	<title>{exact ? t : `${t} - ${name}`}</title>
 	{#if description}
 		<meta name="description" content={description} />
 	{/if}

@@ -6,13 +6,14 @@
 
 	const { data } = $props()
 
-	let headline = $derived(data.longTagline || data.siteName)
+	let headline = $derived(`${data.siteName}: Revival Edition™`)
 </script>
 
 <Head
 	name={data.siteName}
 	title={headline}
-	description="{data.siteName}: {headline}"
+	exact
+	description="{data.siteName}: {data.longTagline || headline}"
 	ogImage="/mercury.gif" />
 
 <div class="page">
@@ -25,7 +26,9 @@
 			fadeTop={0.02}
 			fadeBottom={0.15} />
 		<div class="relative flex flex-col items-center text-center px-6 py-20">
-			<h1 class="headline">{headline}</h1>
+			<h1 class="headline">
+				{data.siteName}: Revival Edition<span class="tm">™</span>
+			</h1>
 			<div class="flex flex-wrap justify-center gap-3 pt-8">
 				<a href="/register" class="btn btn-lg btn-primary">
 					Create an account
@@ -62,5 +65,12 @@
 		font-weight: 600;
 		line-height: 1.02;
 		letter-spacing: -0.04em;
+	}
+
+	.tm {
+		margin-left: 0.04em;
+		font-size: 0.4em;
+		vertical-align: 1.15em;
+		letter-spacing: 0;
 	}
 </style>
