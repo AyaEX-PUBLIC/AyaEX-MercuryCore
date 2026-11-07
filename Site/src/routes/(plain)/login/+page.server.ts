@@ -1,7 +1,6 @@
 import { redirect } from "@sveltejs/kit"
 import { type } from "arktype"
 import { cookieName, cookieOptions, createSession } from "$lib/server/auth"
-import config from "$lib/server/config"
 import formError from "$lib/server/formError"
 import { inviteSettings } from "$lib/server/invites"
 import { passwordSignIn } from "$lib/server/phrase"
@@ -23,7 +22,6 @@ export const load = async () => ({
 	form: await superValidate(arktype(schema)),
 	users: await accountRegistered(),
 	passwordSignIn: await passwordSignIn(),
-	descriptions: Object.entries(config.Branding.Descriptions),
 	apply: await inviteSettings().then(
 		s => s.applications && s.registration === "invite"
 	),

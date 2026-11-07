@@ -27,22 +27,6 @@
 	let busy = $state(false)
 	let error = $state("")
 
-	const descriptions: [string, string][] = [
-		[
-			"Unique username",
-			"Make sure it is appropriate and between 3-21 characters. Letters A-Z, numbers 0-9, and underscores are allowed."
-		],
-		[
-			"Recovery phrase",
-			"Instead of a password, you get 12 words to sign in with, like a crypto wallet. Write them down: they're the only way into your account."
-		]
-	]
-	if (data.emailsEnabled)
-		descriptions.splice(1, 0, [
-			"Valid email",
-			`${data.siteName} requires a valid email so you can be contacted by administrators for critical account issues.`
-		])
-
 	async function check(e: SubmitEvent) {
 		e.preventDefault()
 		busy = true
@@ -106,28 +90,20 @@
 	</label>
 {/snippet}
 
-<LoginShell name={data.siteName} tagline={data.tagline} {descriptions}>
+<LoginShell name={data.siteName}>
 	{#if step === "details"}
 		{#if data.users}
-			<h2>Create a free account</h2>
+			<h2>Register</h2>
 			<p>
-				Already have an account?
 				<a href="/login">Log in</a>
 			</p>
 		{:else}
-			<h2>Create the initial account</h2>
-			<p class="pt-2">
-				This will be the first user account on this Mercury Core
-				instance! It will automatically have the highest permission
-				level. After logging in, create registration keys in the Admin
-				panel to let more people join.
-			</p>
+			<h2>First account</h2>
+			<p>It becomes the administrator.</p>
 		{/if}
 
 		{#if data.users && data.mode === "closed"}
-			<p class="pt-4">
-				Registration is closed right now. Check back later.
-			</p>
+			<p class="pt-4">Registration is closed.</p>
 		{:else}
 		<form class="pt-6" onsubmit={check}>
 			{@render field("username", "Username", "3-21 characters", "username")}
@@ -146,18 +122,13 @@
 				{busy ? "Checking..." : "Continue"}
 			</button>
 			{#if data.users && data.mode === "invite" && data.applications}
-				<p class="text-sm grey-text pt-4">
-					No invite? <a href="/apply">Apply to join</a>
+				<p class="text-sm pt-4">
+					<a href="/apply">No invite?</a>
 				</p>
 			{/if}
 		</form>
 		{/if}
 	{:else}
-		<h2>Your recovery phrase</h2>
-		<p class="pb-4">
-			You'll sign in as <b class="light-text">{details.username}</b> with
-			these words instead of a password.
-		</p>
 		<PhraseMaker action="Create account" {busy} {error} oncomplete={create} />
 		<button
 			type="button"

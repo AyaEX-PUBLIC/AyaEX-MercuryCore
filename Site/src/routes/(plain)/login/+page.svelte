@@ -44,17 +44,13 @@
 	title="Log in"
 	description="Log into your {data.siteName} account." />
 
-<LoginShell
-	name={data.siteName}
-	tagline={data.tagline}
-	descriptions={data.descriptions}>
+<LoginShell name={data.siteName}>
 	{#if data.users}
-		<h2>Log into your account</h2>
+		<h2>Log in</h2>
 		<p>
-			Don't yet have an account?
 			<a href="/register">Register</a>
 			{#if data.apply}
-				or <a href="/apply">apply to join</a>
+				· <a href="/apply">Apply</a>
 			{/if}
 		</p>
 
@@ -66,21 +62,15 @@
 			<button class="btn btn-primary w-full" disabled={!ready || busy || !validPhrase(phrase)}>
 				{busy ? "Signing in..." : "Log in"}
 			</button>
-			<p class="text-sm grey-text pt-4">
-				Lost your phrase? Ask an administrator for a reset code, then
-				<a href="/recover/code">make a new phrase</a>.
+			<p class="text-sm pt-4">
+				<a href="/recover/code">Lost your phrase?</a>
 			</p>
 		</form>
 
 		{#if data.passwordSignIn}
 			<details class="legacy" open={!!($errors.username || $errors.password)}>
-				<summary>Haven't made a recovery phrase yet?</summary>
-				<p class="text-sm grey-text pt-3">
-					{data.siteName} now uses recovery phrases instead of
-					passwords. Log in with your password one last time to make
-					yours.
-				</p>
-				<Form {formData} action="?/password" class="pt-2" submit="Log in with password">
+				<summary>Still using a password?</summary>
+				<Form {formData} action="?/password" class="pt-3" submit="Log in with password">
 					<Input
 						{formData}
 						column
@@ -100,16 +90,9 @@
 			</details>
 		{/if}
 	{:else}
-		<h2>There are no users registered in the database yet!</h2>
-		<p class="pt-4">
-			Perhaps you've just set up Mercury Core. Perhaps you've already set
-			it up before, and something has gone terribly wrong with your
-			database.
-		</p>
-		<p class="pt-2">
-			If it's the former, head to the
-			<a href="/register">Register</a>
-			page to create the first user!
+		<h2>No accounts yet</h2>
+		<p>
+			<a href="/register">Create the first one</a>
 		</p>
 	{/if}
 </LoginShell>

@@ -168,13 +168,6 @@
 				</button>
 			</div>
 		{:else}
-			<nav aria-label="Main" class="links guest-links">
-				<a
-					href="/about"
-					aria-current={page.url.pathname === "/about" ? "page" : undefined}>
-					About
-				</a>
-			</nav>
 			<div class="ml-auto flex items-center gap-2">
 				<a href="/login" class="btn btn-sm btn-quatenary">Log in</a>
 				<a href="/register" class="btn btn-sm btn-secondary">
@@ -367,12 +360,6 @@
 			display: none;
 		}
 	}
-	@media (max-width: 639.9px) {
-		.guest-links {
-			display: none;
-		}
-	}
-
 	.count {
 		position: absolute;
 		top: 0.2rem;

@@ -46,7 +46,7 @@ export default {
 		Favicon: "Branding/Favicon.png",
 		Icon: "Branding/Icon.png",
 		Tagline: "Old clients, new tricks",
-		LongTagline: "Classic Roblox, right in your browser. Or on your console.",
+		LongTagline: "Roblox slopvival",
 		Descriptions: {
 			"Same nostalgia":
 				"Virtual versions recreate the Roblox clients from 2010 to 2016, with a handful of modern features backported.",

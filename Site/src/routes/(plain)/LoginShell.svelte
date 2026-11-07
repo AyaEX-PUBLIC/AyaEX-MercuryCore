@@ -5,13 +5,14 @@
 
 	const {
 		name,
-		tagline,
-		descriptions,
+		tagline = "",
+		descriptions = [],
 		children
 	}: {
 		name: string
-		tagline: string
-		descriptions: [string, string][]
+		/** Shown with the descriptions beside the form; login and register show neither */
+		tagline?: string
+		descriptions?: [string, string][]
 		/** No longer used; kept for compatibility */
 		pad?: boolean
 		children?: Snippet
@@ -26,22 +27,24 @@
 				<img src="/assets/icon" alt="" class="size-6" />
 				{name}
 			</a>
-			<div class="mt-auto pt-16 <lg:hidden">
-				{#if tagline}
-					<span class="badge mb-5">
-						{tagline}
-						<span class="version">{page.data.version}</span>
-					</span>
-				{/if}
-				<dl class="grid gap-px max-w-110">
-					{#each descriptions as [title, description]}
-						<div class="item">
-							<dt class="font-600">{title}</dt>
-							<dd class="grey-text text-sm m-0 pt-1">{description}</dd>
-						</div>
-					{/each}
-				</dl>
-			</div>
+			{#if tagline || descriptions.length}
+				<div class="mt-auto pt-16 <lg:hidden">
+					{#if tagline}
+						<span class="badge mb-5">
+							{tagline}
+							<span class="version">{page.data.version}</span>
+						</span>
+					{/if}
+					<dl class="grid gap-px max-w-110">
+						{#each descriptions as [title, description]}
+							<div class="item">
+								<dt class="font-600">{title}</dt>
+								<dd class="grey-text text-sm m-0 pt-1">{description}</dd>
+							</div>
+						{/each}
+					</dl>
+				</div>
+			{/if}
 		</div>
 	</section>
 
