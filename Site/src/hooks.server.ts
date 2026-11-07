@@ -30,6 +30,7 @@ import {
 } from "$lib/server/requestLimits"
 import { startStreamingRelay } from "$lib/server/streaming"
 import { db, Record } from "$lib/server/surreal"
+import { userCssPath } from "$lib/userCss"
 import moderatedQuery from "./moderated.surql"
 
 const { magenta, red, yellow, green, blue, gray } = pc
@@ -101,13 +102,42 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 		)
 	}
 
-	let res = await resolve(event)
+	// Every page ends with the user's theme and, if they have any, a link to
+	// their custom CSS (app.html), so those override the rest. The theme is a
+	// file of ours, in an element carrying the page's CSP nonce; custom CSS is
+	// never put into the page, only linked as its own sanitised stylesheet.
+	const customCss = user?.css
+		? `<link rel="stylesheet" href="${userCssPath}?v=${Bun.hash(user.css).toString(36)}" />`
+		: ""
+	let res = await resolve(event, {
+		transformPageChunk: async ({ html }) => {
+			if (!html.includes("%mercury.theme%")) return html
+			const theme = await Bun.file(
+				`../Assets/${config.Themes[user?.theme || 0].Path}`
+			).text()
+			// (functions, so that $ in the CSS isn't read as a pattern)
+			return html
+				.replace("%mercury.theme%", () => theme)
+				.replace("%mercury.usercss%", () => customCss)
+		},
+	})
 
 	// the Site's pages may be framed by the Site itself and by nobody else, so
 	// another site can't overlay them to trick a click (clickjacking)
 	if (!res.headers.has("x-frame-options"))
 		res = setHeader(res, "x-frame-options", "SAMEORIGIN")
-	const csp = res.headers.get("content-security-policy")
+	let csp = res.headers.get("content-security-policy")
+	// pages get svelte.config.js's CSP. SvelteKit only adds its nonce to
+	// style-src when it inlines styles itself, so add it for the theme's style
+	// (app.html), which carries the same nonce.
+	const nonce = csp && /'nonce-([^']+)'/.exec(csp)?.[1]
+	if (csp && nonce && !/(^|;\s*)style-src(?=[ ;]|$)[^;]*'nonce-/.test(csp)) {
+		csp = csp.replace(
+			/(^|;\s*)style-src(?=[ ;]|$)([^;]*)/,
+			(_, before, sources) => `${before}style-src${sources} 'nonce-${nonce}'`
+		)
+		res = setHeader(res, "content-security-policy", csp)
+	}
 	if (!csp?.includes("frame-ancestors"))
 		res = setHeader(
 			res,
@@ -117,7 +147,11 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 
 	// a signed-in user's pages (or anything renewing the session cookie) are
 	// theirs alone, so a cache in front of the site must never keep them
-	if (user || res.headers.has("set-cookie")) {
+	// (their custom CSS is private too, but versioned, so their browser keeps it)
+	if (
+		(user || res.headers.has("set-cookie")) &&
+		pathname !== userCssPath
+	) {
 		const cc = res.headers.get("cache-control")
 		const add = ["private", "no-store"].filter(d => !cc?.includes(d))
 		if (add.length) {
@@ -132,28 +166,7 @@ async function finish({ event, resolve }: Parameters<Handle>[0]) {
 		}
 	}
 
-	if (!res.headers.get("content-type")?.includes("text/html")) return res
-
-	// if it's html, add the user's theme and custom CSS before the </body> tag
-	const file = Bun.file(`../Assets/${config.Themes[user?.theme || 0].Path}`)
-	const themecss = await file.text()
-	const customcss = user?.css
-		? `<style id="custom-css">${user.css}</style>`
-		: ""
-
-	// duplicate the response to avoid modifying the original
-	const text = (await res.clone().text()).replace(
-		"</body>",
-		`<style>${themecss}</style>${customcss}</body>`
-	)
-
-	res.headers.delete("content-length") // prevent cutoff, since the body was modified
-
-	return new Response(text, {
-		status: res.status,
-		statusText: res.statusText,
-		headers: res.headers,
-	})
+	return res
 }
 
 // Ran once when the server starts

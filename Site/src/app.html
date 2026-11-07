@@ -7,6 +7,9 @@
 
 <body data-sveltekit-preload-data="hover">
 	<div style="display: contents">%sveltekit.body%</div>
+	<!-- the user's theme and custom CSS, last so they win (hooks.server.ts) -->
+	<style nonce="%sveltekit.nonce%">%mercury.theme%</style>
+	%mercury.usercss%
 </body>
 
 </html>

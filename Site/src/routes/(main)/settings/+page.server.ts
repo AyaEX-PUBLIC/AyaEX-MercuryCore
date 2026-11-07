@@ -11,6 +11,7 @@ import config from "$lib/server/config"
 import formError from "$lib/server/formError"
 import { db, Record } from "$lib/server/surreal"
 import { arktype, message, superValidate } from "$lib/server/validate"
+import sanitiseCss from "$lib/userCss"
 import updateProfileQuery from "./updateProfile.surql"
 
 const themeNames = config.Themes.map(t => t.Name)
@@ -30,9 +31,15 @@ const clientSchema = type({
 	channel: type.enumerated(...clientChannels),
 })
 
-export const load = async () => ({
+export const load = async ({ locals }) => ({
 	profileForm: await superValidate(arktype(profileSchema)),
-	stylingForm: await superValidate(arktype(stylingSchema)),
+	// filled with the saved CSS here: setting it from the component broke
+	// rendering the Styling tab on the server (/settings?tab=Styling was a 500)
+	stylingForm: await superValidate(
+		{ css: (await authorise(locals)).user.css || "" },
+		arktype(stylingSchema),
+		{ errors: false }
+	),
 	clientForm: await superValidate(arktype(clientSchema)),
 	themes: themeNames,
 	clientChannels,
@@ -69,12 +76,20 @@ actions.styling = async ({ locals, request }) => {
 	const form = await superValidate(request, arktype(stylingSchema))
 	if (!form.valid) return formError(form)
 
-	const { css } = form.data
-	if (css === "undefined") return message(form, "Styling already saved!")
+	if (form.data.css === "undefined")
+		return message(form, "Styling already saved!")
 
+	// only what the sanitiser keeps is saved, and the box shows that
+	const { css, removed } = sanitiseCss(form.data.css || "")
+	form.data.css = css
 	await db.update(Record("user", user.id)).merge({ css })
 
-	return message(form, "Styling updated successfully!")
+	return message(
+		form,
+		removed.length
+			? `Styling saved, without ${removed.slice(0, 3).join("; ")}${removed.length > 3 ? ` and ${removed.length - 3} more` : ""}.`
+			: "Styling updated successfully!"
+	)
 }
 actions.client = async ({ cookies, locals, request }) => {
 	const { user } = await authorise(locals)
