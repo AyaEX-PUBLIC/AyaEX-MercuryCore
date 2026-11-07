@@ -6,15 +6,15 @@
 
 | Part | Upstream project | AyaEX fork |
 | --- | --- | --- |
-| Website, accounts, economy, game hosting | [Mercury Core](https://github.com/tp-link-extender/MercuryCore) | this repository |
-| Game client: Player, Studio, gameservers | Aya, the Kiseki project's 2016 client | the AyaEX client (`aya` repository) |
-| Gameserver orchestration (Orbiter, RCC proxy) | [RCCService](https://github.com/tp-link-extender/RCCService) | `MercuryRCC` repository |
+| Website, accounts, economy, game hosting | [Mercury Core](https://github.com/tp-link-extender/MercuryCore) | [AyaEX-MercuryCore](https://github.com/AyaEX-PUBLIC/AyaEX-MercuryCore) (this repository) |
+| Game client: Player, Studio, gameservers | Aya, the Kiseki project's 2016 client | the AyaEX client, prebuilt in [AyaEX](https://github.com/AyaEX-PUBLIC/AyaEX) |
+| Gameserver orchestration (Orbiter, RCC proxy) | [RCCService](https://github.com/tp-link-extender/RCCService) | [AyaEX-MercuryRCC](https://github.com/AyaEX-PUBLIC/AyaEX-MercuryRCC) |
 
 Players sign in on the website and play in their browser: the Player and Studio
 are the AyaEX client compiled to WebAssembly, so there is nothing to download.
 Gameservers and avatar renders are native AyaEX `Aya.Server` processes, run by
-the Orbiter and RCC proxy from `../MercuryRCC`. A Nintendo Switch app signs into
-the same site.
+the Orbiter and RCC proxy from `../MercuryRCC`. Nintendo Switch and Wii U apps
+sign into the same site.
 
 AyaEX was called AyaWASM until October 2026.
 
@@ -25,6 +25,7 @@ AyaEX was called AyaWASM until October 2026.
 
 ## Contents
 
+- [Public repositories](#public-repositories)
 - [What AyaEX changes in Mercury Core](#what-ayaex-changes-in-mercury-core)
 - [What AyaEX changes in Aya](#what-ayaex-changes-in-aya)
 - [Getting started](#getting-started)
@@ -33,6 +34,18 @@ AyaEX was called AyaWASM until October 2026.
 - [Customisation](#customisation)
 - [The stack](#the-stack)
 - [Credits](#credits)
+
+## Public repositories
+
+| Repository | What |
+| --- | --- |
+| [AyaEX-PUBLIC/AyaEX-MercuryCore](https://github.com/AyaEX-PUBLIC/AyaEX-MercuryCore) | This repository: the website, the Economy service, and the setup and deployment scripts |
+| [AyaEX-PUBLIC/AyaEX-MercuryRCC](https://github.com/AyaEX-PUBLIC/AyaEX-MercuryRCC) | The Orbiter and RCC proxy, which run gameservers and avatar renders |
+| [AyaEX-PUBLIC/AyaEX](https://github.com/AyaEX-PUBLIC/AyaEX) | Prebuilt AyaEX clients and server: the WebAssembly Player and Studio, the Switch and Wii U apps, and `Aya.Server` for Linux |
+
+These are downstream mirrors. AyaEX is developed in a private, self-hosted Git
+repository, and the public repositories are updated from it, so they can be
+behind it.
 
 ## What AyaEX changes in Mercury Core
 
@@ -95,18 +108,26 @@ like the legacy Aya/Kiseki site.
 - **Virtual versions.** Players switch between the 2010 to 2016 client looks
   mid-game, and there's Freaky Mode.
 - **DataStores without a backend.**
-- **A Nintendo Switch homebrew port.**
+- **Nintendo Switch and Wii U homebrew ports.**
 - **Mercury integration.** The gameserver checks join tickets, the engine uses
   an access key for its own site requests, and place scripts' HTTP requests are
   limited to allowlisted hosts.
 
-The client's own README covers building it, including the Switch NRO.
+The client's source isn't public. Its builds are in
+[AyaEX](https://github.com/AyaEX-PUBLIC/AyaEX): the WebAssembly app, the Switch
+and Wii U apps, and `Aya.Server` for Linux.
 
 ## Getting started
 
 The full guide, with ports, services, client channels and every feature's
-notes, is [`aya/README.md`](aya/README.md). You need Docker, Bun, a built AyaEX
-client in `../aya-dev`, and `../MercuryRCC`.
+notes, is [`aya/README.md`](aya/README.md). You need Docker, Bun and Go, with
+two folders beside this repository:
+
+- `../MercuryRCC`: a clone of
+  [AyaEX-MercuryRCC](https://github.com/AyaEX-PUBLIC/AyaEX-MercuryRCC).
+- `../aya-dev`: the AyaEX client and server. Unpack the archives from the
+  [AyaEX releases](https://github.com/AyaEX-PUBLIC/AyaEX/releases) there. They
+  are laid out like the client's build tree, so nothing else needs to change.
 
 ```bash
 cp Site/.env.example Site/.env       # then fill it in (keys, ORIGIN)
