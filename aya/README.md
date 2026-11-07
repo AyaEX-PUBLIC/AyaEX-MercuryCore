@@ -156,7 +156,8 @@ It writes `AyaEX-Web-<tag>.tar.gz`, `AyaEX-Server-linux-x64-<tag>.tar.gz`,
 `BUILD.txt` to `../ayaex-public-releases/<tag>` (`PUBLIC_RELEASES`), and uploads
 nothing. Both archives unpack into an `aya-dev/` folder laid out like the
 client's build tree. The server archive has the same files as a VPS release.
-The web archive leaves out `Aya.App.js.symbols`.
+The web archive has the files the stable channel serves, without
+`Aya.App.js.symbols`.
 
 To publish, after a secret scan of what's new since the last time:
 

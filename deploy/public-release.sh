@@ -16,7 +16,9 @@
 # tree, which MercuryCore and MercuryRCC expect beside them. With --release,
 # everything comes from that deploy/release.sh release instead, so the public
 # builds are the ones the VPS runs (its web app is the dev build it was made
-# from). TAG defaults to the release's version, or else today's date.
+# from). Either way the web archive has the stable channel's files, without
+# Aya.App.js.symbols. TAG defaults to the release's version, or else today's
+# date.
 # Output goes to PUBLIC_RELEASES/TAG (../ayaex-public-releases by default);
 # nothing is uploaded.
 set -euo pipefail
@@ -76,8 +78,15 @@ echo "AyaEX public release $tag from $from"
 
 # stage the aya-dev/ tree with links, not copies
 stage="$tmp/stage"
-mkdir -p "$stage/web/aya-dev/build/wasm-app-rel" "$stage/server/aya-dev/build/x64-linux-rel/bin" "$stage/server/aya-dev/client"
-ln -s "$web" "$stage/web/aya-dev/build/wasm-app-rel/bin"
+mkdir -p "$stage/web/aya-dev/build/wasm-app-rel/bin" "$stage/server/aya-dev/build/x64-linux-rel/bin" "$stage/server/aya-dev/client"
+# the files the stable channel has (aya/promote-stable.sh, what Caddyfile.aya
+# serves from /runtime), without the symbols
+for f in Aya.App.html Aya.App.js Aya.App.wasm Aya.App.data Aya.App.Brand.png Aya.GameWebRtc.js \
+	Aya.App.StreamingFrame.js Aya.Diagnostics.js welcome.html aya-studio.png; do
+	if [[ -e "$web/$f" ]]; then
+		ln -s "$web/$f" "$stage/web/aya-dev/build/wasm-app-rel/bin/$f"
+	fi
+done
 for f in Aya.Server libfmod.so libfmod.so.13 ClientSettings.json shaders platform; do
 	ln -s "$bin/$f" "$stage/server/aya-dev/build/x64-linux-rel/bin/$f"
 done
