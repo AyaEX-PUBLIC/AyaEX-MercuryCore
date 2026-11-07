@@ -7,6 +7,7 @@ import { createHash } from "node:crypto"
 import { error } from "@sveltejs/kit"
 import { type } from "arktype"
 import config from "$lib/server/config"
+import { sendApplicationDiscordWebhook } from "$lib/server/discordModerationWebhook"
 import { burn, mint } from "$lib/server/economy"
 import oneAtATime from "$lib/server/oneAtATime"
 import { randomCode } from "$lib/server/resetCode"
@@ -377,6 +378,12 @@ export async function apply(input: typeof applicationSchema.infer) {
 			}`,
 			{ about, contact, hash: hash(code), username: input.username }
 		)
+		void sendApplicationDiscordWebhook({
+			username: input.username,
+			about,
+			contact,
+			pending: pending + 1,
+		})
 		return code
 	})
 }

@@ -1,8 +1,9 @@
 import fs from "node:fs"
 import { redirect } from "@sveltejs/kit"
 import { type } from "arktype"
-import { typeToNumber } from "$lib/assetTypes"
+import { approvalQueueTypes, typeToNumber } from "$lib/assetTypes"
 import { authorise } from "$lib/server/auth"
+import { sendAssetDiscordWebhook } from "$lib/server/discordModerationWebhook"
 import { createAsset, getAssetPrice } from "$lib/server/economy"
 import formError from "$lib/server/formError"
 import { randomAssetId } from "$lib/server/id"
@@ -145,6 +146,7 @@ actions.default = async ({ fetch: f, locals, request }) => {
 		if (!created.ok) return formError(form, ["other"], [created.msg])
 	}
 
+	const visibility = user.permissionLevel < 3 ? "Pending" : "Visible"
 	await db.query(createAssetQuery, {
 		name,
 		assetType: typeToNumber[type],
@@ -153,10 +155,24 @@ actions.default = async ({ fetch: f, locals, request }) => {
 		user: Record("user", user.id),
 		imageAssetId,
 		id,
-		visibility: user.permissionLevel < 3 ? "Pending" : "Visible",
+		visibility,
 	})
 
 	await graphicAsset(type, imageAssetId, id)
+
+	if (
+		visibility === "Pending" &&
+		approvalQueueTypes.includes(typeToNumber[type])
+	)
+		void sendAssetDiscordWebhook({
+			id,
+			name,
+			slug,
+			type,
+			price,
+			description,
+			creator: user.username,
+		})
 
 	try {
 		await Promise.all([saveImages[0](imageAssetId), saveImages[1](id)])

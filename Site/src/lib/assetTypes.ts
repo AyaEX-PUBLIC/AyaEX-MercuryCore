@@ -32,6 +32,8 @@ export default types
 
 // body part slots, shown together as "Body Parts" (keyed by the Torso type)
 export const bodyPartTypes = Object.freeze([27, 28, 29, 30, 31])
+// pending assets of these types wait in Admin > Asset approval
+export const approvalQueueTypes = Object.freeze([2, 8, 11, 12, 17, 18, 19])
 export const typeToNumber: { [_: string]: number } = Object.fromEntries(
 	Object.entries(types).map(([key, value]) => [value, +key])
 )

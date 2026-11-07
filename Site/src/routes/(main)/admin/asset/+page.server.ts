@@ -1,5 +1,6 @@
 import fs from "node:fs/promises"
 import { error, fail } from "@sveltejs/kit"
+import { approvalQueueTypes } from "$lib/assetTypes"
 import { assetRegex } from "$lib/paramTests"
 import { authorise } from "$lib/server/auth"
 import ratelimit from "$lib/server/ratelimit"
@@ -23,14 +24,11 @@ type Asset = {
 	}
 }
 
-// must match the types in asset.surql
-const queueTypes = [2, 8, 11, 12, 17, 18, 19]
-
 export async function load({ locals }) {
-	const { user } = await authorise(locals, 3)
+	await authorise(locals, 3)
 
 	const [assets] = await db.query<Asset[][]>(assetsQuery, {
-		user: Record("user", user.id),
+		types: approvalQueueTypes,
 	})
 	return { assets }
 }
@@ -57,7 +55,8 @@ async function getData({ locals, url }: RequestEvent) {
 	// staff, is for moderators and up (like the catalog's settings page)
 	if (
 		user.permissionLevel < 4 &&
-		(asset.visibility !== "Pending" || !queueTypes.includes(asset.type))
+		(asset.visibility !== "Pending" ||
+			!approvalQueueTypes.includes(asset.type))
 	)
 		error(403, "This asset is not in the pending queue")
 
