@@ -14,9 +14,10 @@
 # - copies what isn't in git into RELEASES/<version> (RELEASES in
 #   deploy/vps.env, ../mercury-releases by default): the engine build
 #   (Aya.Server and its files, the WebAssembly build, client resources, assets,
-#   the Switch client), this machine's settings (mercury.core.ts and the .env
-#   files) and the gameserver image. Files an earlier release already has are
-#   hard links to it, so a release only takes the space of what changed.
+#   the console clients in data/downloads), this machine's settings
+#   (mercury.core.ts and the .env files) and the gameserver image. Files an
+#   earlier release already has are hard links to it, so a release only takes
+#   the space of what changed.
 #
 # Otherwise a release never changes afterwards. Deploy it with
 # deploy/deploy.sh VERSION.
@@ -71,7 +72,15 @@ done
 
 image="$({ grep -E '^GAMESERVER_IMAGE=' "$RCC/Proxy/.env" || true; } | tail -1 | cut -d= -f2-)"
 image="${image:-mercury-gameserver}"
-nro="$AYA/build/switch-engine-clang/Aya.Switch.nro"
+# the console clients offered on /download (Site lib/server/downloads.ts), as
+# this machine's site offers them: the builds put there by hand, since they
+# come from their own branch
+consoleClients=()
+for client in Aya.Switch.nro AyaEX.wuhb; do
+	if [[ -f "$CORE/data/downloads/$client" ]]; then
+		consoleClients+=("$CORE/data/downloads/$client")
+	fi
+done
 
 # Built up beside the releases, so a release that failed half way never looks
 # like one
@@ -97,8 +106,8 @@ bin="$AYA/./build/x64-linux-rel/bin"
 rsync -aR "${link[@]}" "$bin/Aya.Server" "$bin/libfmod.so" "$bin/libfmod.so.13" "$bin/ClientSettings.json" \
 	"$bin/shaders" "$bin/platform" "$AYA/./client/resources" "$AYA/./build/wasm-app-rel/bin" "$AYA/./assets" \
 	"$tmp/aya-dev/"
-if [[ -f "$nro" ]]; then
-	rsync -a "${nrolink[@]}" "$nro" "$tmp/"
+if ((${#consoleClients[@]})); then
+	rsync -a "${nrolink[@]}" "${consoleClients[@]}" "$tmp/"
 fi
 
 echo "copying the settings"

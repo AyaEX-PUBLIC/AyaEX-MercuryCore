@@ -216,11 +216,12 @@ if ((migrate)); then
 	rsync -aH --delete "$RCC/data/" "$VPS:$R/MercuryRCC/data/"
 fi
 # console clients offered on /download (Site lib/server/downloads.ts)
-nro="$rel/Aya.Switch.nro"
-if [[ -f "$nro" ]]; then
-	remote "mkdir -p $R/MercuryCore/data/downloads"
-	rsync -z --times "$nro" "$VPS:$R/MercuryCore/data/downloads/Aya.Switch.nro"
-fi
+remote "mkdir -p $R/MercuryCore/data/downloads"
+for client in Aya.Switch.nro AyaEX.wuhb; do
+	if [[ -f "$rel/$client" ]]; then
+		rsync -z --times "$rel/$client" "$VPS:$R/MercuryCore/data/downloads/$client"
+	fi
+done
 remote "mkdir -p $R/MercuryCore/data $R/MercuryRCC/data && chown -R mercury:mercury $R"
 
 step "building and starting"

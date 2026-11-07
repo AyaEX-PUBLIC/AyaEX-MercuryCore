@@ -78,9 +78,10 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   `../mercury-releases/<version>` (`RELEASES` in `vps.env`), so later work here
   never reaches the VPS by accident: from aya-dev `Aya.Server` and its files,
   `client/resources`, the WebAssembly build (the VPS's dev channel), `assets`
-  and the Switch client (`build/switch-engine-clang/Aya.Switch.nro`, for
-  `/download`); this machine's `mercury.core.ts` and `.env` files; the
-  gameserver image. Files an earlier release has are hard links to it, so a
+  and the console clients this machine's `/download` offers
+  (`data/downloads/Aya.Switch.nro` and `AyaEX.wuhb`, put there by hand from
+  aya-dev's console builds); this machine's `mercury.core.ts` and `.env`
+  files; the gameserver image. Files an earlier release has are hard links to it, so a
   release takes only the space of what changed. `RELEASE` in it lists the
   commits, and the VPS keeps the deployed one as `/opt/mercury/RELEASE`.
 - Deploying sends the release's tagged code and its copies, with the settings
