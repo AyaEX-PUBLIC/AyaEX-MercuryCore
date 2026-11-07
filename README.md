@@ -125,9 +125,10 @@ two folders beside this repository:
 
 - `../MercuryRCC`: a clone of
   [AyaEX-MercuryRCC](https://github.com/AyaEX-PUBLIC/AyaEX-MercuryRCC).
-- `../aya-dev`: the AyaEX client and server. Unpack the archives from the
-  [AyaEX releases](https://github.com/AyaEX-PUBLIC/AyaEX/releases) there. They
-  are laid out like the client's build tree, so nothing else needs to change.
+- `../aya-dev`: the AyaEX client and server. Unpack the web and server
+  archives from the [AyaEX releases](https://github.com/AyaEX-PUBLIC/AyaEX/releases)
+  in the folder that holds this repository. They create `aya-dev/`, laid out
+  like the client's build tree, so nothing else needs to change.
 
 ```bash
 cp Site/.env.example Site/.env       # then fill it in (keys, ORIGIN)

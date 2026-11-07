@@ -140,6 +140,24 @@ deploy/deploy.sh --migrate-data  # also replace the VPS's data/ with this machin
   deploy/compose.vps.yml up -d site` in `/opt/mercury/MercuryCore`. The Site
   logs "Roblox refused ROBLOSECURITY" once the login has ended.
 
+## Public releases
+
+The client's builds are published in
+[AyaEX-PUBLIC/AyaEX](https://github.com/AyaEX-PUBLIC/AyaEX), whose GitHub
+releases hold the files `deploy/public-release.sh` makes:
+
+```bash
+deploy/public-release.sh                   # this machine's stable client, Aya.Server and console apps, tagged with today's date
+deploy/public-release.sh --release 2026.11.0   # what that VPS release has, tagged 2026.11.0
+```
+
+It writes `AyaEX-Web-<tag>.tar.gz`, `AyaEX-Server-linux-x64-<tag>.tar.gz`,
+`AyaEX-WiiU-<tag>.wuhb`, `AyaEX-Switch-<tag>.nro`, `SHA256SUMS` and
+`BUILD.txt` to `../ayaex-public-releases/<tag>` (`PUBLIC_RELEASES`), and uploads
+nothing. Both archives unpack into an `aya-dev/` folder laid out like the
+client's build tree. The server archive has the same files as a VPS release.
+The web archive leaves out `Aya.App.js.symbols`.
+
 ## Client channels
 
 Players choose a client channel in **Settings → Client**: `stable` (the

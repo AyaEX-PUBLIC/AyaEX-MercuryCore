@@ -14,6 +14,11 @@ the deployment, and `DiscordBot/README.md` for the Discord bot.
   is the original `tp-link-extender/MercuryCore`.
 - The companion repo `../MercuryRCC` (Orbiter + RCC proxy) follows the same
   rule. Changes there are committed and pushed there.
+- Public, downstream mirrors live on GitHub under `AyaEX-PUBLIC`:
+  `AyaEX-MercuryCore` (this repository), `AyaEX-MercuryRCC`, and `AyaEX` (the
+  prebuilt clients and server, from `deploy/public-release.sh`; the engine
+  source stays private). Update them only when asked, and only after a secret
+  scan of what's new: everything pushed there is public for good.
 
 ## Never commit secrets
 
