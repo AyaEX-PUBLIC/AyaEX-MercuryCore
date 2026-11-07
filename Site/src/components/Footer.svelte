@@ -22,11 +22,17 @@
 			{/if}
 		</div>
 		<div class="fine">
-			<span>
-				&copy; {new Date().getFullYear()}
-				{data.siteName}{data.tagline ? ` · ${data.tagline}` : ""}
-				<span class="version">{data.version}</span>
-			</span>
+			<div>
+				<span>
+					&copy; {new Date().getFullYear()}
+					{data.siteName}{data.tagline ? ` · ${data.tagline}` : ""}
+					<span class="version">{data.version}</span>
+				</span>
+				<p class="disclaimer">
+					{data.siteName} isn't endorsed by Roblox Corporation or the
+					Mercury 3 developers.
+				</p>
+			</div>
 			<button
 				onmousedown={() => {
 					clicked = !clicked
@@ -73,6 +79,11 @@
 		font-size: 0.8125rem;
 		color: var(--dim-text);
 		border-top: 1px solid var(--accent2);
+	}
+
+	.disclaimer {
+		padding: 0.25rem 0 0;
+		font-size: 0.75rem;
 	}
 
 	.version {

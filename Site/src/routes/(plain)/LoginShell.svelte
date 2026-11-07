@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from "svelte"
 	import { page } from "$app/state"
+	import Footer from "$components/Footer.svelte"
 	import PixelField from "$components/PixelField.svelte"
 
 	const {
@@ -19,47 +20,59 @@
 	} = $props()
 </script>
 
-<div class="shell">
-	<section class="art">
-		<PixelField density={1.15} fadeTop={0} fadeBottom={0.5} seed={7} />
-		<div class="relative flex flex-col h-full p-8 lg:p-12">
-			<a href="/" class="brand">
-				<img src="/assets/icon" alt="" class="size-6" />
-				{name}
-			</a>
-			{#if tagline || descriptions.length}
-				<div class="mt-auto pt-16 <lg:hidden">
-					{#if tagline}
-						<span class="badge mb-5">
-							{tagline}
-							<span class="version">{page.data.version}</span>
-						</span>
-					{/if}
-					<dl class="grid gap-px max-w-110">
-						{#each descriptions as [title, description]}
-							<div class="item">
-								<dt class="font-600">{title}</dt>
-								<dd class="grey-text text-sm m-0 pt-1">{description}</dd>
-							</div>
-						{/each}
-					</dl>
-				</div>
-			{/if}
-		</div>
-	</section>
+<div class="page">
+	<div class="shell">
+		<section class="art">
+			<PixelField density={1.15} fadeTop={0} fadeBottom={0.5} seed={7} />
+			<div class="relative flex flex-col h-full p-8 lg:p-12">
+				<a href="/" class="brand">
+					<img src="/assets/icon" alt="" class="size-6" />
+					{name}
+				</a>
+				{#if tagline || descriptions.length}
+					<div class="mt-auto pt-16 <lg:hidden">
+						{#if tagline}
+							<span class="badge mb-5">
+								{tagline}
+								<span class="version">{page.data.version}</span>
+							</span>
+						{/if}
+						<dl class="grid gap-px max-w-110">
+							{#each descriptions as [title, description]}
+								<div class="item">
+									<dt class="font-600">{title}</dt>
+									<dd class="grey-text text-sm m-0 pt-1">{description}</dd>
+								</div>
+							{/each}
+						</dl>
+					</div>
+				{/if}
+			</div>
+		</section>
 
-	<section class="form">
-		<div class="w-full max-w-100 mx-auto">
-			{@render children?.()}
-		</div>
-	</section>
+		<section class="form">
+			<div class="w-full max-w-100 mx-auto">
+				{@render children?.()}
+			</div>
+		</section>
+	</div>
+
+	<Footer data={page.data as import("../$types").LayoutData} />
 </div>
 
 <style>
-	.shell {
-		display: grid;
+	/* the two columns fill the screen above the footer */
+	.page {
+		display: flex;
+		flex-direction: column;
 		min-height: 100vh;
 		min-height: 100dvh;
+	}
+
+	.shell {
+		display: grid;
+		flex: 1;
+		margin-bottom: -4rem; /* runs down to the footer's border */
 		@media (min-width: 1024px) {
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		}
