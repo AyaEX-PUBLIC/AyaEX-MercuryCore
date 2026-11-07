@@ -2,21 +2,36 @@
 
 import { rename } from "node:fs/promises"
 import { error } from "@sveltejs/kit"
+import type { PlaceRigType } from "$lib/rigTypes"
 import { authorise } from "$lib/server/auth"
 import { fileHead } from "$lib/server/body"
+import config from "$lib/server/config"
 import createQuery from "$lib/server/createPlace.surql"
+import { burn, mint, UNIT } from "$lib/server/economy"
 import filter from "$lib/server/filter"
 import { randomAssetId } from "$lib/server/id"
 import oneAtATime from "$lib/server/oneAtATime"
 import { db, Record } from "$lib/server/surreal"
-import type { PlaceRigType } from "$lib/rigTypes"
+import { encode } from "$lib/urlName"
 
 // Places always run on the Aya 2016 client (WebAssembly Player and native
 // Aya.Server), so it is the only version offered
 export const lockedClientVersion = 2016
 
 /** Places a user may own; administrators have no limit. */
-export const placeLimit = 5
+export const placeLimit = 10
+
+/** Each user's first places are free; each one after costs placeCost. */
+export const freePlaces = 2
+/** In whole currency units */
+export const placeCost = 100
+
+/**
+ * What the user's next place costs, in whole currency units, when they own
+ * `count`. Administrators pay nothing (they have no limit either).
+ */
+export const nextPlacePrice = (user: User, count: number) =>
+	user.permissionLevel >= 5 || count < freePlaces ? 0 : placeCost
 
 /** Place files can be up to this size. */
 export const maxPlaceFileSize = 100e6
@@ -29,11 +44,18 @@ export async function placeCount(user: string) {
 	return count
 }
 
+export type CreatePlaceResult =
+	| { id: number }
+	| { status: 402 | 403; error: string }
+
 /**
- * Creates a place owned by the user, or returns undefined when they already
- * have as many as they may. Only administrators set a selfhosted address.
+ * Creates a place owned by the user, charging nextPlacePrice for it. Refuses
+ * when they already have as many as they may, when it costs more than
+ * `shownPrice` (what the user was told, in whole currency units), or when
+ * they can't pay. Only administrators set a selfhosted address.
  */
 export async function createPlace(
+	f: typeof globalThis.fetch,
 	user: User,
 	place: {
 		name: string
@@ -43,15 +65,17 @@ export async function createPlace(
 		rigType?: PlaceRigType
 		serverAddress?: string
 		serverPort?: number
-	}
-) {
+	},
+	shownPrice = 0
+): Promise<CreatePlaceResult> {
 	const isAdmin = user.permissionLevel >= 5
 	const id = randomAssetId() // listen, this still isn't great, but whatever atp
+	const name = filter(place.name)
 	const create = () =>
 		db.query(createQuery, {
 			id,
 			user: Record("user", user.id),
-			name: filter(place.name),
+			name,
 			description: filter(place.description),
 			serverAddress: isAdmin
 				? (place.serverAddress ?? "localhost")
@@ -63,18 +87,53 @@ export async function createPlace(
 			clientVersion: lockedClientVersion,
 		})
 
-	// everyone but administrators has a limit, checked and created one request
-	// at a time so concurrent requests can't both pass
-	if (isAdmin) await create()
-	else {
-		const created = await oneAtATime(`placeCreate:${user.id}`, async () => {
-			if ((await placeCount(user.id)) >= placeLimit) return false
-			await create()
-			return true
-		})
-		if (!created) return
+	if (isAdmin) {
+		await create()
+		return { id }
 	}
-	return id
+
+	// everyone else has a limit and a price, checked, paid and created one
+	// request at a time so concurrent requests can't both pass
+	return oneAtATime(`placeCreate:${user.id}`, async () => {
+		const count = await placeCount(user.id)
+		if (count >= placeLimit)
+			return {
+				status: 403,
+				error: `You can't have more than ${placeLimit} games`,
+			} as const
+
+		const price = nextPlacePrice(user, count)
+		if (price > shownPrice)
+			return {
+				status: 402,
+				error: `A new game costs ${config.CurrencySymbol}${price} (your first ${freePlaces} are free). Reload to see the price, then try again.`,
+			} as const
+
+		if (price) {
+			const paid = await burn(
+				f,
+				user.id,
+				price * UNIT,
+				`Created game ${name}`,
+				`/place/${id}/${encode(name)}`,
+				{}
+			)
+			if (!paid.ok) return { status: 402, error: paid.msg } as const
+		}
+		try {
+			await create()
+		} catch (e) {
+			if (price)
+				await mint(
+					f,
+					user.id,
+					price * UNIT,
+					`Refund: game ${name} wasn't created`
+				)
+			throw e
+		}
+		return { id }
+	})
 }
 
 /** Can this user change the place (its owner or a moderator)? */

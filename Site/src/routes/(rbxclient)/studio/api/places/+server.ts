@@ -1,7 +1,7 @@
 import { error, json } from "@sveltejs/kit"
 import { type } from "arktype"
 import { placeRigTypes } from "$lib/rigTypes"
-import { createPlace, placeLimit } from "$lib/server/places"
+import { createPlace } from "$lib/server/places"
 import { studioPlaceInfo, studioUser } from "$lib/server/studioApi"
 import { db, Record } from "$lib/server/surreal"
 import { maxPlayersTest } from "$lib/typeTests"
@@ -32,10 +32,13 @@ const createSchema = type({
 	maxPlayers: maxPlayersTest.default(10),
 	privateServer: "boolean = false",
 	rigType: type.enumerated(...placeRigTypes).default("R6"),
+	// what Studio showed the game costs (session's places.price), so it's
+	// never more than that; Studio versions that don't show it send nothing
+	price: "number.integer >= 0 = 0",
 })
 
 // Publish as a new game (Studio uploads its file next, to places/{id}/file)
-export async function POST({ locals, request }) {
+export async function POST({ fetch, locals, request }) {
 	const user = studioUser(locals, request)
 	const body = createSchema(await request.json().catch(() => null))
 	if (body instanceof type.errors) error(400, body.summary)
@@ -45,7 +48,13 @@ export async function POST({ locals, request }) {
 	if (name.length < 3) error(400, "name must be at least 3 characters")
 	if (!description) error(400, "description must not be empty")
 
-	const id = await createPlace(user, { ...body, name, description })
-	if (!id) error(403, `You can't have more than ${placeLimit} games`)
-	return json(await studioPlaceInfo(id), { status: 201, ...noStore })
+	const { price, ...place } = body
+	const created = await createPlace(
+		fetch,
+		user,
+		{ ...place, name, description },
+		price
+	)
+	if ("error" in created) error(created.status, created.error)
+	return json(await studioPlaceInfo(created.id), { status: 201, ...noStore })
 }

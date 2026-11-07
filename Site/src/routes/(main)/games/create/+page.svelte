@@ -6,14 +6,16 @@
 	import Head from "$components/Head.svelte"
 	import { superForm } from "$lib/validate"
 
-	// import beautifyCurrency from "$lib/beautifyCurrency"
-
 	const { data } = $props()
 
 	let formData = $derived(superForm(data.form))
 	export const snapshot = formData
 
-	// const [, c1, c2] = beautifyCurrency(data.price)
+	let places = $derived(data.places)
+	let full = $derived(places.limit !== null && places.count >= places.limit)
+	let price = $derived(
+		places.price ? `${data.currencySymbol}${places.price}` : ""
+	)
 </script>
 
 <Head name={data.siteName} title="Create a place" />
@@ -24,10 +26,23 @@
 			<Breadcrumbs path={[["Create", "/develop"]]} final="New place" />
 			<h1>Create a place</h1>
 			<p>Give it a name now. You can upload the place file and pictures in its settings afterwards.</p>
+			{#if places.limit !== null}
+				<p class="light-text">
+					{#if full}
+						You have {places.count} of {places.limit} games, the most you can have.
+					{:else}
+						{price ? `This one costs ${price}.` : "This one is free."}
+						Your first {places.free} games are free, then
+						{data.currencySymbol}{places.cost} each. You have
+						{places.count} of {places.limit}.
+					{/if}
+				</p>
+			{/if}
 		</div>
 	</div>
 
-<Form {formData} nopad submit="Create">
+<Form {formData} nopad submit={price ? `Create for ${price}` : "Create"}>
+	<input type="hidden" name="price" value={places.price} />
 	<Input
 		{formData}
 		name="name"
